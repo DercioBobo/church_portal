@@ -242,10 +242,18 @@ export default function GlobalSearch() {
                       </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         {c.fase && <PhaseChip fase={c.fase} />}
-                        {c.turma && (
-                          <span className="text-xs text-slate-500 truncate">{c.turma}</span>
+                        {c.turma && <span className="text-xs text-slate-500 truncate">{c.turma}</span>}
+                        {(c.catequista || c.catequista_adj) && (
+                          <span className="text-xs text-slate-400 truncate">
+                            · {[c.catequista, c.catequista_adj].filter(Boolean).join(' & ')}
+                          </span>
                         )}
                       </div>
+                      {c.encarregado && (
+                        <div className="text-xs text-slate-400 mt-0.5 truncate">
+                          Enc: {c.encarregado}
+                        </div>
+                      )}
                     </div>
 
                     <ChevronRight className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-blue-400' : 'text-slate-300'}`} />

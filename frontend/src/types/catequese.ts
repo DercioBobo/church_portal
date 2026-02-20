@@ -29,6 +29,7 @@ export interface Catecumeno {
   turma: string;
   sexo: string;
   status: string;
+  encarregado?: string;
   local?: string;
   dia?: string;
   hora?: string;
@@ -65,5 +66,6 @@ export interface ResultadoPesquisa {
     local: string;
     dia: string;
     hora: string;
+    status?: string;
   }[];
 }

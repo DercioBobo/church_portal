@@ -98,14 +98,29 @@ export default function PesquisaContent() {
                         href={`/portal/catecumeno/?nome=${encodeURIComponent(c.name)}`}
                         className="px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
                       >
-                        <div>
-                          <div className="font-medium text-slate-900 text-sm">{c.name}</div>
-                          <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-slate-900 text-sm">{c.name}</span>
+                            {c.found_via === 'encarregado' && (
+                              <span className="text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5 shrink-0">
+                                via encarregado
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <PhaseChip fase={c.fase} />
                             {c.turma && <span className="text-xs text-slate-500">{c.turma}</span>}
+                            {(c.catequista || c.catequista_adj) && (
+                              <span className="text-xs text-slate-400">
+                                · {[c.catequista, c.catequista_adj].filter(Boolean).join(' & ')}
+                              </span>
+                            )}
                           </div>
+                          {c.encarregado && (
+                            <div className="text-xs text-slate-400 mt-0.5">Enc: {c.encarregado}</div>
+                          )}
                         </div>
-                        <div className="text-xs text-slate-400 shrink-0">
+                        <div className="text-xs text-slate-400 shrink-0 ml-4">
                           {[c.dia, c.hora].filter(Boolean).join(' · ')}
                         </div>
                       </a>

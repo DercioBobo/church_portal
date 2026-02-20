@@ -25,6 +25,7 @@ def get_turmas_publicas():
         FROM `tabTurma` t
         LEFT JOIN `tabTurma Catecumenos` tc ON tc.parent = t.name
             AND tc.parentfield = 'lista_catecumenos'
+            AND tc.status = 'Activo'
         WHERE t.status = 'Activo'
         GROUP BY t.name
         ORDER BY t.fase ASC, t.name ASC
@@ -50,6 +51,7 @@ def get_turma_detalhe(turma_nome):
         FROM `tabTurma Catecumenos` tc
         WHERE tc.parent = %s
           AND tc.parentfield = 'lista_catecumenos'
+          AND tc.status = 'Activo'
         ORDER BY tc.catecumeno ASC
     """, (turma_nome,), as_dict=True)
 
@@ -72,6 +74,8 @@ def pesquisar(query):
             c.fase,
             c.turma,
             c.sexo,
+            c.status,
+            c.encarregado,
             t.local,
             t.dia,
             t.hora,
@@ -93,6 +97,8 @@ def pesquisar(query):
                 c.fase,
                 c.turma,
                 c.sexo,
+                c.status,
+                c.encarregado,
                 t.local,
                 t.dia,
                 t.hora,
@@ -119,10 +125,10 @@ def pesquisar(query):
             t.fase,
             t.local,
             t.dia,
-            t.hora
+            t.hora,
+            t.status
         FROM `tabTurma` t
         WHERE (t.catequista LIKE %s OR t.catequista_adj LIKE %s)
-          AND t.status = 'Activo'
         ORDER BY t.catequista ASC
         LIMIT 10
     """, (q, q), as_dict=True)
@@ -190,6 +196,7 @@ def get_catecumenos_aniversariantes(tipo="hoje"):
         FROM `tabCatecumeno` c
         LEFT JOIN `tabTurma` t ON c.turma = t.name
         WHERE c.data_de_nascimento IS NOT NULL
+          AND c.status = 'Activo'
           AND {condition}
         ORDER BY MONTH(c.data_de_nascimento), DAY(c.data_de_nascimento), c.name
     """, params, as_dict=True)
@@ -200,7 +207,7 @@ def get_catecumenos_aniversariantes(tipo="hoje"):
 @frappe.whitelist(allow_guest=True)
 def get_estatisticas_publicas():
     """Estatísticas gerais para o dashboard público."""
-    total_catecumenos = frappe.db.count("Catecumeno")
+    total_catecumenos = frappe.db.count("Catecumeno", {"status": "Activo"})
     total_turmas = frappe.db.count("Turma", {"status": "Activo"})
 
     try:
@@ -212,6 +219,7 @@ def get_estatisticas_publicas():
         SELECT fase, COUNT(*) AS total
         FROM `tabCatecumeno`
         WHERE fase IS NOT NULL AND fase != ''
+          AND status = 'Activo'
         GROUP BY fase
         ORDER BY fase ASC
     """, as_dict=True)
