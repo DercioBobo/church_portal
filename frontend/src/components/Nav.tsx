@@ -36,6 +36,7 @@ export default function Nav() {
               <Link
                 key={l.href}
                 href={l.href}
+                prefetch={false}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   pathname === l.href
                     ? 'bg-blue-50 text-blue-800'
@@ -65,6 +66,7 @@ export default function Nav() {
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
+                prefetch={false}
                 className={`block px-4 py-3 text-sm font-medium rounded-lg mx-1 transition-colors ${
                   pathname === l.href
                     ? 'bg-blue-50 text-blue-800'

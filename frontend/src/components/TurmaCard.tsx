@@ -7,6 +7,7 @@ export default function TurmaCard({ turma }: { turma: Turma }) {
   return (
     <Link
       href={`/turma?nome=${encodeURIComponent(turma.name)}`}
+      prefetch={false}
       className="block bg-white rounded-2xl border border-slate-200 p-5 hover:bg-slate-50 hover:border-slate-300 transition-all duration-150"
     >
       <div className="flex items-start justify-between gap-2 mb-3">

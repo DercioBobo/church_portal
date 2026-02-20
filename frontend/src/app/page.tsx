@@ -83,6 +83,7 @@ export default function HomePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
           href="/turmas"
+          prefetch={false}
           className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 transition-colors"
         >
           <div>
@@ -93,6 +94,7 @@ export default function HomePage() {
         </Link>
         <Link
           href="/aniversarios"
+          prefetch={false}
           className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 transition-colors"
         >
           <div>
