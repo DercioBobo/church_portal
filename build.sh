@@ -50,6 +50,17 @@ rm -rf "$WWW_DIR"
 mkdir -p "$WWW_DIR"
 cp -r out/* "$WWW_DIR/"
 
+# Frappe processes all .html files in www/ through Jinja and rejects
+# Next.js inline scripts that contain ".__" patterns (e.g. self.__next_f).
+# Fix: prepend front matter with safe_render: 0 to every HTML file.
+echo "A configurar HTML para Frappe (safe_render)..."
+find "$WWW_DIR" -name "*.html" | while IFS= read -r f; do
+    tmp="${f}.tmp"
+    printf -- "---\nsafe_render: 0\nno_cache: 1\n---\n" > "$tmp"
+    cat "$f" >> "$tmp"
+    mv "$tmp" "$f"
+done
+
 echo ""
 echo "Build concluído! Ficheiros em: $WWW_DIR"
 echo ""

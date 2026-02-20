@@ -85,7 +85,7 @@ bash "$PORTAL_DIR/build.sh"
 echo ""
 echo -e "${GREEN}[2/3] A instalar a app no site '$SITE'...${NC}"
 cd "$BENCH_DIR"
-bench --site "$SITE" install-app portal
+bench --site "$SITE" install-app portal --force
 
 # ── Passo 3: Configurar CORS e reiniciar ─────────────────
 echo ""
