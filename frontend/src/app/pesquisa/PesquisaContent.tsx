@@ -132,7 +132,9 @@ export default function PesquisaContent() {
                         onClick={() => router.push(`/turma?nome=${encodeURIComponent(c.turma)}`)}
                       >
                         <div>
-                          <div className="font-medium text-slate-900 text-sm">{c.catequista}</div>
+                          <div className="font-medium text-slate-900 text-sm">
+                          {[c.catequista, c.catequista_adj].filter(Boolean).join(' e ')}
+                        </div>
                           <div className="flex items-center gap-2 mt-1">
                             <PhaseChip fase={c.fase} />
                             <span className="text-xs text-slate-500">{c.turma}</span>

@@ -38,10 +38,12 @@ export default function TurmaCard({ turma }: { turma: Turma }) {
             </span>
           </div>
         )}
-        {turma.catequista && (
+        {(turma.catequista || turma.catequista_adj) && (
           <div className="flex items-center gap-1.5">
             <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>{turma.catequista}</span>
+            <span>
+              {[turma.catequista, turma.catequista_adj].filter(Boolean).join(' e ')}
+            </span>
           </div>
         )}
       </div>

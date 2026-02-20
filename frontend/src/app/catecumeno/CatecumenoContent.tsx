@@ -120,21 +120,12 @@ export default function CatecumenoContent() {
                 </div>
               </div>
             )}
-            {t.catequista && (
+            {(t.catequista || t.catequista_adj) && (
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-500">Catequista</span>
+                <span className="text-sm text-slate-500">Catequistas</span>
                 <div className="flex items-center gap-1.5 text-sm text-slate-900">
                   <User className="w-3.5 h-3.5 text-slate-400" />
-                  {t.catequista}
-                </div>
-              </div>
-            )}
-            {t.catequista_adj && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-500">Catequista adj.</span>
-                <div className="flex items-center gap-1.5 text-sm text-slate-900">
-                  <User className="w-3.5 h-3.5 text-slate-400" />
-                  {t.catequista_adj}
+                  {[t.catequista, t.catequista_adj].filter(Boolean).join(' e ')}
                 </div>
               </div>
             )}

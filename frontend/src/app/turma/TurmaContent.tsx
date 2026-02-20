@@ -85,18 +85,12 @@ export default function TurmaContent() {
               <span>{[turma.dia, turma.hora].filter(Boolean).join(' · ')}</span>
             </div>
           )}
-          {turma.catequista && (
+          {(turma.catequista || turma.catequista_adj) && (
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <User className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>{turma.catequista}</span>
-              <span className="text-slate-400 text-xs">(principal)</span>
-            </div>
-          )}
-          {turma.catequista_adj && (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <User className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>{turma.catequista_adj}</span>
-              <span className="text-slate-400 text-xs">(adjunto)</span>
+              <span>
+                {[turma.catequista, turma.catequista_adj].filter(Boolean).join(' e ')}
+              </span>
             </div>
           )}
         </div>

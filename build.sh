@@ -65,6 +65,14 @@ find "$OUT_DIR" -name "*.html" | while IFS= read -r f; do
     cat "$f" >> "$dest"
 done
 
+# Copy RSC payload .txt files (Next.js fetches these for client-side navigation)
+find "$OUT_DIR" -name "*.txt" | while IFS= read -r f; do
+    rel="${f#$OUT_DIR/}"
+    dest="$WWW_DIR/$rel"
+    mkdir -p "$(dirname "$dest")"
+    cp "$f" "$dest"
+done
+
 # ── _next/ static assets → portal/public/ ────────────────────────────────────
 # Frappe serves portal/public/ at /assets/portal/ as true static files.
 # next.config.mjs sets assetPrefix: '/assets/portal' so HTML files reference
