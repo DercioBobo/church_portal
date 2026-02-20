@@ -24,23 +24,24 @@ export default function TurmasPage() {
   const filtered = faseFilter === ALL ? turmas : turmas.filter((t) => t.fase === faseFilter);
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Turmas</h1>
+    <div className="animate-fade-up">
+      {/* Header */}
+      <div className="mb-7">
+        <h1 className="font-display text-2xl font-bold text-navy-900">Turmas</h1>
         <p className="text-slate-500 text-sm mt-1">Todas as turmas activas de catequese</p>
       </div>
 
-      {/* Phase filter */}
+      {/* Phase filter pills */}
       {!loading && fases.length > 1 && (
         <div className="flex flex-wrap gap-2 mb-6">
           {fases.map((f) => (
             <button
               key={f}
               onClick={() => setFaseFilter(f)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-150 ${
                 faseFilter === f
-                  ? 'bg-blue-800 text-white'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  ? 'bg-navy-900 text-white shadow-warm-xs'
+                  : 'bg-white text-slate-600 border border-cream-300 hover:border-navy-900/20 hover:bg-cream-50 shadow-warm-xs'
               }`}
             >
               {f}
@@ -54,8 +55,8 @@ export default function TurmasPage() {
           {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
-          <p>Nenhuma turma encontrada.</p>
+        <div className="text-center py-20">
+          <p className="text-slate-400 font-display italic">Nenhuma turma encontrada.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

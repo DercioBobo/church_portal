@@ -1,11 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* {
-  box-sizing: border-box;
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #c8bba4;
+    border-radius: 10px;
+  }
 }
 
-body {
-  -webkit-font-smoothing: antialiased;
+@layer utilities {
+  /* Subtle cross grid pattern for hero backgrounds */
+  .bg-cross-pattern {
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><path d='M20 8v24M8 20h24' stroke='%231a2b5c' stroke-width='0.8' stroke-opacity='0.05'/></svg>");
+    background-repeat: repeat;
+  }
+
+  /* Staggered fade-up for page sections */
+  .animate-fade-up {
+    animation: fadeUp 0.5s ease-out both;
+  }
+  .animate-fade-up-1 { animation: fadeUp 0.5s 0.05s ease-out both; }
+  .animate-fade-up-2 { animation: fadeUp 0.5s 0.10s ease-out both; }
+  .animate-fade-up-3 { animation: fadeUp 0.5s 0.15s ease-out both; }
+  .animate-fade-up-4 { animation: fadeUp 0.5s 0.20s ease-out both; }
+
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out both;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }

@@ -6,13 +6,13 @@ interface Props {
 
 export default function StatsCard({ label, value, icon }: Props) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4">
-      <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center text-blue-800 shrink-0">
+    <div className="bg-white rounded-2xl border border-cream-300 p-6 flex items-center gap-4 shadow-warm-xs hover:shadow-warm-sm transition-shadow duration-200">
+      <div className="w-12 h-12 rounded-xl bg-navy-900 flex items-center justify-center text-gold-400 shrink-0">
         {icon}
       </div>
       <div>
-        <div className="text-2xl font-bold text-slate-900">{value}</div>
-        <div className="text-sm text-slate-500">{label}</div>
+        <div className="text-3xl font-display font-bold text-navy-900 leading-none">{value}</div>
+        <div className="text-sm text-slate-500 mt-1">{label}</div>
       </div>
     </div>
   );

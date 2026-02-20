@@ -28,7 +28,6 @@ export default function GlobalSearch() {
 
   const debouncedQuery = useDebounce(query, 280);
 
-  // ── Open / close helpers ──────────────────────────────────────────────────
   const openSearch = useCallback(() => {
     setOpen(true);
     setActiveIdx(-1);
@@ -41,12 +40,11 @@ export default function GlobalSearch() {
     setActiveIdx(-1);
   }, []);
 
-  // ── Keyboard: Ctrl+K  /  /  (not inside inputs) ──────────────────────────
+  // Keyboard shortcuts: Ctrl+K and /
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const inInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         openSearch();
@@ -61,23 +59,22 @@ export default function GlobalSearch() {
     return () => document.removeEventListener('keydown', handler);
   }, [openSearch]);
 
-  // ── Custom event from buttons / homepage ─────────────────────────────────
+  // Custom event from Nav search button
   useEffect(() => {
     const handler = () => openSearch();
     window.addEventListener('open-search', handler);
     return () => window.removeEventListener('open-search', handler);
   }, [openSearch]);
 
-  // ── Focus input when opened ───────────────────────────────────────────────
+  // Focus input when opened
   useEffect(() => {
     if (open) {
-      // Small delay lets the modal paint first
       const t = setTimeout(() => inputRef.current?.focus(), 40);
       return () => clearTimeout(t);
     }
   }, [open]);
 
-  // ── Fetch results ─────────────────────────────────────────────────────────
+  // Fetch results
   useEffect(() => {
     if (debouncedQuery.trim().length < 2) {
       setResults(null);
@@ -91,7 +88,7 @@ export default function GlobalSearch() {
       .finally(() => setLoading(false));
   }, [debouncedQuery]);
 
-  // ── Build flat list of navigable items for keyboard nav ───────────────────
+  // Flat list for keyboard nav
   const navItems: NavItem[] = [
     ...(results?.catecumenos ?? []).map((c) => ({
       href: `/portal/catecumeno/?nome=${encodeURIComponent(c.name)}`,
@@ -101,7 +98,6 @@ export default function GlobalSearch() {
     })),
   ];
 
-  // ── Arrow-key / Enter inside panel ───────────────────────────────────────
   const handlePanelKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { closeSearch(); return; }
     if (e.key === 'ArrowDown') {
@@ -115,7 +111,6 @@ export default function GlobalSearch() {
     }
   };
 
-  // ── Scroll active item into view ──────────────────────────────────────────
   useEffect(() => {
     if (activeIdx < 0 || !listRef.current) return;
     const el = listRef.current.querySelectorAll<HTMLElement>('[data-nav-item]')[activeIdx];
@@ -127,26 +122,26 @@ export default function GlobalSearch() {
   const catecumenos = results?.catecumenos ?? [];
   const catequistas = results?.catequistas ?? [];
   const hasResults = catecumenos.length > 0 || catequistas.length > 0;
-  let itemIdx = -1; // running index for active highlight
+  let itemIdx = -1;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-start justify-center px-4 pt-[8vh] sm:pt-[12vh]">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-navy-950/70 backdrop-blur-sm"
         onClick={closeSearch}
         aria-hidden
       />
 
       {/* Panel */}
       <div
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5 overflow-hidden flex flex-col"
-        style={{ maxHeight: '75vh' }}
+        className="relative w-full max-w-lg bg-white rounded-2xl shadow-warm-lg ring-1 ring-navy-900/10 overflow-hidden flex flex-col animate-fade-up"
+        style={{ maxHeight: '76vh' }}
         onKeyDown={handlePanelKey}
       >
-        {/* ── Input row ──────────────────────────────────────────────── */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100">
-          <Search className="w-5 h-5 text-blue-600 shrink-0" />
+        {/* Input row */}
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-cream-200">
+          <Search className="w-5 h-5 text-navy-900/50 shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -157,27 +152,27 @@ export default function GlobalSearch() {
           />
           <div className="flex items-center gap-2 shrink-0">
             {loading && (
-              <div className="w-4 h-4 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-cream-300 border-t-navy-900 rounded-full animate-spin" />
             )}
             {query && (
               <button
                 onClick={() => { setQuery(''); setResults(null); inputRef.current?.focus(); }}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-slate-400 hover:text-slate-700 transition-colors"
                 aria-label="Limpar"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
-            <kbd className="hidden sm:flex items-center text-xs text-slate-400 bg-slate-100 rounded px-1.5 py-0.5 font-mono leading-none">
+            <kbd className="hidden sm:flex items-center text-xs text-slate-400 bg-cream-100 border border-cream-300 rounded px-1.5 py-0.5 font-mono leading-none">
               esc
             </kbd>
           </div>
         </div>
 
-        {/* ── Results body ────────────────────────────────────────────── */}
+        {/* Results body */}
         <div ref={listRef} className="overflow-y-auto flex-1">
 
-          {/* Empty prompt */}
+          {/* Empty state */}
           {query.trim().length === 0 && (
             <div className="px-5 py-10 text-center space-y-1">
               <p className="text-sm text-slate-500">Escreva para pesquisar</p>
@@ -187,7 +182,7 @@ export default function GlobalSearch() {
 
           {/* Too short */}
           {query.trim().length === 1 && (
-            <div className="px-5 py-10 text-center text-sm text-slate-400">
+            <div className="px-5 py-10 text-center text-sm text-slate-400 font-display italic">
               Pelo menos 2 caracteres...
             </div>
           )}
@@ -196,18 +191,19 @@ export default function GlobalSearch() {
           {results && !loading && !hasResults && query.trim().length >= 2 && (
             <div className="px-5 py-10 text-center">
               <p className="text-sm text-slate-500">
-                Sem resultados para <span className="font-medium text-slate-700">&ldquo;{query}&rdquo;</span>
+                Sem resultados para{' '}
+                <span className="font-semibold text-navy-900">&ldquo;{query}&rdquo;</span>
               </p>
-              <p className="text-xs text-slate-400 mt-1">Verifique a ortografia ou tente um nome diferente</p>
+              <p className="text-xs text-slate-400 mt-1">Verifique a ortografia ou tente outro nome</p>
             </div>
           )}
 
-          {/* ── Catecúmenos section ──────────────────────────────────── */}
+          {/* Catecúmenos */}
           {catecumenos.length > 0 && (
             <div>
               <div className="flex items-center gap-2 px-4 pt-4 pb-1.5">
-                <Users className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <Users className="w-3.5 h-3.5 text-navy-900/40" />
+                <span className="text-[10px] font-bold text-navy-900/40 uppercase tracking-widest">
                   Catecúmenos ({catecumenos.length})
                 </span>
               </div>
@@ -221,21 +217,18 @@ export default function GlobalSearch() {
                     href={`/portal/catecumeno/?nome=${encodeURIComponent(c.name)}`}
                     data-nav-item
                     className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-                      isActive ? 'bg-blue-50' : 'hover:bg-slate-50'
+                      isActive ? 'bg-cream-100' : 'hover:bg-cream-50'
                     }`}
                     onMouseEnter={() => setActiveIdx(idx)}
                   >
-                    {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-navy-900 flex items-center justify-center text-gold-400 text-sm font-bold shrink-0">
                       {c.name.charAt(0).toUpperCase()}
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-slate-900 truncate">{c.name}</span>
                         {c.found_via === 'encarregado' && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
                             via encarregado
                           </span>
                         )}
@@ -250,25 +243,22 @@ export default function GlobalSearch() {
                         )}
                       </div>
                       {c.encarregado && (
-                        <div className="text-xs text-slate-400 mt-0.5 truncate">
-                          Enc: {c.encarregado}
-                        </div>
+                        <div className="text-xs text-slate-400 mt-0.5 truncate">Enc: {c.encarregado}</div>
                       )}
                     </div>
-
-                    <ChevronRight className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-blue-400' : 'text-slate-300'}`} />
+                    <ChevronRight className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-gold-500' : 'text-slate-300'}`} />
                   </a>
                 );
               })}
             </div>
           )}
 
-          {/* ── Catequistas section ──────────────────────────────────── */}
+          {/* Catequistas */}
           {catequistas.length > 0 && (
-            <div className={catecumenos.length > 0 ? 'border-t border-slate-100 mt-1' : ''}>
+            <div className={catecumenos.length > 0 ? 'border-t border-cream-200 mt-1' : ''}>
               <div className="flex items-center gap-2 px-4 pt-4 pb-1.5">
-                <User className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <User className="w-3.5 h-3.5 text-navy-900/40" />
+                <span className="text-[10px] font-bold text-navy-900/40 uppercase tracking-widest">
                   Catequistas ({catequistas.length})
                 </span>
               </div>
@@ -282,16 +272,13 @@ export default function GlobalSearch() {
                     href={`/portal/turma/?nome=${encodeURIComponent(c.turma)}`}
                     data-nav-item
                     className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-                      isActive ? 'bg-blue-50' : 'hover:bg-slate-50'
+                      isActive ? 'bg-cream-100' : 'hover:bg-cream-50'
                     }`}
                     onMouseEnter={() => setActiveIdx(idx)}
                   >
-                    {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-sm font-bold shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
                       {(c.catequista || 'C').charAt(0).toUpperCase()}
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-slate-900 truncate">
                         {[c.catequista, c.catequista_adj].filter(Boolean).join(' & ')}
@@ -302,26 +289,24 @@ export default function GlobalSearch() {
                         {c.local && <span className="text-xs text-slate-400 truncate">{c.local}</span>}
                       </div>
                     </div>
-
-                    <ChevronRight className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-blue-400' : 'text-slate-300'}`} />
+                    <ChevronRight className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-gold-500' : 'text-slate-300'}`} />
                   </a>
                 );
               })}
             </div>
           )}
 
-          {/* Bottom padding */}
           {hasResults && <div className="h-2" />}
         </div>
 
-        {/* ── Footer hints ────────────────────────────────────────────── */}
-        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-slate-100 text-[11px] text-slate-400 bg-slate-50/60">
-          <span><kbd className="font-mono bg-white border border-slate-200 px-1 rounded">↑↓</kbd> navegar</span>
-          <span><kbd className="font-mono bg-white border border-slate-200 px-1 rounded">↵</kbd> abrir</span>
-          <span><kbd className="font-mono bg-white border border-slate-200 px-1 rounded">esc</kbd> fechar</span>
+        {/* Footer hints */}
+        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-cream-200 text-[11px] text-slate-400 bg-cream-50/80">
+          <span><kbd className="font-mono bg-white border border-cream-300 px-1 rounded">↑↓</kbd> navegar</span>
+          <span><kbd className="font-mono bg-white border border-cream-300 px-1 rounded">↵</kbd> abrir</span>
+          <span><kbd className="font-mono bg-white border border-cream-300 px-1 rounded">esc</kbd> fechar</span>
           <a
             href="/portal/pesquisa/"
-            className="ml-auto text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+            className="ml-auto text-navy-700 hover:text-navy-900 hover:underline transition-colors font-medium"
           >
             Pesquisa completa →
           </a>

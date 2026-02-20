@@ -14,12 +14,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt">
-      <body className="font-sans bg-slate-50 min-h-screen text-slate-900">
+      <body className="font-sans bg-cream-100 min-h-screen text-slate-900">
         <Nav />
         <GlobalSearch />
         <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
-        <footer className="border-t border-slate-200 mt-16 py-8 text-center text-sm text-slate-400">
-          © {new Date().getFullYear()} {parishName} — Portal de Catequese
+        <footer className="border-t border-cream-300 mt-16 py-8 text-center">
+          <p className="text-sm text-slate-400">
+            © {new Date().getFullYear()}{' '}
+            <span className="font-display italic text-navy-900/60">{parishName}</span>
+            {' '}— Portal de Catequese
+          </p>
         </footer>
       </body>
     </html>

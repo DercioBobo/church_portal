@@ -4,7 +4,10 @@
       "Bash(npx tsc:*)",
       "Bash(./node_modules/.bin/tsc:*)",
       "Bash(ls:*)",
-      "Bash(node_modules/typescript/bin/tsc:*)"
+      "Bash(node_modules/typescript/bin/tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx next build:*)",
+      "Bash(node_modules/.bin/next build:*)"
     ]
   }
 }
