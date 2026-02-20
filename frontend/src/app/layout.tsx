@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Nav from '@/components/Nav';
+import GlobalSearch from '@/components/GlobalSearch';
 
 const parishName = process.env.NEXT_PUBLIC_PARISH_NAME || 'PNSA';
 const parishShort = process.env.NEXT_PUBLIC_PARISH_SHORT || 'PNSA';
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt">
       <body className="font-sans bg-slate-50 min-h-screen text-slate-900">
         <Nav />
+        <GlobalSearch />
         <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
         <footer className="border-t border-slate-200 mt-16 py-8 text-center text-sm text-slate-400">
           © {new Date().getFullYear()} {parishName} — Portal de Catequese

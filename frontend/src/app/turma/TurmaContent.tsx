@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, MapPin, Clock, User, Users, AlertCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, User, Users, AlertCircle, Search, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { TurmaDetalhe } from '@/types/catequese';
 import PhaseChip from '@/components/PhaseChip';
@@ -15,6 +15,7 @@ export default function TurmaContent() {
   const [turma, setTurma] = useState<TurmaDetalhe | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     if (!nome) {
@@ -97,36 +98,74 @@ export default function TurmaContent() {
 
       {/* Catecúmenos */}
       <div className="bg-white rounded-2xl border border-slate-200">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-900">Catecúmenos</h2>
+        {/* Header + filter */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4 flex-wrap">
+          <h2 className="font-semibold text-slate-900">
+            Catecúmenos
+            {filter && (
+              <span className="ml-2 text-xs font-normal text-slate-400">
+                {turma.catecumenos.filter(c => c.catecumeno.toLowerCase().includes(filter.toLowerCase())).length}/{turma.catecumenos.length}
+              </span>
+            )}
+          </h2>
+          {turma.catecumenos.length > 4 && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Filtrar..."
+                className="pl-8 pr-7 py-1.5 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all w-40"
+              />
+              {filter && (
+                <button
+                  onClick={() => setFilter('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
+
         {turma.catecumenos.length === 0 ? (
           <div className="px-6 py-12 text-center text-slate-400 text-sm">
             Nenhum catecúmeno activo nesta turma.
           </div>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {turma.catecumenos.map((c) => (
-              <li key={c.catecumeno}>
-                <a
-                  href={`/portal/catecumeno/?nome=${encodeURIComponent(c.catecumeno)}`}
-                  className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors"
-                >
-                  <span className="text-sm text-slate-800 font-medium">{c.catecumeno}</span>
-                  <div className="flex items-center gap-3 text-xs text-slate-500">
-                    {c.total_presencas != null && (
-                      <span className="text-emerald-600">{c.total_presencas}P</span>
-                    )}
-                    {c.total_faltas != null && c.total_faltas > 0 && (
-                      <span className="text-red-500">{c.total_faltas}F</span>
-                    )}
-                    <span className="text-slate-300">›</span>
-                  </div>
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
+        ) : (() => {
+          const visible = turma.catecumenos.filter(c =>
+            !filter || c.catecumeno.toLowerCase().includes(filter.toLowerCase())
+          );
+          return visible.length === 0 ? (
+            <div className="px-6 py-10 text-center text-slate-400 text-sm">
+              Nenhum resultado para &ldquo;{filter}&rdquo;
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {visible.map((c) => (
+                <li key={c.catecumeno}>
+                  <a
+                    href={`/portal/catecumeno/?nome=${encodeURIComponent(c.catecumeno)}`}
+                    className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                  >
+                    <span className="text-sm text-slate-800 font-medium">{c.catecumeno}</span>
+                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                      {c.total_presencas != null && (
+                        <span className="text-emerald-600">{c.total_presencas}P</span>
+                      )}
+                      {c.total_faltas != null && c.total_faltas > 0 && (
+                        <span className="text-red-500">{c.total_faltas}F</span>
+                      )}
+                      <span className="text-slate-300">›</span>
+                    </div>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          );
+        })()}
       </div>
     </div>
   );

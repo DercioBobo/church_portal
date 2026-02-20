@@ -34,6 +34,7 @@ export interface Catecumeno {
   hora?: string;
   catequista?: string;
   catequista_adj?: string;
+  found_via?: string; // 'encarregado' when matched via guardian name
 }
 
 export interface Aniversariante {
