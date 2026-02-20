@@ -1,0 +1,4 @@
+include MANIFEST.in
+recursive-include portal/templates *
+recursive-include portal/www *
+recursive-include portal/public *
