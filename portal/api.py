@@ -76,13 +76,40 @@ def pesquisar(query):
             t.dia,
             t.hora,
             t.catequista,
-            t.catequista_adj
+            t.catequista_adj,
+            NULL AS found_via
         FROM `tabCatecumeno` c
         LEFT JOIN `tabTurma` t ON c.turma = t.name
         WHERE c.name LIKE %s
         ORDER BY c.name ASC
         LIMIT 20
     """, (q,), as_dict=True)
+
+    # Search by encarregado name (field may vary — graceful fallback)
+    try:
+        enc = frappe.db.sql("""
+            SELECT
+                c.name,
+                c.fase,
+                c.turma,
+                c.sexo,
+                t.local,
+                t.dia,
+                t.hora,
+                t.catequista,
+                t.catequista_adj,
+                'encarregado' AS found_via
+            FROM `tabCatecumeno` c
+            LEFT JOIN `tabTurma` t ON c.turma = t.name
+            WHERE c.encarregado LIKE %s
+            ORDER BY c.name ASC
+            LIMIT 10
+        """, (q,), as_dict=True)
+        # Avoid duplicates
+        existing = {r.name for r in catecumenos}
+        catecumenos += [r for r in enc if r.name not in existing]
+    except Exception:
+        pass
 
     catequistas = frappe.db.sql("""
         SELECT DISTINCT

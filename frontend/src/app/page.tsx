@@ -27,6 +27,7 @@ export default function HomePage() {
         setStats(s);
         setBirthdays(b ?? []);
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

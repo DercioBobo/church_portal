@@ -60,8 +60,13 @@ find "$OUT_DIR" -name "*.html" | while IFS= read -r f; do
     rel="${f#$OUT_DIR/}"
     dest="$WWW_DIR/$rel"
     mkdir -p "$(dirname "$dest")"
-    # Frappe front matter: disable Jinja security check on Next.js inline scripts
-    printf -- "---\nsafe_render: 0\nno_cache: 1\n---\n" > "$dest"
+    # Frappe front matter:
+    # - safe_render: 0  → disable Jinja security check on Next.js inline scripts
+    # - no_cache: 1     → don't cache the HTML
+    # - base_template_path → use our minimal template instead of Frappe's base
+    #   (prevents Frappe from injecting socket.io/frappe.js which throws
+    #    "Connection closed." as a global JS error caught by React)
+    printf -- "---\nsafe_render: 0\nno_cache: 1\nbase_template_path: templates/portal_page.html\n---\n" > "$dest"
     cat "$f" >> "$dest"
 done
 
