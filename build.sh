@@ -70,6 +70,7 @@ done
 # next.config.mjs sets assetPrefix: '/assets/portal' so HTML files reference
 # JS/CSS at /assets/portal/_next/static/...
 echo "A copiar assets estáticos para public/..."
+mkdir -p "$PUBLIC_DIR"
 rm -rf "$PUBLIC_DIR/_next"
 cp -r "$OUT_DIR/_next" "$PUBLIC_DIR/_next"
 
