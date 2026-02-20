@@ -27,7 +27,7 @@ echo -e "${BOLD}╚════════════════════�
 echo ""
 
 # ── Verificar que estamos no bench ───────────────────────
-if [ ! -f "$BENCH_DIR/env/bin/frappe" ] && [ ! -f "$BENCH_DIR/env/bin/bench" ]; then
+if [ ! -d "$BENCH_DIR/apps" ] || [ ! -d "$BENCH_DIR/sites" ]; then
     echo -e "${RED}ERRO: Execute este script a partir do directório do bench.${NC}"
     echo "  cd /home/frappe/frappe-bench"
     echo "  bash apps/portal/install.sh [site]"
