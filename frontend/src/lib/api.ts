@@ -11,11 +11,9 @@ const BASE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL || '';
 const APP = 'portal.api';
 
 async function frappeFetch<T>(method: string, params?: Record<string, string>): Promise<T> {
-  const url = new URL(`${BASE_URL}/api/method/${method}`);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  }
-  const res = await fetch(url.toString(), {
+  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  const urlStr = `${BASE_URL}/api/method/${method}${qs}`;
+  const res = await fetch(urlStr, {
     headers: { 'Content-Type': 'application/json' },
   });
   if (!res.ok) {
