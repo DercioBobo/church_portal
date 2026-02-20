@@ -10,7 +10,7 @@ from datetime import date, timedelta
 
 @frappe.whitelist(allow_guest=True)
 def get_turmas_publicas():
-    """Lista de turmas activas com dados não sensíveis."""
+    """Lista de turmas activas com contagem de catecúmenos."""
     turmas = frappe.db.sql("""
         SELECT
             t.name,
@@ -21,9 +21,10 @@ def get_turmas_publicas():
             t.hora,
             t.catequista,
             t.catequista_adj,
-            COUNT(CASE WHEN tc.status = 'Activo' THEN 1 END) AS total_catecumenos
+            COUNT(tc.name) AS total_catecumenos
         FROM `tabTurma` t
         LEFT JOIN `tabTurma Catecumenos` tc ON tc.parent = t.name
+            AND tc.parentfield = 'lista_catecumenos'
         WHERE t.status = 'Activo'
         GROUP BY t.name
         ORDER BY t.fase ASC, t.name ASC
@@ -45,14 +46,10 @@ def get_turma_detalhe(turma_nome):
         frappe.throw(_("Turma não encontrada"))
 
     catecumenos = frappe.db.sql("""
-        SELECT
-            tc.catecumeno,
-            tc.status,
-            tc.total_presencas,
-            tc.total_faltas
+        SELECT tc.catecumeno
         FROM `tabTurma Catecumenos` tc
         WHERE tc.parent = %s
-          AND tc.status = 'Activo'
+          AND tc.parentfield = 'lista_catecumenos'
         ORDER BY tc.catecumeno ASC
     """, (turma_nome,), as_dict=True)
 
@@ -83,7 +80,6 @@ def pesquisar(query):
         FROM `tabCatecumeno` c
         LEFT JOIN `tabTurma` t ON c.turma = t.name
         WHERE c.name LIKE %s
-          AND (c.status = 'Activo' OR c.status IS NULL)
         ORDER BY c.name ASC
         LIMIT 20
     """, (q,), as_dict=True)
@@ -137,21 +133,20 @@ def get_catecumenos_aniversariantes(tipo="hoje"):
     today = date.today()
 
     if tipo == "hoje":
-        condition = "MONTH(data_de_nascimento) = %s AND DAY(data_de_nascimento) = %s"
+        condition = "MONTH(c.data_de_nascimento) = %s AND DAY(c.data_de_nascimento) = %s"
         params = (today.month, today.day)
     else:
         week_end = today + timedelta(days=7)
-        # Handle month wrap-around properly
         if week_end.month == today.month:
             condition = """
-                MONTH(data_de_nascimento) = %s
-                AND DAY(data_de_nascimento) BETWEEN %s AND %s
+                MONTH(c.data_de_nascimento) = %s
+                AND DAY(c.data_de_nascimento) BETWEEN %s AND %s
             """
             params = (today.month, today.day, week_end.day)
         else:
             condition = """
-                (MONTH(data_de_nascimento) = %s AND DAY(data_de_nascimento) >= %s)
-                OR (MONTH(data_de_nascimento) = %s AND DAY(data_de_nascimento) <= %s)
+                (MONTH(c.data_de_nascimento) = %s AND DAY(c.data_de_nascimento) >= %s)
+                OR (MONTH(c.data_de_nascimento) = %s AND DAY(c.data_de_nascimento) <= %s)
             """
             params = (today.month, today.day, week_end.month, week_end.day)
 
@@ -168,7 +163,6 @@ def get_catecumenos_aniversariantes(tipo="hoje"):
         FROM `tabCatecumeno` c
         LEFT JOIN `tabTurma` t ON c.turma = t.name
         WHERE c.data_de_nascimento IS NOT NULL
-          AND c.status = 'Activo'
           AND {condition}
         ORDER BY MONTH(c.data_de_nascimento), DAY(c.data_de_nascimento), c.name
     """, params, as_dict=True)
@@ -179,16 +173,18 @@ def get_catecumenos_aniversariantes(tipo="hoje"):
 @frappe.whitelist(allow_guest=True)
 def get_estatisticas_publicas():
     """Estatísticas gerais para o dashboard público."""
-    total_catecumenos = frappe.db.count("Catecumeno", {"status": "Activo"})
+    total_catecumenos = frappe.db.count("Catecumeno")
     total_turmas = frappe.db.count("Turma", {"status": "Activo"})
-    total_catequistas = frappe.db.count("Catequista")
+
+    try:
+        total_catequistas = frappe.db.count("Catequista")
+    except Exception:
+        total_catequistas = 0
 
     fases = frappe.db.sql("""
         SELECT fase, COUNT(*) AS total
         FROM `tabCatecumeno`
-        WHERE status = 'Activo'
-          AND fase IS NOT NULL
-          AND fase != ''
+        WHERE fase IS NOT NULL AND fase != ''
         GROUP BY fase
         ORDER BY fase ASC
     """, as_dict=True)
