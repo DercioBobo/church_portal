@@ -25,7 +25,6 @@ def get_turmas_publicas():
         FROM `tabTurma` t
         LEFT JOIN `tabTurma Catecumenos` tc ON tc.parent = t.name
             AND tc.parentfield = 'lista_catecumenos'
-            AND tc.status = 'Activo'
         WHERE t.status = 'Activo'
         GROUP BY t.name
         ORDER BY t.fase ASC, t.name ASC
