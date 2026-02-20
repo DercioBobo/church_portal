@@ -272,24 +272,13 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── Birthdays today ───────────────────────────────────────────── */}
-      <BirthdayList birthdays={birthdays} />
-
-      {/* ── Phase chart ───────────────────────────────────────────────── */}
-      {stats && stats.por_fase.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <h2 className="text-sm font-semibold text-slate-900 mb-4">Catecúmenos por Fase</h2>
-          <PhaseChart data={stats.por_fase} />
-        </div>
-      )}
-
       {/* ── Quick nav ─────────────────────────────────────────────────── */}
       <div>
         <h2 className="text-sm font-semibold text-slate-700 mb-3">Acesso rápido</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <a
-            href="/portal/turmas/"
-            className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all group"
+              href="/portal/turmas/"
+              className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-700 group-hover:bg-blue-100 transition-colors">
@@ -304,8 +293,8 @@ export default function HomePage() {
           </a>
 
           <a
-            href="/portal/pesquisa/"
-            className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all group"
+              href="/portal/pesquisa/"
+              className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center text-violet-700 group-hover:bg-violet-100 transition-colors">
@@ -320,8 +309,8 @@ export default function HomePage() {
           </a>
 
           <a
-            href="/portal/aniversarios/"
-            className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all group"
+              href="/portal/aniversarios/"
+              className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-pink-50 flex items-center justify-center text-pink-600 group-hover:bg-pink-100 transition-colors">
@@ -336,6 +325,21 @@ export default function HomePage() {
           </a>
         </div>
       </div>
+
+      {/* ── Birthdays today ───────────────────────────────────────────── */}
+      <BirthdayList birthdays={birthdays} />
+
+
+
+      {/* ── Phase chart ───────────────────────────────────────────────── */}
+      {stats && stats.por_fase.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6">
+          <h2 className="text-sm font-semibold text-slate-900 mb-4">Catecúmenos por Fase</h2>
+          <PhaseChart data={stats.por_fase} />
+        </div>
+      )}
+
+
 
     </div>
   );

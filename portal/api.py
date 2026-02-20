@@ -139,7 +139,7 @@ def get_catecumeno_publico(catecumeno_nome):
     """Ficha pública de catecúmeno — sem dados sensíveis."""
     cat = frappe.db.get_value(
         "Catecumeno", catecumeno_nome,
-        ["name", "fase", "turma", "sexo", "status"],
+        ["name", "fase", "turma", "sexo", "status", "encarregado"],
         as_dict=True,
     )
 

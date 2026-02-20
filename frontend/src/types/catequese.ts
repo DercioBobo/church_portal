@@ -27,6 +27,7 @@ export interface Catecumeno {
   name: string;
   fase: string;
   turma: string;
+  encarregado: string;
   sexo: string;
   status: string;
   encarregado?: string;

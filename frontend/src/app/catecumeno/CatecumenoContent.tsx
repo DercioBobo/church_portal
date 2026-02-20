@@ -128,6 +128,16 @@ export default function CatecumenoContent() {
                 </div>
               </div>
             )}
+
+            {(c.encarregado  && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-500">Encarregados</span>
+                  <div className="flex items-center gap-1.5 text-sm text-slate-900">
+                    <User className="w-3.5 h-3.5 text-slate-400" />
+                    {c.encarregado}
+                  </div>
+                </div>
+            )}
           </div>
         </div>
       ) : (
