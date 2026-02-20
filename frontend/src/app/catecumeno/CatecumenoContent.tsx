@@ -119,15 +119,6 @@ export default function CatecumenoContent() {
                 </div>
               </div>
             )}
-            {(t.catequista || t.catequista_adj) && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-500">Catequistas</span>
-                <div className="flex items-center gap-1.5 text-sm text-slate-900">
-                  <User className="w-3.5 h-3.5 text-slate-400" />
-                  {[t.catequista, t.catequista_adj].filter(Boolean).join(' e ')}
-                </div>
-              </div>
-            )}
 
             {(c.encarregado  && (
                 <div className="flex items-center justify-between">
@@ -137,6 +128,16 @@ export default function CatecumenoContent() {
                     {c.encarregado}
                   </div>
                 </div>
+            )}
+
+            {(t.catequista || t.catequista_adj) && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-500">Catequistas</span>
+                <div className="flex items-center gap-1.5 text-sm text-slate-900">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  {[t.catequista, t.catequista_adj].filter(Boolean).join(' e ')}
+                </div>
+              </div>
             )}
           </div>
         </div>
