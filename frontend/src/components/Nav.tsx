@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Church, Menu, X } from 'lucide-react';
 import { useState } from 'react';
@@ -12,6 +11,11 @@ const links = [
   { href: '/aniversarios', label: 'Aniversários' },
 ];
 
+function toHref(path: string) {
+  // Prepend basePath and ensure trailing slash (trailingSlash: true in next.config)
+  return `/portal${path === '/' ? '/' : path + '/'}`;
+}
+
 export default function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -22,29 +26,28 @@ export default function Nav() {
       <div className="max-w-5xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
+          <a href="/portal/" className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 rounded-lg bg-blue-800 flex items-center justify-center">
               <Church className="w-4 h-4 text-white" />
             </div>
             <span className="font-bold text-slate-900">{short}</span>
             <span className="text-slate-400 text-sm hidden sm:block">Portal de Catequese</span>
-          </Link>
+          </a>
 
           {/* Desktop links */}
           <div className="hidden md:flex items-center gap-1">
             {links.map((l) => (
-              <Link
+              <a
                 key={l.href}
-                href={l.href}
-                prefetch={false}
+                href={toHref(l.href)}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === l.href
+                  pathname === l.href || pathname === l.href + '/'
                     ? 'bg-blue-50 text-blue-800'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
                 {l.label}
-              </Link>
+              </a>
             ))}
           </div>
 
@@ -62,19 +65,18 @@ export default function Nav() {
         {open && (
           <div className="md:hidden border-t border-slate-100 py-2">
             {links.map((l) => (
-              <Link
+              <a
                 key={l.href}
-                href={l.href}
+                href={toHref(l.href)}
                 onClick={() => setOpen(false)}
-                prefetch={false}
                 className={`block px-4 py-3 text-sm font-medium rounded-lg mx-1 transition-colors ${
-                  pathname === l.href
+                  pathname === l.href || pathname === l.href + '/'
                     ? 'bg-blue-50 text-blue-800'
                     : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 {l.label}
-              </Link>
+              </a>
             ))}
           </div>
         )}

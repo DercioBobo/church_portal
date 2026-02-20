@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Search, User, Users } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { ResultadoPesquisa } from '@/types/catequese';
@@ -18,7 +18,6 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function PesquisaContent() {
   const params = useSearchParams();
-  const router = useRouter();
   const [query, setQuery] = useState(params.get('q') ?? '');
   const [results, setResults] = useState<ResultadoPesquisa | null>(null);
   const [loading, setLoading] = useState(false);
@@ -94,10 +93,10 @@ export default function PesquisaContent() {
                   </div>
                   <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">
                     {results.catecumenos.map((c) => (
-                      <div
+                      <a
                         key={c.name}
-                        className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
-                        onClick={() => router.push(`/catecumeno?nome=${encodeURIComponent(c.name)}`)}
+                        href={`/portal/catecumeno/?nome=${encodeURIComponent(c.name)}`}
+                        className="px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
                       >
                         <div>
                           <div className="font-medium text-slate-900 text-sm">{c.name}</div>
@@ -109,7 +108,7 @@ export default function PesquisaContent() {
                         <div className="text-xs text-slate-400 shrink-0">
                           {[c.dia, c.hora].filter(Boolean).join(' · ')}
                         </div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </section>
@@ -126,10 +125,10 @@ export default function PesquisaContent() {
                   </div>
                   <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">
                     {results.catequistas.map((c, i) => (
-                      <div
+                      <a
                         key={i}
-                        className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
-                        onClick={() => router.push(`/turma?nome=${encodeURIComponent(c.turma)}`)}
+                        href={`/portal/turma/?nome=${encodeURIComponent(c.turma)}`}
+                        className="px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
                       >
                         <div>
                           <div className="font-medium text-slate-900 text-sm">
@@ -143,7 +142,7 @@ export default function PesquisaContent() {
                         <div className="text-xs text-slate-400 shrink-0">
                           {[c.dia, c.hora].filter(Boolean).join(' · ')}
                         </div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </section>

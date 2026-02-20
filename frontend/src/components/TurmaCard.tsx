@@ -1,13 +1,11 @@
-import Link from 'next/link';
 import { MapPin, Clock, Users, User } from 'lucide-react';
 import type { Turma } from '@/types/catequese';
 import PhaseChip from './PhaseChip';
 
 export default function TurmaCard({ turma }: { turma: Turma }) {
   return (
-    <Link
-      href={`/turma?nome=${encodeURIComponent(turma.name)}`}
-      prefetch={false}
+    <a
+      href={`/portal/turma/?nome=${encodeURIComponent(turma.name)}`}
       className="block bg-white rounded-2xl border border-slate-200 p-5 hover:bg-slate-50 hover:border-slate-300 transition-all duration-150"
     >
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -47,6 +45,6 @@ export default function TurmaCard({ turma }: { turma: Turma }) {
           </div>
         )}
       </div>
-    </Link>
+    </a>
   );
 }

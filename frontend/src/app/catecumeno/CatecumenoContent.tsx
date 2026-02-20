@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, MapPin, Clock, User, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Catecumeno, Turma } from '@/types/catequese';
@@ -10,7 +10,6 @@ import Loading from '@/components/Loading';
 
 export default function CatecumenoContent() {
   const params = useSearchParams();
-  const router = useRouter();
   const nome = params.get('nome');
 
   const [data, setData] = useState<{ catecumeno: Catecumeno; turma: Turma | null } | null>(null);
@@ -19,14 +18,14 @@ export default function CatecumenoContent() {
 
   useEffect(() => {
     if (!nome) {
-      router.push('/pesquisa');
+      window.location.href = '/portal/pesquisa/';
       return;
     }
     api.getCatecumeno(nome)
       .then(setData)
       .catch(() => setError('Catecúmeno não encontrado.'))
       .finally(() => setLoading(false));
-  }, [nome, router]);
+  }, [nome]);
 
   if (loading) return <Loading />;
 
@@ -35,7 +34,7 @@ export default function CatecumenoContent() {
       <div className="flex flex-col items-center justify-center py-20 text-slate-500">
         <AlertCircle className="w-10 h-10 mb-3 text-red-400" />
         <p>{error || 'Catecúmeno não encontrado.'}</p>
-        <button onClick={() => router.back()} className="mt-4 text-blue-700 text-sm hover:underline">
+        <button onClick={() => history.back()} className="mt-4 text-blue-700 text-sm hover:underline">
           ← Voltar
         </button>
       </div>
@@ -48,7 +47,7 @@ export default function CatecumenoContent() {
     <div>
       {/* Back */}
       <button
-        onClick={() => router.back()}
+        onClick={() => history.back()}
         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -85,12 +84,12 @@ export default function CatecumenoContent() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">Turma</span>
-              <button
+              <a
+                href={`/portal/turma/?nome=${encodeURIComponent(t.name)}`}
                 className="text-sm font-medium text-blue-700 hover:underline"
-                onClick={() => router.push(`/turma?nome=${encodeURIComponent(t.name)}`)}
               >
                 {t.name}
-              </button>
+              </a>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">Fase</span>

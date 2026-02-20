@@ -16,6 +16,7 @@ export default function TurmasPage() {
   useEffect(() => {
     api.getTurmas()
       .then(setTurmas)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

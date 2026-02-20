@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, MapPin, Clock, User, Users, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { TurmaDetalhe } from '@/types/catequese';
@@ -10,7 +10,6 @@ import Loading from '@/components/Loading';
 
 export default function TurmaContent() {
   const params = useSearchParams();
-  const router = useRouter();
   const nome = params.get('nome');
 
   const [turma, setTurma] = useState<TurmaDetalhe | null>(null);
@@ -19,14 +18,14 @@ export default function TurmaContent() {
 
   useEffect(() => {
     if (!nome) {
-      router.push('/turmas');
+      window.location.href = '/portal/turmas/';
       return;
     }
     api.getTurmaDetalhe(nome)
       .then(setTurma)
       .catch(() => setError('Turma não encontrada ou indisponível.'))
       .finally(() => setLoading(false));
-  }, [nome, router]);
+  }, [nome]);
 
   if (loading) return <Loading />;
 
@@ -35,9 +34,9 @@ export default function TurmaContent() {
       <div className="flex flex-col items-center justify-center py-20 text-slate-500">
         <AlertCircle className="w-10 h-10 mb-3 text-red-400" />
         <p>{error || 'Turma não encontrada.'}</p>
-        <button onClick={() => router.push('/turmas')} className="mt-4 text-blue-700 text-sm hover:underline">
+        <a href="/portal/turmas/" className="mt-4 text-blue-700 text-sm hover:underline">
           ← Voltar às turmas
-        </button>
+        </a>
       </div>
     );
   }
@@ -46,7 +45,7 @@ export default function TurmaContent() {
     <div>
       {/* Back */}
       <button
-        onClick={() => router.back()}
+        onClick={() => history.back()}
         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -108,21 +107,22 @@ export default function TurmaContent() {
         ) : (
           <ul className="divide-y divide-slate-100">
             {turma.catecumenos.map((c) => (
-              <li
-                key={c.catecumeno}
-                className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
-                onClick={() => router.push(`/catecumeno?nome=${encodeURIComponent(c.catecumeno)}`)}
-              >
-                <span className="text-sm text-slate-800 font-medium">{c.catecumeno}</span>
-                <div className="flex items-center gap-3 text-xs text-slate-500">
-                  {c.total_presencas != null && (
-                    <span className="text-emerald-600">{c.total_presencas}P</span>
-                  )}
-                  {c.total_faltas != null && c.total_faltas > 0 && (
-                    <span className="text-red-500">{c.total_faltas}F</span>
-                  )}
-                  <span className="text-slate-300">›</span>
-                </div>
+              <li key={c.catecumeno}>
+                <a
+                  href={`/portal/catecumeno/?nome=${encodeURIComponent(c.catecumeno)}`}
+                  className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                >
+                  <span className="text-sm text-slate-800 font-medium">{c.catecumeno}</span>
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    {c.total_presencas != null && (
+                      <span className="text-emerald-600">{c.total_presencas}P</span>
+                    )}
+                    {c.total_faltas != null && c.total_faltas > 0 && (
+                      <span className="text-red-500">{c.total_faltas}F</span>
+                    )}
+                    <span className="text-slate-300">›</span>
+                  </div>
+                </a>
               </li>
             ))}
           </ul>

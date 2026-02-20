@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import { Users, BookOpen, UserCheck, ChevronRight, Search } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 import { api } from '@/lib/api';
 import type { Estatisticas, Aniversariante } from '@/types/catequese';
@@ -19,7 +17,6 @@ export default function HomePage() {
   const [birthdays, setBirthdays] = useState<Aniversariante[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
-  const router = useRouter();
 
   useEffect(() => {
     Promise.all([api.getEstatisticas(), api.getAniversariantes('hoje')])
@@ -34,7 +31,7 @@ export default function HomePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/pesquisa?q=${encodeURIComponent(query.trim())}`);
+      window.location.href = `/portal/pesquisa/?q=${encodeURIComponent(query.trim())}`;
     }
   };
 
@@ -82,9 +79,8 @@ export default function HomePage() {
 
       {/* Quick links */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Link
-          href="/turmas"
-          prefetch={false}
+        <a
+          href="/portal/turmas/"
           className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 transition-colors"
         >
           <div>
@@ -92,10 +88,9 @@ export default function HomePage() {
             <div className="text-sm text-slate-500 mt-0.5">Todas as turmas activas</div>
           </div>
           <ChevronRight className="w-5 h-5 text-slate-400" />
-        </Link>
-        <Link
-          href="/aniversarios"
-          prefetch={false}
+        </a>
+        <a
+          href="/portal/aniversarios/"
           className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-200 hover:bg-slate-50 transition-colors"
         >
           <div>
@@ -103,7 +98,7 @@ export default function HomePage() {
             <div className="text-sm text-slate-500 mt-0.5">Hoje e esta semana</div>
           </div>
           <ChevronRight className="w-5 h-5 text-slate-400" />
-        </Link>
+        </a>
       </div>
     </div>
   );
