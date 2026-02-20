@@ -2,7 +2,7 @@ app_name = "portal"
 app_title = "Portal"
 app_publisher = "PNSA"
 app_description = "Portal público de Catequese"
-app_email = "admin@pnsa.ao"
+app_email = "admin@pnsa.mz"
 app_license = "MIT"
 app_version = "0.0.1"
 

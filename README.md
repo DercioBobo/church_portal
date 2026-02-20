@@ -23,7 +23,7 @@ nano apps/portal/frontend/.env.local
 
 Edite as variáveis:
 ```env
-NEXT_PUBLIC_FRAPPE_URL=https://erp.minha-paroquia.ao
+NEXT_PUBLIC_FRAPPE_URL=https://erp.minha-paroquia.mz
 NEXT_PUBLIC_PARISH_NAME=Paróquia Nossa Senhora da Aparição
 NEXT_PUBLIC_PARISH_SHORT=PNSA
 ```
@@ -34,7 +34,7 @@ NEXT_PUBLIC_PARISH_SHORT=PNSA
 bash apps/portal/install.sh meusite.local
 ```
 
-Pronto. O portal estará disponível em `https://erp.minha-paroquia.ao/portal`.
+Pronto. O portal estará disponível em `https://erp.minha-paroquia.mz/portal`.
 
 ---
 

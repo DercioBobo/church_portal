@@ -8,7 +8,7 @@ setup(
     version="0.0.1",
     description="Portal Público de Catequese - PNSA",
     author="PNSA",
-    author_email="admin@pnsa.ao",
+    author_email="admin@pnsa.mz",
     packages=find_packages(),
     zip_safe=False,
     include_package_data=True,
