@@ -83,13 +83,19 @@ bash "$PORTAL_DIR/build.sh"
 
 # ── Passo 2: Instalar a app no site ──────────────────────
 echo ""
-echo -e "${GREEN}[2/3] A instalar a app no site '$SITE'...${NC}"
+echo -e "${GREEN}[2/4] A instalar a app no site '$SITE'...${NC}"
 cd "$BENCH_DIR"
 bench --site "$SITE" install-app portal --force
 
-# ── Passo 3: Configurar CORS e reiniciar ─────────────────
+# ── Passo 3: Publicar assets estáticos ───────────────────
+# Copies portal/public/ → sites/assets/portal/ so /assets/portal/ works
 echo ""
-echo -e "${GREEN}[3/3] A configurar CORS e reiniciar...${NC}"
+echo -e "${GREEN}[3/4] A publicar assets estáticos...${NC}"
+bench build --app portal
+
+# ── Passo 4: Configurar CORS e reiniciar ─────────────────
+echo ""
+echo -e "${GREEN}[4/4] A configurar CORS e reiniciar...${NC}"
 bench --site "$SITE" set-config allow_cors "*"
 bench restart
 
@@ -97,7 +103,7 @@ bench restart
 FRAPPE_URL=$(bench --site "$SITE" show-config 2>/dev/null | grep -i host_name | head -1 | awk '{print $NF}' || echo "$SITE")
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║   Instalação concluída!                  ║${NC}"
+echo -e "${BOLD}║   Instalação concluída!                   ║${NC}"
 echo -e "${BOLD}╠══════════════════════════════════════════╣${NC}"
 echo -e "${BOLD}║   Portal: http://$FRAPPE_URL/portal      ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════╝${NC}"

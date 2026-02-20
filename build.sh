@@ -1,12 +1,16 @@
 #!/bin/bash
-# Build the Next.js frontend and copy output to portal/www/portal/
-# Run this from the app root: bash build.sh
+# Build the Next.js frontend and deploy to the correct Frappe folders:
+#   HTML pages  → portal/www/portal/   (served at /portal/...)
+#   JS/CSS/etc  → portal/public/       (served at /assets/portal/...)
+#
+# Run from the app root: bash apps/portal/build.sh
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 WWW_DIR="$SCRIPT_DIR/portal/www/portal"
+PUBLIC_DIR="$SCRIPT_DIR/portal/public"
 
 echo ""
 echo "=== Portal — Build Frontend ==="
@@ -25,16 +29,13 @@ echo "Node: $(node --version)  NPM: $(npm --version)"
 if [ ! -f "$FRONTEND_DIR/.env.local" ]; then
     echo ""
     echo "ERROR: frontend/.env.local não encontrado!"
-    echo "Crie-o a partir do exemplo:"
     echo "  cp $FRONTEND_DIR/.env.example $FRONTEND_DIR/.env.local"
     echo "  nano $FRONTEND_DIR/.env.local"
     exit 1
 fi
 
-# Warn if URL not configured
 if grep -q "your-erpnext.domain.com" "$FRONTEND_DIR/.env.local"; then
-    echo ""
-    echo "AVISO: Configure NEXT_PUBLIC_FRAPPE_URL em frontend/.env.local antes de build!"
+    echo "AVISO: Configure NEXT_PUBLIC_FRAPPE_URL em frontend/.env.local!"
     echo ""
 fi
 
@@ -45,22 +46,35 @@ npm install --silent
 echo "A compilar o frontend..."
 npm run build
 
-echo "A copiar para portal/www/portal/..."
+OUT_DIR="$FRONTEND_DIR/out"
+
+# ── HTML pages → portal/www/portal/ ──────────────────────────────────────────
+# Frappe renders all files in www/ through Jinja. We must:
+#   1. Only put .html files here (not JS/CSS)
+#   2. Prepend safe_render: 0 front matter to suppress the ".__" security check
+echo "A copiar páginas HTML para www/portal/..."
 rm -rf "$WWW_DIR"
 mkdir -p "$WWW_DIR"
-cp -r out/* "$WWW_DIR/"
 
-# Frappe processes all .html files in www/ through Jinja and rejects
-# Next.js inline scripts that contain ".__" patterns (e.g. self.__next_f).
-# Fix: prepend front matter with safe_render: 0 to every HTML file.
-echo "A configurar HTML para Frappe (safe_render)..."
-find "$WWW_DIR" -name "*.html" | while IFS= read -r f; do
-    tmp="${f}.tmp"
-    printf -- "---\nsafe_render: 0\nno_cache: 1\n---\n" > "$tmp"
-    cat "$f" >> "$tmp"
-    mv "$tmp" "$f"
+find "$OUT_DIR" -name "*.html" | while IFS= read -r f; do
+    rel="${f#$OUT_DIR/}"
+    dest="$WWW_DIR/$rel"
+    mkdir -p "$(dirname "$dest")"
+    # Frappe front matter: disable Jinja security check on Next.js inline scripts
+    printf -- "---\nsafe_render: 0\nno_cache: 1\n---\n" > "$dest"
+    cat "$f" >> "$dest"
 done
 
+# ── _next/ static assets → portal/public/ ────────────────────────────────────
+# Frappe serves portal/public/ at /assets/portal/ as true static files.
+# next.config.mjs sets assetPrefix: '/assets/portal' so HTML files reference
+# JS/CSS at /assets/portal/_next/static/...
+echo "A copiar assets estáticos para public/..."
+rm -rf "$PUBLIC_DIR/_next"
+cp -r "$OUT_DIR/_next" "$PUBLIC_DIR/_next"
+
 echo ""
-echo "Build concluído! Ficheiros em: $WWW_DIR"
+echo "Build concluído!"
+echo "  HTML  → $WWW_DIR"
+echo "  Assets → $PUBLIC_DIR/_next"
 echo ""
