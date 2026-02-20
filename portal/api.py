@@ -50,7 +50,6 @@ def get_turma_detalhe(turma_nome):
         FROM `tabTurma Catecumenos` tc
         WHERE tc.parent = %s
           AND tc.parentfield = 'lista_catecumenos'
-          AND tc.status = 'Activo'
         ORDER BY tc.catecumeno ASC
     """, (turma_nome,), as_dict=True)
 

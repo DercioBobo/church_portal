@@ -64,7 +64,7 @@ export default function AniversariosPage() {
                   <Cake className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900 text-sm">{a.name}</div>
+                  <div className="font-medium text-slate-900 text-sm">{a.name} - {a.data_aniversario} </div>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <PhaseChip fase={a.fase} />
                     {a.turma && (
