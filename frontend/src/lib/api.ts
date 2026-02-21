@@ -44,4 +44,7 @@ export const api = {
 
   getEstatisticas: () =>
     frappeFetch<Estatisticas>(`${APP}.get_estatisticas_publicas`),
+
+  getCatecumenos: () =>
+    frappeFetch<Catecumeno[]>(`${APP}.get_catecumenos_publicos`),
 };

@@ -77,6 +77,12 @@ export default function CatecumenoContent() {
                 {c.status}
               </span>
             </div>
+            {c.encarregado && (
+              <div className="flex items-center gap-1.5 mt-2 text-sm text-slate-500">
+                <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="truncate">{c.encarregado}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

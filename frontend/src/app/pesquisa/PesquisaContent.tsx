@@ -121,6 +121,11 @@ export default function PesquisaContent() {
                           {c.encarregado && (
                             <div className="text-xs text-slate-400 mt-0.5">Enc: {c.encarregado}</div>
                           )}
+                          {(c.local || c.dia || c.hora) && (
+                            <div className="text-xs text-slate-400 mt-0.5">
+                              {[c.local, [c.dia, c.hora].filter(Boolean).join(' · ')].filter(Boolean).join(' · ')}
+                            </div>
+                          )}
                         </div>
                         <div className="text-xs text-slate-400 shrink-0 ml-4 group-hover:text-gold-500 transition-colors">
                           {[c.dia, c.hora].filter(Boolean).join(' · ')}

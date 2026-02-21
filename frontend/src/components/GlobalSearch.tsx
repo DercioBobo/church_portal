@@ -245,6 +245,11 @@ export default function GlobalSearch() {
                       {c.encarregado && (
                         <div className="text-xs text-slate-400 mt-0.5 truncate">Enc: {c.encarregado}</div>
                       )}
+                      {(c.local || c.dia || c.hora) && (
+                        <div className="text-xs text-slate-400 mt-0.5 truncate">
+                          {[c.local, [c.dia, c.hora].filter(Boolean).join(' · ')].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
                     </div>
                     <ChevronRight className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-gold-500' : 'text-slate-300'}`} />
                   </a>

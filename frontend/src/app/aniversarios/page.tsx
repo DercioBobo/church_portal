@@ -9,6 +9,14 @@ import Loading from '@/components/Loading';
 
 type Tipo = 'hoje' | 'semana';
 
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+function formatAniversario(mmDd: string): string {
+  const parts = mmDd.split('-');
+  if (parts.length !== 2) return mmDd;
+  const mes = MESES[parseInt(parts[0], 10) - 1] ?? '';
+  return `${parseInt(parts[1], 10)} ${mes}`;
+}
+
 export default function AniversariosPage() {
   const [tipo, setTipo] = useState<Tipo>('hoje');
   const [data, setData] = useState<Aniversariante[]>([]);
@@ -91,6 +99,9 @@ export default function AniversariosPage() {
                 <div className="shrink-0 text-center bg-rose-50 border border-rose-100 rounded-xl px-3 py-1.5">
                   <div className="text-lg font-display font-bold text-rose-600 leading-none">{a.idade_nova}</div>
                   <div className="text-[10px] text-rose-400 uppercase tracking-widest mt-0.5">anos</div>
+                  {a.data_aniversario && (
+                    <div className="text-[10px] text-rose-400 mt-0.5 font-medium">{formatAniversario(a.data_aniversario)}</div>
+                  )}
                 </div>
               </div>
             ))}

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import dynamic from 'next/dynamic';
 import {
   Users, BookOpen, UserCheck, ChevronRight, Search, X, Church, Cake,
 } from 'lucide-react';
@@ -12,8 +11,7 @@ import StatsCard from '@/components/StatsCard';
 import BirthdayList from '@/components/BirthdayList';
 import Loading from '@/components/Loading';
 import PhaseChip from '@/components/PhaseChip';
-
-const PhaseChart = dynamic(() => import('@/components/PhaseChart'), { ssr: false });
+import CatecumenosTable from '@/components/CatecumenosTable';
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -145,6 +143,11 @@ function HeroSearch() {
                     </div>
                     {c.encarregado && (
                       <div className="text-xs text-slate-400 mt-0.5 truncate">Enc: {c.encarregado}</div>
+                    )}
+                    {(c.local || c.dia || c.hora) && (
+                      <div className="text-xs text-slate-400 mt-0.5 truncate">
+                        {[c.local, [c.dia, c.hora].filter(Boolean).join(' · ')].filter(Boolean).join(' · ')}
+                      </div>
                     )}
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
@@ -291,16 +294,8 @@ export default function HomePage() {
         <BirthdayList birthdays={birthdays} />
       </div>
 
-      {/* ── Phase chart ───────────────────────────────────────────────── */}
-      {stats && stats.por_fase.length > 0 && (
-        <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs p-6 animate-fade-up-3">
-          <h2 className="font-display text-base font-semibold text-navy-900 mb-5">Catecúmenos por Fase</h2>
-          <PhaseChart data={stats.por_fase} />
-        </div>
-      )}
-
       {/* ── Quick nav ─────────────────────────────────────────────────── */}
-      <div className="animate-fade-up-4">
+      <div className="animate-fade-up-3">
         <h2 className="text-xs font-bold text-navy-900/40 uppercase tracking-widest mb-3">Acesso rápido</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <a
@@ -351,6 +346,12 @@ export default function HomePage() {
             <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-gold-500 transition-colors" />
           </a>
         </div>
+      </div>
+
+      {/* ── Catecúmenos table ─────────────────────────────────────────── */}
+      <div className="animate-fade-up-4">
+        <h2 className="text-xs font-bold text-navy-900/40 uppercase tracking-widest mb-3">Todos os catecúmenos</h2>
+        <CatecumenosTable />
       </div>
 
     </div>

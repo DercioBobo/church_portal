@@ -228,3 +228,25 @@ def get_estatisticas_publicas():
         "total_catequistas": total_catequistas,
         "por_fase": fases,
     }
+
+
+@frappe.whitelist(allow_guest=True)
+def get_catecumenos_publicos():
+    """Lista pública de catecúmenos activos com info da turma."""
+    catecumenos = frappe.db.sql("""
+        SELECT
+            c.name,
+            c.fase,
+            c.turma,
+            c.sexo,
+            t.local,
+            t.dia,
+            t.hora,
+            t.catequista,
+            t.catequista_adj
+        FROM `tabCatecumeno` c
+        LEFT JOIN `tabTurma` t ON c.turma = t.name
+        WHERE c.status = 'Activo'
+        ORDER BY c.name ASC
+    """, as_dict=True)
+    return catecumenos
