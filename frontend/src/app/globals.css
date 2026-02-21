@@ -22,7 +22,7 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #c8bba4;
+    background: #d4d4d8;
     border-radius: 10px;
   }
 }
@@ -30,7 +30,7 @@
 @layer utilities {
   /* Subtle cross grid pattern for hero backgrounds */
   .bg-cross-pattern {
-    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><path d='M20 8v24M8 20h24' stroke='%231e3a8a' stroke-width='0.8' stroke-opacity='0.05'/></svg>");
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><path d='M20 8v24M8 20h24' stroke='%23111827' stroke-width='0.8' stroke-opacity='0.06'/></svg>");
     background-repeat: repeat;
   }
 
