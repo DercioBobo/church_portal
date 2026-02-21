@@ -222,7 +222,7 @@ export default function HomePage() {
     <div className="space-y-10">
 
       {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <div className="relative rounded-3xl bg-cross-pattern overflow-hidden animate-fade-up">
+      <div className="relative rounded-3xl bg-cross-pattern animate-fade-up">
         {/* Layered gradient for readability over pattern */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-cream-100/80 to-cream-100 pointer-events-none" />
 
