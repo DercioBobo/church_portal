@@ -10,16 +10,16 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['DM Sans', 'system-ui', 'sans-serif'],
-        display: ['"Playfair Display"', 'Georgia', 'serif'],
+        display: ['Nunito', 'system-ui', 'sans-serif'],
       },
       colors: {
         navy: {
-          950: '#0a1530',
-          900: '#1a2b5c',
-          800: '#1e3370',
-          700: '#2a4898',
-          600: '#3460c2',
-          50: '#f0f4fc',
+          950: '#0f1f3d',
+          900: '#1e3a8a',
+          800: '#2348a0',
+          700: '#2d5bc4',
+          600: '#3d6fd0',
+          50: '#eff6ff',
         },
         gold: {
           700: '#7a5a18',
@@ -40,11 +40,11 @@ const config: Config = {
         },
       },
       boxShadow: {
-        'warm-xs': '0 1px 4px rgba(26,43,92,0.06)',
-        'warm-sm': '0 2px 8px rgba(26,43,92,0.08)',
-        'warm':    '0 4px 16px rgba(26,43,92,0.10)',
-        'warm-md': '0 8px 30px rgba(26,43,92,0.13)',
-        'warm-lg': '0 16px 48px rgba(26,43,92,0.18)',
+        'warm-xs': '0 1px 4px rgba(30,58,138,0.06)',
+        'warm-sm': '0 2px 8px rgba(30,58,138,0.08)',
+        'warm':    '0 4px 16px rgba(30,58,138,0.10)',
+        'warm-md': '0 8px 30px rgba(30,58,138,0.13)',
+        'warm-lg': '0 16px 48px rgba(30,58,138,0.18)',
       },
     },
   },

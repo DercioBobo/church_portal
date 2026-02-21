@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -30,7 +30,7 @@
 @layer utilities {
   /* Subtle cross grid pattern for hero backgrounds */
   .bg-cross-pattern {
-    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><path d='M20 8v24M8 20h24' stroke='%231a2b5c' stroke-width='0.8' stroke-opacity='0.05'/></svg>");
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><path d='M20 8v24M8 20h24' stroke='%231e3a8a' stroke-width='0.8' stroke-opacity='0.05'/></svg>");
     background-repeat: repeat;
   }
 

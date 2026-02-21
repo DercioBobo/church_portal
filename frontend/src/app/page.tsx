@@ -2,14 +2,12 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import {
-  Users, BookOpen, UserCheck, ChevronRight, Search, X, Church, Cake,
+  BookOpen, ChevronRight, Search, X, Church, Cake,
 } from 'lucide-react';
 
 import { api } from '@/lib/api';
-import type { Estatisticas, Aniversariante, ResultadoPesquisa } from '@/types/catequese';
-import StatsCard from '@/components/StatsCard';
+import type { Aniversariante, ResultadoPesquisa } from '@/types/catequese';
 import BirthdayList from '@/components/BirthdayList';
-import Loading from '@/components/Loading';
 import PhaseChip from '@/components/PhaseChip';
 import CatecumenosTable from '@/components/CatecumenosTable';
 
@@ -211,22 +209,14 @@ function HeroSearch() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
-  const [stats, setStats] = useState<Estatisticas | null>(null);
   const [birthdays, setBirthdays] = useState<Aniversariante[]>([]);
-  const [loading, setLoading] = useState(true);
   const parishName = process.env.NEXT_PUBLIC_PARISH_NAME || 'Portal de Catequese';
 
   useEffect(() => {
-    Promise.all([api.getEstatisticas(), api.getAniversariantes('hoje')])
-      .then(([s, b]) => {
-        setStats(s);
-        setBirthdays(b ?? []);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    api.getAniversariantes('hoje')
+      .then((b) => setBirthdays(b ?? []))
+      .catch(() => {});
   }, []);
-
-  if (loading) return <Loading />;
 
   return (
     <div className="space-y-10">
@@ -267,27 +257,6 @@ export default function HomePage() {
           </p>
         </div>
       </div>
-
-      {/* ── Stats ─────────────────────────────────────────────────────── */}
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-up-1">
-          <StatsCard
-            label="Catecúmenos activos"
-            value={stats.total_catecumenos}
-            icon={<Users className="w-5 h-5" />}
-          />
-          <StatsCard
-            label="Turmas activas"
-            value={stats.total_turmas}
-            icon={<BookOpen className="w-5 h-5" />}
-          />
-          <StatsCard
-            label="Catequistas"
-            value={stats.total_catequistas}
-            icon={<UserCheck className="w-5 h-5" />}
-          />
-        </div>
-      )}
 
       {/* ── Birthdays today ───────────────────────────────────────────── */}
       <div className="animate-fade-up-2">
