@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Church, Menu, X, Search } from 'lucide-react';
+import { Menu, X, Search } from 'lucide-react';
 import { useState } from 'react';
 
 const links = [
@@ -32,11 +32,12 @@ export default function Nav() {
 
           {/* Logo */}
           <a href="/portal/" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="w-8 h-8 rounded-lg bg-gold-500 flex items-center justify-center shadow-sm group-hover:bg-gold-400 transition-colors">
-              <Church className="w-4 h-4 text-white" />
-            </div>
+            <img
+              src="/files/20.png"
+              alt={short}
+              className="w-8 h-8 rounded-lg object-contain"
+            />
             <span className="font-display font-bold text-navy-900 tracking-wide">{short}</span>
-            <span className="text-navy-900/30 text-sm hidden sm:block">Portal de Catequese</span>
           </a>
 
           {/* Desktop links */}

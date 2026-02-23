@@ -9,6 +9,23 @@ const parishShort = process.env.NEXT_PUBLIC_PARISH_SHORT || 'PNSA';
 export const metadata: Metadata = {
   title: `${parishShort} — Portal de Catequese`,
   description: `Portal público da catequese de ${parishName}`,
+  icons: {
+    icon: '/files/20.png',
+    shortcut: '/files/20.png',
+    apple: '/files/20.png',
+  },
+  openGraph: {
+    title: `${parishShort} — Portal de Catequese`,
+    description: `Portal público da catequese de ${parishName}`,
+    images: [{ url: '/files/20.png', width: 512, height: 512 }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: `${parishShort} — Portal de Catequese`,
+    description: `Portal público da catequese de ${parishName}`,
+    images: ['/files/20.png'],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
