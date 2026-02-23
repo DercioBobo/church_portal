@@ -96,13 +96,11 @@ export default function AniversariosPage() {
                     </div>
                   </div>
                 </div>
-                <div className="shrink-0 text-center bg-rose-50 border border-rose-100 rounded-xl px-3 py-1.5">
-                  <div className="text-lg font-display font-bold text-rose-600 leading-none">{a.idade_nova}</div>
-                  <div className="text-[10px] text-rose-400 uppercase tracking-widest mt-0.5">anos</div>
-                  {a.data_aniversario && (
-                    <div className="text-[10px] text-rose-400 mt-0.5 font-medium">{formatAniversario(a.data_aniversario)}</div>
-                  )}
-                </div>
+                {a.data_aniversario && (
+                  <div className="shrink-0 text-center bg-rose-50 border border-rose-100 rounded-xl px-3 py-1.5">
+                    <div className="text-base font-display font-bold text-rose-600 leading-none">{formatAniversario(a.data_aniversario)}</div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
