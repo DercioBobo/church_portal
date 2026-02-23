@@ -71,7 +71,7 @@ export default function Nav() {
           >
             <Search className="w-4 h-4" />
             <span className="hidden sm:block text-xs">Pesquisar</span>
-            <kbd className="hidden md:flex items-center text-[10px] text-navy-900/40 bg-white border border-cream-300 rounded px-1.5 py-0.5 font-mono leading-none">
+            <kbd className="hidden lg:flex items-center text-[10px] text-navy-900/40 bg-white border border-cream-300 rounded px-1.5 py-0.5 font-mono leading-none">
               Ctrl K
             </kbd>
           </button>

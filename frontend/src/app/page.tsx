@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import {
-  BookOpen, ChevronRight, Search, X, Church, Cake,
+  BookOpen, ChevronRight, Search, X, Cake,
 } from 'lucide-react';
 
 import { api } from '@/lib/api';
@@ -229,9 +229,11 @@ export default function HomePage() {
         <div className="relative z-10 text-center py-10 px-6 space-y-6">
           {/* Emblem */}
           <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-navy-900 flex items-center justify-center shadow-warm-md">
-              <Church className="w-8 h-8 text-gold-400" />
-            </div>
+            <img
+              src="/files/20.png"
+              alt={parishName}
+              className="w-16 h-16 rounded-2xl object-contain shadow-warm-md"
+            />
           </div>
 
           {/* Title */}
