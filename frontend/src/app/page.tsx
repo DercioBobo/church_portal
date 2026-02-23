@@ -249,8 +249,8 @@ export default function HomePage() {
           {/* Search */}
           <HeroSearch />
 
-          {/* Keyboard hint */}
-          <p className="text-xs text-slate-400">
+          {/* Keyboard hint — laptops only */}
+          <p className="hidden lg:block text-xs text-slate-400">
             Prima{' '}
             <kbd className="font-mono bg-white border border-cream-300 rounded px-1.5 py-0.5 text-navy-900/50 shadow-warm-xs">
               Ctrl K
