@@ -29,10 +29,13 @@ export default function BirthdayList({ birthdays }: { birthdays: Aniversariante[
                 {b.turma && <span className="text-xs text-slate-500 truncate">{b.turma}</span>}
               </div>
             </div>
-            <div className="shrink-0 text-center bg-rose-50 border border-rose-100 rounded-xl px-3 py-1.5">
-              <div className="text-lg font-display font-bold text-rose-600 leading-none">{b.idade_nova}</div>
-              <div className="text-[10px] text-rose-400 uppercase tracking-widest mt-0.5">anos</div>
-            </div>
+            {b.data_aniversario && (
+              <div className="shrink-0 text-center bg-rose-50 border border-rose-100 rounded-xl px-3 py-1.5">
+                <div className="text-sm font-display font-bold text-rose-600 leading-none">
+                  {b.data_aniversario.split('-').reverse().slice(0, 2).join('/')}
+                </div>
+              </div>
+            )}
           </li>
         ))}
       </ul>
