@@ -3,9 +3,35 @@ Portal Público de Catequese — API
 Todos os endpoints são públicos (allow_guest=True) e não expõem dados sensíveis.
 """
 
+import json
 import frappe
 from frappe import _
 from datetime import date, timedelta
+
+
+DEFAULT_NAV_ITEMS = [
+    {"key": "turmas",       "label": "Turmas",       "descricao": "Ver todas as turmas",     "icon": "BookOpen",     "url": "/turmas/",       "visible": True, "ordem": 1},
+    {"key": "pesquisa",     "label": "Pesquisa",     "descricao": "Busca por nome completo", "icon": "Search",       "url": "/pesquisa/",     "visible": True, "ordem": 2},
+    {"key": "aniversarios", "label": "Aniversários", "descricao": "Hoje e esta semana",      "icon": "Cake",         "url": "/aniversarios/", "visible": True, "ordem": 3},
+]
+
+
+@frappe.whitelist(allow_guest=True)
+def get_portal_config():
+    """Retorna a configuração do portal (itens de navegação)."""
+    raw = frappe.db.get_single_value("Portal Config", "nav_items_json")
+    nav_items = json.loads(raw) if raw else DEFAULT_NAV_ITEMS
+    return {"nav_items": nav_items}
+
+
+@frappe.whitelist(allow_guest=True)
+def save_portal_config(nav_items_json):
+    """Grava a configuração do portal (itens de navegação)."""
+    # Validate JSON before saving
+    json.loads(nav_items_json)
+    frappe.db.set_single_value("Portal Config", "nav_items_json", nav_items_json)
+    frappe.db.commit()
+    return {"status": "ok"}
 
 
 @frappe.whitelist(allow_guest=True)

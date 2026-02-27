@@ -3,10 +3,23 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   BookOpen, ChevronRight, Search, X, Cake,
+  FileText, ClipboardList, Star, Users, Calendar, Church,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 import { api } from '@/lib/api';
-import type { Aniversariante, ResultadoPesquisa } from '@/types/catequese';
+import type { Aniversariante, ResultadoPesquisa, NavItem } from '@/types/catequese';
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  BookOpen, Search, Cake, FileText, ClipboardList,
+  Star, Users, Calendar, Church, ChevronRight,
+};
+
+const DEFAULT_NAV_ITEMS: NavItem[] = [
+  { key: 'turmas',       label: 'Turmas',       descricao: 'Ver todas as turmas',     icon: 'BookOpen',  url: '/turmas/',       visible: true, ordem: 1 },
+  { key: 'pesquisa',     label: 'Pesquisa',     descricao: 'Busca por nome completo', icon: 'Search',    url: '/pesquisa/',     visible: true, ordem: 2 },
+  { key: 'aniversarios', label: 'Aniversários', descricao: 'Hoje e esta semana',      icon: 'Cake',      url: '/aniversarios/', visible: true, ordem: 3 },
+];
 import BirthdayList from '@/components/BirthdayList';
 import PhaseChip from '@/components/PhaseChip';
 import CatecumenosTable from '@/components/CatecumenosTable';
@@ -210,11 +223,17 @@ function HeroSearch() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const [birthdays, setBirthdays] = useState<Aniversariante[]>([]);
+  const [navItems, setNavItems] = useState<NavItem[]>(DEFAULT_NAV_ITEMS);
   const parishName = process.env.NEXT_PUBLIC_PARISH_NAME || 'Portal de Catequese';
 
   useEffect(() => {
     api.getAniversariantes('hoje')
       .then((b) => setBirthdays(b ?? []))
+      .catch(() => {});
+    api.getPortalConfig()
+      .then((cfg) => {
+        if (cfg?.nav_items?.length) setNavItems(cfg.nav_items);
+      })
       .catch(() => {});
   }, []);
 
@@ -266,58 +285,37 @@ export default function HomePage() {
       </div>
 
       {/* ── Quick nav ─────────────────────────────────────────────────── */}
-      <div className="animate-fade-up-3">
-        <h2 className="text-xs font-bold text-navy-900/40 uppercase tracking-widest mb-3">Acesso rápido</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <a
-            href="/portal/turmas/"
-            className="flex items-center justify-between p-4 bg-white rounded-2xl border border-cream-300 shadow-warm-xs hover:shadow-warm hover:-translate-y-0.5 transition-all duration-150 group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-navy-900 flex items-center justify-center text-gold-400 shrink-0 group-hover:bg-navy-800 transition-colors">
-                <BookOpen className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-navy-900">Turmas</div>
-                <div className="text-xs text-slate-500">Ver todas as turmas</div>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-gold-500 transition-colors" />
-          </a>
-
-          <a
-            href="/portal/pesquisa/"
-            className="flex items-center justify-between p-4 bg-white rounded-2xl border border-cream-300 shadow-warm-xs hover:shadow-warm hover:-translate-y-0.5 transition-all duration-150 group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-navy-900 flex items-center justify-center text-gold-400 shrink-0 group-hover:bg-navy-800 transition-colors">
-                <Search className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-navy-900">Pesquisa</div>
-                <div className="text-xs text-slate-500">Busca por nome completo</div>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-gold-500 transition-colors" />
-          </a>
-
-          <a
-            href="/portal/aniversarios/"
-            className="flex items-center justify-between p-4 bg-white rounded-2xl border border-cream-300 shadow-warm-xs hover:shadow-warm hover:-translate-y-0.5 transition-all duration-150 group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-navy-900 flex items-center justify-center text-gold-400 shrink-0 group-hover:bg-navy-800 transition-colors">
-                <Cake className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-navy-900">Aniversários</div>
-                <div className="text-xs text-slate-500">Hoje e esta semana</div>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-gold-500 transition-colors" />
-          </a>
+      {navItems.filter(i => i.visible).length > 0 && (
+        <div className="animate-fade-up-3">
+          <h2 className="text-xs font-bold text-navy-900/40 uppercase tracking-widest mb-3">Acesso rápido</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {navItems
+              .filter(i => i.visible)
+              .sort((a, b) => a.ordem - b.ordem)
+              .map((item) => {
+                const Icon = ICON_MAP[item.icon] ?? ChevronRight;
+                return (
+                  <a
+                    key={item.key}
+                    href={`/portal${item.url}`}
+                    className="flex items-center justify-between p-4 bg-white rounded-2xl border border-cream-300 shadow-warm-xs hover:shadow-warm hover:-translate-y-0.5 transition-all duration-150 group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-navy-900 flex items-center justify-center text-gold-400 shrink-0 group-hover:bg-navy-800 transition-colors">
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-navy-900">{item.label}</div>
+                        <div className="text-xs text-slate-500">{item.descricao}</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-gold-500 transition-colors" />
+                  </a>
+                );
+              })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Catecúmenos table ─────────────────────────────────────────── */}
       <div className="animate-fade-up-4">

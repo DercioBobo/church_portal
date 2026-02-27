@@ -5,6 +5,8 @@ import type {
   Aniversariante,
   Estatisticas,
   ResultadoPesquisa,
+  PortalConfig,
+  NavItem,
 } from '@/types/catequese';
 
 const BASE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL || '';
@@ -15,6 +17,20 @@ async function frappeFetch<T>(method: string, params?: Record<string, string>): 
   const urlStr = `${BASE_URL}/api/method/${method}${qs}`;
   const res = await fetch(urlStr, {
     headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}: ${method}`);
+  }
+  const data = await res.json();
+  return data.message as T;
+}
+
+async function frappePost<T>(method: string, body: Record<string, string>): Promise<T> {
+  const urlStr = `${BASE_URL}/api/method/${method}`;
+  const res = await fetch(urlStr, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': 'fetch' },
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     throw new Error(`API error ${res.status}: ${method}`);
@@ -47,4 +63,12 @@ export const api = {
 
   getCatecumenos: () =>
     frappeFetch<Catecumeno[]>(`${APP}.get_catecumenos_publicos`),
+
+  getPortalConfig: () =>
+    frappeFetch<PortalConfig>(`${APP}.get_portal_config`),
+
+  savePortalConfig: (items: NavItem[]) =>
+    frappePost<{ status: string }>(`${APP}.save_portal_config`, {
+      nav_items_json: JSON.stringify(items),
+    }),
 };

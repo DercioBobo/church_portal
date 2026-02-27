@@ -8,7 +8,6 @@
       "Bash(npm run build:*)",
       "Bash(npx next build:*)",
       "Bash(node_modules/.bin/next build:*)",
-      "Bash(find C:\\\\Users\\\\DBobo\\\\PhpstormProjects\\\\church_portal:*)"
     ]
   }
 }

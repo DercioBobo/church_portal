@@ -56,6 +56,20 @@ export interface Estatisticas {
   por_fase: { fase: string; total: number }[];
 }
 
+export interface NavItem {
+  key: string;
+  label: string;
+  descricao: string;
+  icon: string;
+  url: string;
+  visible: boolean;
+  ordem: number;
+}
+
+export interface PortalConfig {
+  nav_items: NavItem[];
+}
+
 export interface ResultadoPesquisa {
   catecumenos: Catecumeno[];
   catequistas: {
