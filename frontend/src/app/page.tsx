@@ -3,26 +3,26 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   BookOpen, ChevronRight, Search, X, Cake,
-  FileText, ClipboardList, Star, Users, Calendar, Church,
+  FileText, ClipboardList, Star, Users, Calendar,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 
 import { api } from '@/lib/api';
 import type { Aniversariante, ResultadoPesquisa, NavItem } from '@/types/catequese';
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  BookOpen, Search, Cake, FileText, ClipboardList,
-  Star, Users, Calendar, Church, ChevronRight,
-};
-
-const DEFAULT_NAV_ITEMS: NavItem[] = [
-  { key: 'turmas',       label: 'Turmas',       descricao: 'Ver todas as turmas',     icon: 'BookOpen',  url: '/turmas/',       visible: true, ordem: 1 },
-  { key: 'pesquisa',     label: 'Pesquisa',     descricao: 'Busca por nome completo', icon: 'Search',    url: '/pesquisa/',     visible: true, ordem: 2 },
-  { key: 'aniversarios', label: 'Aniversários', descricao: 'Hoje e esta semana',      icon: 'Cake',      url: '/aniversarios/', visible: true, ordem: 3 },
-];
 import BirthdayList from '@/components/BirthdayList';
 import PhaseChip from '@/components/PhaseChip';
 import CatecumenosTable from '@/components/CatecumenosTable';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ICON_MAP: Record<string, any> = {
+  BookOpen, Search, Cake, FileText, ClipboardList,
+  Star, Users, Calendar, ChevronRight,
+};
+
+const DEFAULT_NAV_ITEMS: NavItem[] = [
+  { key: 'turmas',       label: 'Turmas',       descricao: 'Ver todas as turmas',     icon: 'BookOpen', url: '/turmas/',       visible: true, ordem: 1 },
+  { key: 'pesquisa',     label: 'Pesquisa',     descricao: 'Busca por nome completo', icon: 'Search',   url: '/pesquisa/',     visible: true, ordem: 2 },
+  { key: 'aniversarios', label: 'Aniversários', descricao: 'Hoje e esta semana',      icon: 'Cake',     url: '/aniversarios/', visible: true, ordem: 3 },
+];
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);

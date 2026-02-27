@@ -1,37 +1,46 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   BookOpen, Search, Cake, FileText, ClipboardList,
-  Star, Users, Calendar, Church, ChevronRight,
-  ChevronUp, ChevronDown, Trash2, Plus, X, Check,
-  Save, ArrowLeft,
+  Star, Users, Calendar,
+  ChevronUp, ChevronDown, Save, ArrowLeft, Check, X,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+
 import { api } from '@/lib/api';
 import type { NavItem } from '@/types/catequese';
 
-// ── Icon registry ──────────────────────────────────────────────────────────────
-const ICON_MAP: Record<string, LucideIcon> = {
-  BookOpen, Search, Cake, FileText, ClipboardList,
-  Star, Users, Calendar, Church, ChevronRight,
+// ── Master nav item registry ───────────────────────────────────────────────────
+// To add a future item: add it here and deploy. Admin can then toggle it on/off.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ICON_MAP: Record<string, any> = {
+  BookOpen, Search, Cake, FileText, ClipboardList, Star, Users, Calendar,
 };
 
-const ICON_OPTIONS = Object.keys(ICON_MAP);
-
-const DEFAULT_NAV_ITEMS: NavItem[] = [
-  { key: 'turmas',       label: 'Turmas',       descricao: 'Ver todas as turmas',     icon: 'BookOpen',  url: '/turmas/',       visible: true, ordem: 1 },
-  { key: 'pesquisa',     label: 'Pesquisa',     descricao: 'Busca por nome completo', icon: 'Search',    url: '/pesquisa/',     visible: true, ordem: 2 },
-  { key: 'aniversarios', label: 'Aniversários', descricao: 'Hoje e esta semana',      icon: 'Cake',      url: '/aniversarios/', visible: true, ordem: 3 },
+const MASTER_NAV_ITEMS: NavItem[] = [
+  { key: 'turmas',       label: 'Turmas',       descricao: 'Ver todas as turmas',     icon: 'BookOpen',     url: '/turmas/',       visible: true, ordem: 1 },
+  { key: 'pesquisa',     label: 'Pesquisa',     descricao: 'Busca por nome completo', icon: 'Search',       url: '/pesquisa/',     visible: true, ordem: 2 },
+  { key: 'aniversarios', label: 'Aniversários', descricao: 'Hoje e esta semana',      icon: 'Cake',         url: '/aniversarios/', visible: true, ordem: 3 },
+  // Future items — add here and they become available in admin to toggle
+  // { key: 'pautas',    label: 'Pautas',        descricao: 'Pautas de catequese',     icon: 'FileText',     url: '/pautas/',       visible: false, ordem: 4 },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function reorder(items: NavItem[]): NavItem[] {
-  return items.map((item, idx) => ({ ...item, ordem: idx + 1 }));
+function mergeWithStored(stored: NavItem[]): NavItem[] {
+  const storedMap = new Map(stored.map(s => [s.key, s]));
+
+  // Apply stored visible + ordem to each MASTER item (labels/icons/urls stay canonical)
+  const merged = MASTER_NAV_ITEMS.map(master => {
+    const s = storedMap.get(master.key);
+    return s ? { ...master, visible: s.visible, ordem: s.ordem } : { ...master };
+  });
+
+  merged.sort((a, b) => a.ordem - b.ordem);
+  return merged.map((item, idx) => ({ ...item, ordem: idx + 1 }));
 }
 
-function uniqueKey(label: string): string {
-  return label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + Date.now();
+function reorder(items: NavItem[]): NavItem[] {
+  return items.map((item, idx) => ({ ...item, ordem: idx + 1 }));
 }
 
 // ── Toggle switch ──────────────────────────────────────────────────────────────
@@ -45,12 +54,11 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       }`}
       aria-checked={checked}
       role="switch"
+      aria-label="Visível na página principal"
     >
-      <span
-        className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${
-          checked ? 'translate-x-5' : 'translate-x-0'
-        }`}
-      />
+      <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${
+        checked ? 'translate-x-5' : 'translate-x-0'
+      }`} />
     </button>
   );
 }
@@ -76,129 +84,27 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   );
 }
 
-// ── Add Item Form ─────────────────────────────────────────────────────────────
-interface NewItemDraft {
-  label: string;
-  descricao: string;
-  icon: string;
-  url: string;
-}
-
-function AddItemForm({ onAdd, onCancel }: { onAdd: (item: NavItem) => void; onCancel: () => void }) {
-  const [draft, setDraft] = useState<NewItemDraft>({ label: '', descricao: '', icon: 'BookOpen', url: '' });
-
-  const set = (k: keyof NewItemDraft, v: string) => setDraft(d => ({ ...d, [k]: v }));
-
-  const handleAdd = () => {
-    if (!draft.label.trim() || !draft.url.trim()) return;
-    const url = draft.url.startsWith('/') ? draft.url : '/' + draft.url;
-    const finalUrl = url.endsWith('/') ? url : url + '/';
-    onAdd({
-      key: uniqueKey(draft.label),
-      label: draft.label.trim(),
-      descricao: draft.descricao.trim(),
-      icon: draft.icon,
-      url: finalUrl,
-      visible: true,
-      ordem: 999,
-    });
-  };
-
-  const IconPreview = ICON_MAP[draft.icon] ?? BookOpen;
-
-  return (
-    <div className="mt-4 p-4 bg-cream-50 rounded-2xl border border-cream-300 space-y-3">
-      <h3 className="text-xs font-bold text-navy-900/50 uppercase tracking-widest">Novo item</h3>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Label *</label>
-          <input
-            type="text"
-            value={draft.label}
-            onChange={e => set('label', e.target.value)}
-            placeholder="ex: Pautas"
-            className="w-full px-3 py-2 text-sm border border-cream-300 rounded-xl bg-white focus:outline-none focus:border-navy-700"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Descrição</label>
-          <input
-            type="text"
-            value={draft.descricao}
-            onChange={e => set('descricao', e.target.value)}
-            placeholder="ex: Pautas de catequese"
-            className="w-full px-3 py-2 text-sm border border-cream-300 rounded-xl bg-white focus:outline-none focus:border-navy-700"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">URL (relativa ao portal) *</label>
-          <input
-            type="text"
-            value={draft.url}
-            onChange={e => set('url', e.target.value)}
-            placeholder="ex: /pautas/"
-            className="w-full px-3 py-2 text-sm border border-cream-300 rounded-xl bg-white focus:outline-none focus:border-navy-700"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Ícone</label>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-navy-900 flex items-center justify-center text-gold-400 shrink-0">
-              <IconPreview className="w-4 h-4" />
-            </div>
-            <select
-              value={draft.icon}
-              onChange={e => set('icon', e.target.value)}
-              className="flex-1 px-3 py-2 text-sm border border-cream-300 rounded-xl bg-white focus:outline-none focus:border-navy-700"
-            >
-              {ICON_OPTIONS.map(k => (
-                <option key={k} value={k}>{k}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 rounded-xl hover:bg-cream-200 transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={!draft.label.trim() || !draft.url.trim()}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-navy-900 text-gold-400 rounded-xl hover:bg-navy-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Adicionar
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ── Admin page ─────────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [items, setItems] = useState<NavItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+
+  const closeToast = useCallback(() => setToast(null), []);
 
   useEffect(() => {
     api.getPortalConfig()
-      .then(cfg => setItems(cfg?.nav_items?.length ? cfg.nav_items : DEFAULT_NAV_ITEMS))
-      .catch(() => setItems(DEFAULT_NAV_ITEMS))
+      .then(cfg => {
+        const stored = cfg?.nav_items ?? [];
+        setItems(mergeWithStored(stored));
+      })
+      .catch(() => setItems(mergeWithStored([])))
       .finally(() => setLoading(false));
   }, []);
 
-  const update = (idx: number, patch: Partial<NavItem>) => {
-    setItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  const toggle = (idx: number, visible: boolean) => {
+    setItems(prev => prev.map((it, i) => i === idx ? { ...it, visible } : it));
   };
 
   const moveUp = (idx: number) => {
@@ -219,15 +125,6 @@ export default function AdminPage() {
     });
   };
 
-  const deleteItem = (idx: number) => {
-    setItems(prev => reorder(prev.filter((_, i) => i !== idx)));
-  };
-
-  const addItem = (item: NavItem) => {
-    setItems(prev => reorder([...prev, item]));
-    setShowAddForm(false);
-  };
-
   const save = async () => {
     setSaving(true);
     try {
@@ -241,7 +138,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 py-6">
+    <div className="max-w-xl mx-auto space-y-6 py-6">
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
@@ -255,7 +152,7 @@ export default function AdminPage() {
           </a>
           <div>
             <h1 className="text-xl font-bold text-navy-900 font-display">Configuração do Portal</h1>
-            <p className="text-xs text-slate-500 mt-0.5">Gerir itens de acesso rápido na página principal</p>
+            <p className="text-xs text-slate-500 mt-0.5">Gerir visibilidade e ordem do acesso rápido</p>
           </div>
         </div>
         <button
@@ -273,7 +170,7 @@ export default function AdminPage() {
       <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs overflow-hidden">
         <div className="px-5 py-3.5 border-b border-cream-200 bg-cream-50/60">
           <span className="text-xs font-bold text-navy-900/50 uppercase tracking-widest">
-            Itens de navegação ({items.length})
+            Itens de acesso rápido
           </span>
         </div>
 
@@ -282,18 +179,21 @@ export default function AdminPage() {
             <div className="w-5 h-5 border-2 border-cream-300 border-t-navy-900 rounded-full animate-spin mr-3" />
             A carregar…
           </div>
-        ) : items.length === 0 ? (
-          <div className="py-10 text-center text-sm text-slate-400 italic">
-            Nenhum item de navegação. Adicione um abaixo.
-          </div>
         ) : (
           <ul className="divide-y divide-cream-200">
             {items.map((item, idx) => {
-              const Icon = ICON_MAP[item.icon] ?? ChevronRight;
+              const Icon = ICON_MAP[item.icon] ?? BookOpen;
               return (
-                <li key={item.key} className={`flex items-center gap-3 px-5 py-3.5 transition-colors ${item.visible ? '' : 'opacity-50'}`}>
-                  {/* Icon preview */}
-                  <div className="w-9 h-9 rounded-xl bg-navy-900 flex items-center justify-center text-gold-400 shrink-0">
+                <li
+                  key={item.key}
+                  className={`flex items-center gap-3 px-5 py-4 transition-colors ${
+                    item.visible ? '' : 'opacity-50'
+                  }`}
+                >
+                  {/* Icon */}
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                    item.visible ? 'bg-navy-900 text-gold-400' : 'bg-slate-200 text-slate-400'
+                  }`}>
                     <Icon className="w-4 h-4" />
                   </div>
 
@@ -301,43 +201,32 @@ export default function AdminPage() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-navy-900 truncate">{item.label}</div>
                     <div className="text-xs text-slate-500 truncate">{item.descricao}</div>
-                    <div className="text-[10px] text-slate-400 font-mono truncate mt-0.5">/portal{item.url}</div>
                   </div>
 
-                  {/* Controls */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Toggle checked={item.visible} onChange={v => update(idx, { visible: v })} />
-
-                    <div className="flex flex-col">
-                      <button
-                        type="button"
-                        onClick={() => moveUp(idx)}
-                        disabled={idx === 0}
-                        className="p-1 text-slate-400 hover:text-navy-900 disabled:opacity-20 disabled:cursor-default transition-colors"
-                        title="Mover para cima"
-                      >
-                        <ChevronUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveDown(idx)}
-                        disabled={idx === items.length - 1}
-                        className="p-1 text-slate-400 hover:text-navy-900 disabled:opacity-20 disabled:cursor-default transition-colors"
-                        title="Mover para baixo"
-                      >
-                        <ChevronDown className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
+                  {/* Reorder */}
+                  <div className="flex flex-col shrink-0">
                     <button
                       type="button"
-                      onClick={() => deleteItem(idx)}
-                      className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
-                      title="Eliminar item"
+                      onClick={() => moveUp(idx)}
+                      disabled={idx === 0}
+                      className="p-1 text-slate-400 hover:text-navy-900 disabled:opacity-20 disabled:cursor-default transition-colors"
+                      title="Mover para cima"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveDown(idx)}
+                      disabled={idx === items.length - 1}
+                      className="p-1 text-slate-400 hover:text-navy-900 disabled:opacity-20 disabled:cursor-default transition-colors"
+                      title="Mover para baixo"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
                     </button>
                   </div>
+
+                  {/* Toggle */}
+                  <Toggle checked={item.visible} onChange={v => toggle(idx, v)} />
                 </li>
               );
             })}
@@ -345,28 +234,12 @@ export default function AdminPage() {
         )}
       </div>
 
-      {/* Add item */}
-      {showAddForm ? (
-        <AddItemForm onAdd={addItem} onCancel={() => setShowAddForm(false)} />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowAddForm(true)}
-          className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-cream-400 rounded-2xl text-sm text-slate-500 hover:text-navy-900 hover:border-navy-300 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Adicionar item
-        </button>
-      )}
+      <p className="text-xs text-slate-400 text-center px-4">
+        Alterne a visibilidade e reordene os itens. Guarde para aplicar as alterações na página principal.
+      </p>
 
       {/* Toast */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
     </div>
   );
 }
