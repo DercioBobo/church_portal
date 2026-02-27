@@ -1,0 +1,16 @@
+[
+  {
+    "doctype": "Role",
+    "role_name": "Catequista",
+    "desk_access": 1,
+    "is_custom": 1,
+    "search_bar": 1,
+    "notifications": 1,
+    "list_sidebar": 1,
+    "bulk_actions": 1,
+    "view_switcher": 1,
+    "form_sidebar": 1,
+    "timeline": 1,
+    "dashboard": 1
+  }
+]
