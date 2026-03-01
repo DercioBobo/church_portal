@@ -24,7 +24,13 @@ def _get_catequista_name(user=None):
 
 def _user_is_catequista(user=None):
     user = user or frappe.session.user
-    return CATEQUISTA_ROLE in frappe.get_roles(user)
+    if user == "Administrator":
+        return False
+    roles = frappe.get_roles(user)
+    # Never restrict privileged users, even if they also carry the Catequista role
+    if "System Manager" in roles:
+        return False
+    return CATEQUISTA_ROLE in roles
 
 
 # ── Turma ─────────────────────────────────────────────────────────────────────
