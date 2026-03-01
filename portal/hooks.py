@@ -37,10 +37,3 @@ doc_events = {
         "on_update": "portal.permissions.on_catequista_update",
     }
 }
-
-# ── Fixtures ───────────────────────────────────────────────────────────────────
-# Exported with: bench export-fixtures --app portal
-# Imported with: bench import-fixtures --app portal  (or bench migrate)
-fixtures = [
-    {"dt": "Role", "filters": [["role_name", "=", "Catequista"]]},
-]
