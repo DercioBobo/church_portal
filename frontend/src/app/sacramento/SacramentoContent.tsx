@@ -241,7 +241,7 @@ function CandidatoModal({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-navy-950/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
       <div className="relative z-10 w-full sm:max-w-2xl bg-white sm:rounded-2xl shadow-warm-lg
@@ -708,9 +708,9 @@ function DetalhePreparacao({ nome }: { nome: string }) {
     );
   }
 
-  const fichaOk = data.candidatos.filter((c) => c.ficha).length;
-  const docsOk = data.candidatos.filter((c) => c.documentos_padrinhos).length;
   const total = data.candidatos.length;
+  const sabadoCount = data.candidatos.filter((c) => c.dia === 'Sábado').length;
+  const domingoCount = data.candidatos.filter((c) => c.dia === 'Domingo').length;
   const documentosText = htmlToText(data.documentos_exigidos);
   const observacoesText = htmlToText(data.observacoes);
 
@@ -738,12 +738,6 @@ function DetalhePreparacao({ nome }: { nome: string }) {
               <h1 className="font-display text-2xl font-bold text-white">{data.sacramento}</h1>
               {data.ano_lectivo && <p className="text-sm text-white/60 mt-1">{data.ano_lectivo}</p>}
             </div>
-            {data.data_do_sacramento && (
-              <div className="bg-white/10 border border-white/20 rounded-xl px-4 py-2.5">
-                <div className="text-xs text-white/60 mb-0.5">Data</div>
-                <div className="text-white font-semibold text-sm">{fmtDate(data.data_do_sacramento)}</div>
-              </div>
-            )}
           </div>
         </div>
         {/* Summary bar */}
@@ -753,54 +747,31 @@ function DetalhePreparacao({ nome }: { nome: string }) {
             <div className="text-xs text-slate-500">Candidatos</div>
           </div>
           <div className="px-4 py-3 text-center">
-            <div className="text-xl font-display font-bold text-emerald-600">{fichaOk}</div>
-            <div className="text-xs text-slate-500">Fichas</div>
+            <div className="text-xl font-display font-bold text-navy-900">{sabadoCount}</div>
+            <div className="text-xs text-slate-500">Sábado</div>
           </div>
           <div className="px-4 py-3 text-center">
-            <div className="text-xl font-display font-bold text-emerald-600">{docsOk}</div>
-            <div className="text-xs text-slate-500">Docs Padr.</div>
+            <div className="text-xl font-display font-bold text-navy-900">{domingoCount}</div>
+            <div className="text-xs text-slate-500">Domingo</div>
           </div>
         </div>
       </div>
 
-      {/* Requisitos e Custos — only show when there's actual content */}
-      {(documentosText || observacoesText || data.valor_ofertorio != null || data.valor_cracha != null) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(documentosText || observacoesText) && (
-            <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs p-5 space-y-4">
-              {documentosText && (
-                <div>
-                  <h2 className="flex items-center gap-2 font-semibold text-navy-900 text-sm mb-2">
-                    <FileText className="w-4 h-4 text-slate-400" />Documentos Exigidos
-                  </h2>
-                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{documentosText}</p>
-                </div>
-              )}
-              {observacoesText && (
-                <div className={documentosText ? 'pt-3 border-t border-cream-200' : ''}>
-                  <h2 className="font-semibold text-navy-900 text-sm mb-2">Observações</h2>
-                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{observacoesText}</p>
-                </div>
-              )}
+      {/* Documentos e Observações */}
+      {(documentosText || observacoesText) && (
+        <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs p-5 space-y-4">
+          {documentosText && (
+            <div>
+              <h2 className="flex items-center gap-2 font-semibold text-navy-900 text-sm mb-2">
+                <FileText className="w-4 h-4 text-slate-400" />Documentos Exigidos
+              </h2>
+              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{documentosText}</p>
             </div>
           )}
-          {(data.valor_ofertorio != null || data.valor_cracha != null) && (
-            <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs p-5">
-              <h2 className="font-semibold text-navy-900 text-sm mb-4">Custos de Referência</h2>
-              <div className="space-y-3">
-                {data.valor_ofertorio != null && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500">Ofertório</span>
-                    <span className="text-sm font-semibold text-navy-900">{fmt(data.valor_ofertorio)}</span>
-                  </div>
-                )}
-                {data.valor_cracha != null && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500">Crachá</span>
-                    <span className="text-sm font-semibold text-navy-900">{fmt(data.valor_cracha)}</span>
-                  </div>
-                )}
-              </div>
+          {observacoesText && (
+            <div className={documentosText ? 'pt-3 border-t border-cream-200' : ''}>
+              <h2 className="font-semibold text-navy-900 text-sm mb-2">Observações</h2>
+              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{observacoesText}</p>
             </div>
           )}
         </div>
