@@ -5,6 +5,8 @@ import type {
   Aniversariante,
   Estatisticas,
   ResultadoPesquisa,
+  PreparacaoSacramento,
+  PreparacaoSacramentoLista,
 } from '@/types/catequese';
 
 const BASE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL || '';
@@ -21,6 +23,26 @@ async function frappeFetch<T>(method: string, params?: Record<string, string>): 
   }
   const data = await res.json();
   return data.message as T;
+}
+
+async function frappePOST<T>(method: string, data: Record<string, string | number | null | undefined>): Promise<T> {
+  const urlStr = `${BASE_URL}/api/method/${method}`;
+  const formData = new URLSearchParams();
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) {
+      formData.append(key, String(value));
+    }
+  });
+  const res = await fetch(urlStr, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formData.toString(),
+  });
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}: ${method}`);
+  }
+  const responseData = await res.json();
+  return responseData.message as T;
 }
 
 export const api = {
@@ -47,4 +69,29 @@ export const api = {
 
   getCatecumenos: () =>
     frappeFetch<Catecumeno[]>(`${APP}.get_catecumenos_publicos`),
+
+  getPreparacoesSacramento: () =>
+    frappeFetch<PreparacaoSacramentoLista[]>(`${APP}.get_preparacoes_sacramento`),
+
+  getPreparacaoSacramento: (nome: string) =>
+    frappeFetch<PreparacaoSacramento>(`${APP}.get_preparacao_sacramento`, { nome }),
+
+  atualizarCandidatoSacramento: (
+    preparacao_nome: string,
+    row_name: string,
+    dados: {
+      encarregado?: string;
+      contacto_encarregado?: string;
+      padrinhos?: string;
+      contacto_padrinhos?: string;
+      idade?: number;
+      data_de_nascimento?: string;
+      dia?: string;
+    }
+  ) =>
+    frappePOST<{ success: boolean }>(`${APP}.atualizar_candidato_sacramento`, {
+      preparacao_nome,
+      row_name,
+      ...dados,
+    }),
 };

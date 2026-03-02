@@ -56,6 +56,46 @@ export interface Estatisticas {
   por_fase: { fase: string; total: number }[];
 }
 
+export interface PreparacaoSacramentoLista {
+  name: string;
+  sacramento: string;
+  ano_lectivo: string;
+  data_do_sacramento: string;
+  total_candidatos: number;
+}
+
+export interface CandidatoSacramento {
+  name: string;
+  catecumeno: string;
+  turma?: string;
+  fase?: string;
+  sexo?: string;
+  idade?: number;
+  data_de_nascimento?: string;
+  date?: string;
+  dia?: string;
+  sacerdote?: string;
+  encarregado?: string;
+  contacto_encarregado?: string;
+  padrinhos?: string;
+  contacto_padrinhos?: string;
+  ficha?: 0 | 1;
+  documentos_padrinhos?: 0 | 1;
+  valor_ofertorio?: number;
+  valor_cracha?: number;
+  valor_accao_gracas?: number;
+  valor_fotos?: number;
+  obs?: string;
+}
+
+export interface PreparacaoSacramento extends PreparacaoSacramentoLista {
+  documentos_exigidos?: string;
+  valor_ofertorio?: number;
+  valor_cracha?: number;
+  observacoes?: string;
+  candidatos: CandidatoSacramento[];
+}
+
 export interface ResultadoPesquisa {
   catecumenos: Catecumeno[];
   catequistas: {

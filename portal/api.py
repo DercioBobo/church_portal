@@ -5,6 +5,7 @@ Todos os endpoints são públicos (allow_guest=True) e não expõem dados sensí
 
 import frappe
 from frappe import _
+from frappe.utils import cint
 from datetime import date, timedelta
 
 
@@ -228,6 +229,143 @@ def get_estatisticas_publicas():
         "total_catequistas": total_catequistas,
         "por_fase": fases,
     }
+
+
+# ─── Preparação do Sacramento ────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=True)
+def get_preparacoes_sacramento():
+    """Lista todas as Preparações do Sacramento com contagem de candidatos."""
+    preparacoes = frappe.db.sql("""
+        SELECT
+            p.name,
+            p.sacramento,
+            p.ano_lectivo,
+            p.data_do_sacramento,
+            COUNT(c.name) AS total_candidatos
+        FROM `tabPreparacao do Sacramento` p
+        LEFT JOIN `tabCandidatos ao Sacramento Table` c
+            ON c.parent = p.name
+           AND c.parentfield = 'candidatos_sacramento_table'
+        GROUP BY p.name
+        ORDER BY p.data_do_sacramento DESC, p.name ASC
+    """, as_dict=True)
+    return preparacoes
+
+
+@frappe.whitelist(allow_guest=True)
+def get_preparacao_sacramento(nome):
+    """Detalhe de uma Preparação do Sacramento com candidatos."""
+    preparacao = frappe.db.get_value(
+        "Preparacao do Sacramento",
+        nome,
+        ["name", "sacramento", "ano_lectivo", "data_do_sacramento",
+         "documentos_exigidos", "valor_ofertorio", "valor_cracha", "observacoes"],
+        as_dict=True,
+    )
+
+    if not preparacao:
+        frappe.throw(_("Preparação do Sacramento não encontrada"))
+
+    candidatos = frappe.db.sql("""
+        SELECT
+            c.name,
+            c.catecumeno,
+            c.turma,
+            c.fase,
+            c.sexo,
+            c.idade,
+            c.data_de_nascimento,
+            c.date,
+            c.dia,
+            c.sacerdote,
+            c.encarregado,
+            c.contacto_encarregado,
+            c.padrinhos,
+            c.contacto_padrinhos,
+            c.ficha,
+            c.documentos_padrinhos,
+            c.valor_ofertorio,
+            c.valor_cracha,
+            c.valor_accao_gracas,
+            c.valor_fotos,
+            c.obs
+        FROM `tabCandidatos ao Sacramento Table` c
+        WHERE c.parent = %s
+          AND c.parentfield = 'candidatos_sacramento_table'
+        ORDER BY c.catecumeno ASC
+    """, (nome,), as_dict=True)
+
+    preparacao["candidatos"] = candidatos
+    return preparacao
+
+
+@frappe.whitelist(allow_guest=True)
+def atualizar_candidato_sacramento(
+    preparacao_nome, row_name,
+    encarregado=None, contacto_encarregado=None,
+    padrinhos=None, contacto_padrinhos=None,
+    idade=None, data_de_nascimento=None, dia=None,
+):
+    """
+    Permite ao encarregado actualizar os campos editáveis do candidato.
+    Actualiza também o Catecumeno correspondente nos campos partilhados.
+    """
+    # Verify the row belongs to this preparacao
+    row = frappe.db.get_value(
+        "Candidatos ao Sacramento Table",
+        row_name,
+        ["name", "catecumeno", "parent", "parentfield"],
+        as_dict=True,
+    )
+
+    if not row or row.parent != preparacao_nome or row.parentfield != "candidatos_sacramento_table":
+        frappe.throw(_("Candidato não encontrado nesta preparação"))
+
+    # Build update dict for child row (all editable fields)
+    child_updates = {}
+    if dia is not None:
+        child_updates["dia"] = dia
+    if encarregado is not None:
+        child_updates["encarregado"] = encarregado
+    if contacto_encarregado is not None:
+        child_updates["contacto_encarregado"] = contacto_encarregado
+    if padrinhos is not None:
+        child_updates["padrinhos"] = padrinhos
+    if contacto_padrinhos is not None:
+        child_updates["contacto_padrinhos"] = contacto_padrinhos
+    if idade is not None:
+        child_updates["idade"] = cint(idade)
+    if data_de_nascimento is not None:
+        child_updates["data_de_nascimento"] = data_de_nascimento
+
+    if child_updates:
+        frappe.db.set_value("Candidatos ao Sacramento Table", row_name, child_updates)
+
+    # Mirror shared fields to Catecumeno doctype
+    if row.catecumeno:
+        cat_updates = {}
+        if encarregado is not None:
+            cat_updates["encarregado"] = encarregado
+        if contacto_encarregado is not None:
+            cat_updates["contacto_encarregado"] = contacto_encarregado
+        if padrinhos is not None:
+            cat_updates["padrinhos"] = padrinhos
+        if contacto_padrinhos is not None:
+            cat_updates["contacto_padrinhos"] = contacto_padrinhos
+        if idade is not None:
+            cat_updates["idade"] = cint(idade)
+        if data_de_nascimento is not None:
+            cat_updates["data_de_nascimento"] = data_de_nascimento
+
+        if cat_updates:
+            try:
+                frappe.db.set_value("Catecumeno", row.catecumeno, cat_updates)
+            except Exception:
+                pass  # Catecumeno may not exist; non-critical
+
+    frappe.db.commit()
+    return {"success": True}
 
 
 @frappe.whitelist(allow_guest=True)

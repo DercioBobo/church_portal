@@ -8,6 +8,7 @@ const links = [
   { href: '/', label: 'Início' },
   { href: '/catecumenos', label: 'Catecúmenos' },
   { href: '/turmas', label: 'Turmas' },
+  { href: '/sacramento', label: 'Sacramento' },
   { href: '/pesquisa', label: 'Pesquisa' },
   { href: '/aniversarios', label: 'Aniversários' },
 ];
