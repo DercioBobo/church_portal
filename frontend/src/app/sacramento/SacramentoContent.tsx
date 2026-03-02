@@ -1,29 +1,49 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, AlertCircle, Search, X, ChevronDown, ChevronUp,
-  Check, Save, CalendarDays, Users, Euro, FileText, Pencil,
-  Phone, User, Users2, BookOpen, Sparkles,
+  ArrowLeft, AlertCircle, Search, X, Check, Save,
+  CalendarDays, Users, FileText, Pencil, Phone,
+  User, Users2, BookOpen, Sparkles, BadgeCheck, BadgeX,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { PreparacaoSacramento, PreparacaoSacramentoLista, CandidatoSacramento } from '@/types/catequese';
 import PhaseChip from '@/components/PhaseChip';
 import Loading from '@/components/Loading';
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(value?: number | null): string {
   if (value == null) return '—';
-  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(value);
+  return `Mts ${new Intl.NumberFormat('pt-MZ', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)}`;
 }
 
 function fmtDate(d?: string | null): string {
   if (!d) return '—';
-  const [year, month, day] = d.split('-');
-  if (!year || !month || !day) return d;
-  return `${day}/${month}/${year}`;
+  const parts = d.split('-');
+  if (parts.length !== 3) return d;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+/** Strip HTML tags and return plain text; returns '' for empty Quill output. */
+function htmlToText(html?: string | null): string {
+  if (!html) return '';
+  const text = html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return text;
 }
 
 const DIA_OPTIONS = [
@@ -31,35 +51,54 @@ const DIA_OPTIONS = [
   'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado',
 ];
 
-// ─── sub-components ───────────────────────────────────────────────────────────
+// ─── edit form state ───────────────────────────────────────────────────────────
 
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+interface EditState {
+  encarregado: string;
+  contacto_encarregado: string;
+  padrinhos: string;
+  contacto_padrinhos: string;
+  idade: string;
+  data_de_nascimento: string;
+  dia: string;
+}
+
+function toEditState(c: CandidatoSacramento): EditState {
+  return {
+    encarregado: c.encarregado ?? '',
+    contacto_encarregado: c.contacto_encarregado ?? '',
+    padrinhos: c.padrinhos ?? '',
+    contacto_padrinhos: c.contacto_padrinhos ?? '',
+    idade: c.idade != null ? String(c.idade) : '',
+    data_de_nascimento: c.data_de_nascimento ?? '',
+    dia: c.dia ?? '',
+  };
+}
+
+// ─── small shared UI ──────────────────────────────────────────────────────────
+
+function SectionHeading({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-cream-100 last:border-0">
-      <span className="text-sm text-slate-500 shrink-0">{label}</span>
-      <span className="text-sm text-navy-900 font-medium text-right">{value || '—'}</span>
+    <div className="flex items-center gap-2 mb-3">
+      <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</span>
     </div>
   );
 }
 
-function StatusBadge({ ok, label }: { ok: boolean; label: string }) {
+function Row({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full
-      ${ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-600 border border-rose-200'}`}>
-      {ok ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-      {label}
-    </span>
+    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-cream-100 last:border-0">
+      <span className="text-sm text-slate-500 shrink-0 w-32">{label}</span>
+      <span className="text-sm text-navy-900 font-medium text-right flex-1">{value || '—'}</span>
+    </div>
   );
 }
 
 function EditField({
   label, value, onChange, type = 'text', placeholder,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  placeholder?: string;
+  label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -79,12 +118,7 @@ function EditField({
 
 function SelectField({
   label, value, options, onChange,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (v: string) => void;
-}) {
+}: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
   return (
     <div className="flex flex-col gap-1">
       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</label>
@@ -92,67 +126,66 @@ function SelectField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 text-sm rounded-lg border border-cream-300 bg-cream-50
-          focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-700/20 focus:border-navy-700/40
-          transition-all"
+          focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-700/20 focus:border-navy-700/40 transition-all"
       >
-        {options.map((o) => (
-          <option key={o} value={o}>{o || 'Seleccionar...'}</option>
-        ))}
+        {options.map((o) => <option key={o} value={o}>{o || 'Seleccionar...'}</option>)}
       </select>
     </div>
   );
 }
 
-// ─── edit form state ──────────────────────────────────────────────────────────
-
-interface EditState {
-  encarregado: string;
-  contacto_encarregado: string;
-  padrinhos: string;
-  contacto_padrinhos: string;
-  idade: string;
-  data_de_nascimento: string;
-  dia: string;
+function DocBadge({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <div className={`flex items-center gap-2 rounded-xl border px-3 py-2.5
+      ${ok ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+      {ok
+        ? <BadgeCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+        : <BadgeX className="w-4 h-4 text-rose-500 shrink-0" />}
+      <span className={`text-xs font-semibold ${ok ? 'text-emerald-700' : 'text-rose-600'}`}>{label}</span>
+    </div>
+  );
 }
 
-function buildEditState(c: CandidatoSacramento): EditState {
-  return {
-    encarregado: c.encarregado ?? '',
-    contacto_encarregado: c.contacto_encarregado ?? '',
-    padrinhos: c.padrinhos ?? '',
-    contacto_padrinhos: c.contacto_padrinhos ?? '',
-    idade: c.idade != null ? String(c.idade) : '',
-    data_de_nascimento: c.data_de_nascimento ?? '',
-    dia: c.dia ?? '',
-  };
-}
+// ─── Modal ────────────────────────────────────────────────────────────────────
 
-// ─── Candidate Card ───────────────────────────────────────────────────────────
-
-function CandidatoCard({
-  candidato,
+function CandidatoModal({
+  candidato: initial,
   preparacaoNome,
+  onClose,
   onSaved,
 }: {
   candidato: CandidatoSacramento;
   preparacaoNome: string;
-  onSaved: (updated: Partial<CandidatoSacramento>) => void;
+  onClose: () => void;
+  onSaved: (updates: Partial<CandidatoSacramento>) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [candidato, setCandidato] = useState(initial);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<EditState>(buildEditState(candidato));
+  const [form, setForm] = useState<EditState>(toEditState(initial));
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  // Prevent body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
 
   function field(key: keyof EditState) {
-    return (v: string) => setForm((prev) => ({ ...prev, [key]: v }));
+    return (v: string) => setForm((p) => ({ ...p, [key]: v }));
   }
 
   function handleEdit() {
-    setForm(buildEditState(candidato));
+    setForm(toEditState(candidato));
     setEditing(true);
-    setExpanded(true);
     setSaved(false);
     setSaveError('');
   }
@@ -160,7 +193,6 @@ function CandidatoCard({
   function handleCancel() {
     setEditing(false);
     setSaveError('');
-    setForm(buildEditState(candidato));
   }
 
   async function handleSave() {
@@ -176,9 +208,7 @@ function CandidatoCard({
         data_de_nascimento: form.data_de_nascimento || undefined,
         dia: form.dia || undefined,
       });
-      setSaved(true);
-      setEditing(false);
-      onSaved({
+      const updates: Partial<CandidatoSacramento> = {
         encarregado: form.encarregado,
         contacto_encarregado: form.contacto_encarregado,
         padrinhos: form.padrinhos,
@@ -186,7 +216,11 @@ function CandidatoCard({
         idade: form.idade ? parseInt(form.idade, 10) : candidato.idade,
         data_de_nascimento: form.data_de_nascimento,
         dia: form.dia,
-      });
+      };
+      setCandidato((prev) => ({ ...prev, ...updates }));
+      onSaved(updates);
+      setSaved(true);
+      setEditing(false);
       setTimeout(() => setSaved(false), 3000);
     } catch {
       setSaveError('Erro ao guardar. Tente novamente.');
@@ -202,253 +236,397 @@ function CandidatoCard({
     (candidato.valor_fotos ?? 0);
 
   return (
-    <div className={`bg-white rounded-2xl border shadow-warm-xs overflow-hidden transition-all
-      ${expanded ? 'border-navy-700/20' : 'border-cream-300'}`}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-navy-950/50 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Card summary */}
-      <div
-        className="px-5 py-4 cursor-pointer hover:bg-cream-50/60 transition-colors"
-        onClick={() => { if (!editing) setExpanded((v) => !v); }}
-      >
-        <div className="flex items-start gap-3">
-          {/* Avatar */}
-          <div className="w-10 h-10 rounded-xl bg-navy-900 flex items-center justify-center
-            text-gold-400 font-display font-bold text-base shrink-0">
+      {/* Panel */}
+      <div className="relative z-10 w-full sm:max-w-2xl bg-white sm:rounded-2xl shadow-warm-lg
+        max-h-[95dvh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-fade-up">
+
+        {/* Modal header */}
+        <div className="bg-navy-900 px-5 py-4 flex items-start gap-4 shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center
+            text-gold-400 font-display font-bold text-lg shrink-0">
             {candidato.catecumeno?.charAt(0)?.toUpperCase() ?? '?'}
           </div>
-
           <div className="flex-1 min-w-0">
-            {/* Name + badges */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-navy-900 text-sm leading-tight truncate">
-                {candidato.catecumeno}
-              </span>
+            <h2 className="font-display font-bold text-white text-lg leading-tight truncate">
+              {candidato.catecumeno}
+            </h2>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {candidato.fase && <PhaseChip fase={candidato.fase} />}
-              {saved && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700
-                  bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
-                  <Check className="w-3 h-3" /> Guardado
-                </span>
-              )}
-            </div>
-
-            {/* Meta row */}
-            <div className="mt-1.5 flex items-center gap-3 flex-wrap text-xs text-slate-500">
               {candidato.turma && (
-                <span className="flex items-center gap-1">
-                  <BookOpen className="w-3 h-3" /> {candidato.turma}
+                <span className="flex items-center gap-1 text-xs text-white/60">
+                  <BookOpen className="w-3 h-3" />{candidato.turma}
                 </span>
               )}
-              {candidato.sexo && (
-                <span>{candidato.sexo === 'M' ? 'Masc.' : candidato.sexo === 'F' ? 'Fem.' : candidato.sexo}</span>
-              )}
-              {candidato.idade != null && <span>{candidato.idade} anos</span>}
-              {candidato.dia && (
-                <span className="flex items-center gap-1">
-                  <CalendarDays className="w-3 h-3" /> {candidato.dia}
-                </span>
-              )}
-            </div>
-
-            {/* Status badges */}
-            <div className="mt-2 flex items-center gap-2 flex-wrap">
-              <StatusBadge ok={!!candidato.ficha} label="Ficha" />
-              <StatusBadge ok={!!candidato.documentos_padrinhos} label="Docs Padrinhos" />
-              {totalPago > 0 && (
-                <span className="text-xs text-slate-500 font-medium">
-                  {fmt(totalPago)} pagos
+              {saved && (
+                <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
+                  <Check className="w-3 h-3" />Guardado
                 </span>
               )}
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={handleEdit}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg
-                bg-navy-900 text-gold-400 hover:bg-navy-800 transition-colors shadow-warm-xs"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Editar</span>
-            </button>
-            <button
-              className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 transition-colors"
-              onClick={() => setExpanded((v) => !v)}
-            >
-              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-      </div>
 
-      {/* Expanded content */}
-      {expanded && (
-        <div className="border-t border-cream-200 animate-fade-in">
-          <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-5 space-y-6">
 
-            {/* LEFT — editable section */}
+            {/* ── Personal data ───────────────────────────────────────── */}
             <div>
-              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider
-                text-navy-900/50 mb-4">
-                <User className="w-3.5 h-3.5" />
-                Dados do Encarregado
-                {editing && <span className="text-gold-500 normal-case font-normal tracking-normal">— a editar</span>}
-              </h3>
+              <SectionHeading icon={User} label="Dados Pessoais" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="bg-cream-50 rounded-xl border border-cream-200 px-3 py-2.5 text-center">
+                  <div className="text-xs text-slate-500 mb-0.5">Sexo</div>
+                  <div className="text-sm font-semibold text-navy-900">
+                    {candidato.sexo === 'M' ? 'Masculino' : candidato.sexo === 'F' ? 'Feminino' : (candidato.sexo || '—')}
+                  </div>
+                </div>
+                <div className="bg-cream-50 rounded-xl border border-cream-200 px-3 py-2.5 text-center">
+                  <div className="text-xs text-slate-500 mb-0.5">Idade</div>
+                  <div className="text-sm font-semibold text-navy-900">
+                    {candidato.idade != null ? `${candidato.idade} anos` : '—'}
+                  </div>
+                </div>
+                <div className="col-span-2 sm:col-span-1 bg-cream-50 rounded-xl border border-cream-200 px-3 py-2.5 text-center">
+                  <div className="text-xs text-slate-500 mb-0.5">Nascimento</div>
+                  <div className="text-sm font-semibold text-navy-900">{fmtDate(candidato.data_de_nascimento)}</div>
+                </div>
+              </div>
+              {(candidato.date || candidato.dia || candidato.sacerdote) && (
+                <div className="mt-3 space-y-0 bg-white rounded-xl border border-cream-200">
+                  {candidato.dia && <Row label="Dia da Celebração" value={
+                    <span className="flex items-center justify-end gap-1.5">
+                      <CalendarDays className="w-3.5 h-3.5 text-slate-400" />{candidato.dia}
+                    </span>
+                  } />}
+                  {candidato.date && <Row label="Data Cerimónia" value={fmtDate(candidato.date)} />}
+                  {candidato.sacerdote && <Row label="Sacerdote" value={candidato.sacerdote} />}
+                </div>
+              )}
+            </div>
 
-              {editing ? (
-                <div className="space-y-3">
+            {/* ── Encarregado + Padrinhos (edit / view) ───────────────── */}
+            {editing ? (
+              <div className="space-y-4">
+                <div>
+                  <SectionHeading icon={User} label="Encarregado de Educação" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <EditField label="Encarregado" value={form.encarregado} onChange={field('encarregado')} placeholder="Nome completo" />
-                    <EditField label="Contacto" value={form.contacto_encarregado} onChange={field('contacto_encarregado')} type="tel" placeholder="+244 9XX XXX XXX" />
+                    <EditField label="Nome" value={form.encarregado} onChange={field('encarregado')} placeholder="Nome completo" />
+                    <EditField label="Contacto" value={form.contacto_encarregado} onChange={field('contacto_encarregado')} type="tel" placeholder="+258 8X XXX XXXX" />
                   </div>
+                </div>
+                <div>
+                  <SectionHeading icon={Users2} label="Padrinhos" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <EditField label="Padrinhos" value={form.padrinhos} onChange={field('padrinhos')} placeholder="Nome dos padrinhos" />
-                    <EditField label="Contacto Padrinhos" value={form.contacto_padrinhos} onChange={field('contacto_padrinhos')} type="tel" placeholder="+244 9XX XXX XXX" />
+                    <EditField label="Nome(s)" value={form.padrinhos} onChange={field('padrinhos')} placeholder="Nome dos padrinhos" />
+                    <EditField label="Contacto" value={form.contacto_padrinhos} onChange={field('contacto_padrinhos')} type="tel" placeholder="+258 8X XXX XXXX" />
                   </div>
+                </div>
+                <div>
+                  <SectionHeading icon={CalendarDays} label="Dados Pessoais — Editar" />
                   <div className="grid grid-cols-3 gap-3">
                     <EditField label="Idade" value={form.idade} onChange={field('idade')} type="number" placeholder="0" />
                     <div className="col-span-2">
                       <EditField label="Data de Nascimento" value={form.data_de_nascimento} onChange={field('data_de_nascimento')} type="date" />
                     </div>
                   </div>
-                  <SelectField label="Dia da Celebração" value={form.dia} options={DIA_OPTIONS} onChange={field('dia')} />
-
-                  {saveError && (
-                    <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
-                      {saveError}
-                    </p>
-                  )}
-
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-navy-900 text-gold-400
-                        font-semibold text-sm hover:bg-navy-800 transition-colors shadow-warm-xs
-                        disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      {saving ? 'A guardar...' : 'Guardar'}
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      disabled={saving}
-                      className="px-4 py-2 rounded-lg border border-cream-300 text-slate-600
-                        font-semibold text-sm hover:bg-cream-100 transition-colors disabled:opacity-60"
-                    >
-                      Cancelar
-                    </button>
+                  <div className="mt-3">
+                    <SelectField label="Dia da Celebração" value={form.dia} options={DIA_OPTIONS} onChange={field('dia')} />
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-0">
-                  <InfoRow label="Encarregado" value={
-                    <span className="flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-slate-400" />
-                      {candidato.encarregado}
-                    </span>
-                  } />
-                  <InfoRow label="Contacto Enc." value={
-                    <span className="flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      {candidato.contacto_encarregado}
-                    </span>
-                  } />
-                  <InfoRow label="Padrinhos" value={
-                    <span className="flex items-center gap-1.5">
-                      <Users2 className="w-3.5 h-3.5 text-slate-400" />
-                      {candidato.padrinhos}
-                    </span>
-                  } />
-                  <InfoRow label="Contacto Padr." value={
-                    <span className="flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      {candidato.contacto_padrinhos}
-                    </span>
-                  } />
-                  <InfoRow label="Idade" value={candidato.idade != null ? `${candidato.idade} anos` : null} />
-                  <InfoRow label="Data Nasc." value={fmtDate(candidato.data_de_nascimento)} />
-                  <InfoRow label="Dia Celebração" value={candidato.dia} />
-                </div>
-              )}
-            </div>
 
-            {/* RIGHT — read-only prep info */}
+                {saveError && (
+                  <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                    {saveError}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <div>
+                  <SectionHeading icon={User} label="Encarregado de Educação" />
+                  <div className="bg-white rounded-xl border border-cream-200">
+                    <Row label="Nome" value={candidato.encarregado} />
+                    <Row label="Contacto" value={
+                      candidato.contacto_encarregado
+                        ? <span className="flex items-center justify-end gap-1.5">
+                            <Phone className="w-3.5 h-3.5 text-slate-400" />{candidato.contacto_encarregado}
+                          </span>
+                        : null
+                    } />
+                  </div>
+                </div>
+                <div>
+                  <SectionHeading icon={Users2} label="Padrinhos" />
+                  <div className="bg-white rounded-xl border border-cream-200">
+                    <Row label="Nome(s)" value={candidato.padrinhos} />
+                    <Row label="Contacto" value={
+                      candidato.contacto_padrinhos
+                        ? <span className="flex items-center justify-end gap-1.5">
+                            <Phone className="w-3.5 h-3.5 text-slate-400" />{candidato.contacto_padrinhos}
+                          </span>
+                        : null
+                    } />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── Documentação (read-only) ─────────────────────────────── */}
             <div>
-              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider
-                text-navy-900/50 mb-4">
-                <FileText className="w-3.5 h-3.5" />
-                Informação de Preparação
-              </h3>
-
-              {/* Doc status */}
-              <div className="flex gap-3 mb-4">
-                <div className={`flex-1 rounded-xl border p-3 text-center
-                  ${candidato.ficha ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
-                  <div className={`text-lg font-bold ${candidato.ficha ? 'text-emerald-700' : 'text-rose-600'}`}>
-                    {candidato.ficha ? '✓' : '✗'}
-                  </div>
-                  <div className="text-xs text-slate-600 mt-0.5">Ficha</div>
-                </div>
-                <div className={`flex-1 rounded-xl border p-3 text-center
-                  ${candidato.documentos_padrinhos ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
-                  <div className={`text-lg font-bold ${candidato.documentos_padrinhos ? 'text-emerald-700' : 'text-rose-600'}`}>
-                    {candidato.documentos_padrinhos ? '✓' : '✗'}
-                  </div>
-                  <div className="text-xs text-slate-600 mt-0.5">Docs Padrinhos</div>
-                </div>
-              </div>
-
-              {/* Financial breakdown */}
-              <div className="bg-cream-50 rounded-xl border border-cream-200 divide-y divide-cream-200">
-                <div className="px-4 py-2.5 flex items-center justify-between">
-                  <span className="text-xs text-slate-500">Ofertório</span>
-                  <span className="text-sm font-semibold text-navy-900">{fmt(candidato.valor_ofertorio)}</span>
-                </div>
-                <div className="px-4 py-2.5 flex items-center justify-between">
-                  <span className="text-xs text-slate-500">Crachá</span>
-                  <span className="text-sm font-semibold text-navy-900">{fmt(candidato.valor_cracha)}</span>
-                </div>
-                <div className="px-4 py-2.5 flex items-center justify-between">
-                  <span className="text-xs text-slate-500">Acção de Graças</span>
-                  <span className="text-sm font-semibold text-navy-900">{fmt(candidato.valor_accao_gracas)}</span>
-                </div>
-                <div className="px-4 py-2.5 flex items-center justify-between">
-                  <span className="text-xs text-slate-500">Fotografias</span>
-                  <span className="text-sm font-semibold text-navy-900">{fmt(candidato.valor_fotos)}</span>
-                </div>
-                <div className="px-4 py-2.5 flex items-center justify-between bg-cream-100 rounded-b-xl">
-                  <span className="text-xs font-bold text-slate-600">Total</span>
-                  <span className="text-sm font-bold text-navy-900">
-                    {fmt((candidato.valor_ofertorio ?? 0) + (candidato.valor_cracha ?? 0) +
-                      (candidato.valor_accao_gracas ?? 0) + (candidato.valor_fotos ?? 0))}
-                  </span>
-                </div>
-              </div>
-
-              {/* Obs */}
-              {candidato.obs && (
-                <div className="mt-3 bg-gold-50 border border-gold-200 rounded-xl px-4 py-3">
-                  <p className="text-xs font-semibold text-gold-700 mb-1">Observações</p>
-                  <p className="text-sm text-slate-700">{candidato.obs}</p>
-                </div>
-              )}
-
-              {/* Sacerdote + date */}
-              <div className="mt-3 space-y-0">
-                {candidato.sacerdote && <InfoRow label="Sacerdote" value={candidato.sacerdote} />}
-                {candidato.date && <InfoRow label="Data Cerimónia" value={fmtDate(candidato.date)} />}
+              <SectionHeading icon={FileText} label="Documentação" />
+              <div className="grid grid-cols-2 gap-3">
+                <DocBadge ok={!!candidato.ficha} label="Ficha" />
+                <DocBadge ok={!!candidato.documentos_padrinhos} label="Docs Padrinhos" />
               </div>
             </div>
+
+            {/* ── Valores (read-only) ──────────────────────────────────── */}
+            <div>
+              <SectionHeading icon={Sparkles} label="Valores" />
+              <div className="bg-cream-50 rounded-xl border border-cream-200 divide-y divide-cream-200 overflow-hidden">
+                {[
+                  ['Ofertório', candidato.valor_ofertorio],
+                  ['Crachá', candidato.valor_cracha],
+                  ['Acção de Graças', candidato.valor_accao_gracas],
+                  ['Fotografias', candidato.valor_fotos],
+                ].map(([label, val]) => (
+                  <div key={label as string} className="flex items-center justify-between px-4 py-2.5">
+                    <span className="text-sm text-slate-500">{label}</span>
+                    <span className="text-sm font-semibold text-navy-900">{fmt(val as number | null)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between px-4 py-2.5 bg-cream-100">
+                  <span className="text-sm font-bold text-slate-700">Total</span>
+                  <span className="text-sm font-bold text-navy-900">{fmt(totalPago)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Obs ──────────────────────────────────────────────────── */}
+            {candidato.obs && (
+              <div className="bg-gold-100 border border-gold-200 rounded-xl px-4 py-3">
+                <p className="text-xs font-semibold text-gold-700 mb-1">Observações</p>
+                <p className="text-sm text-slate-700">{candidato.obs}</p>
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Modal footer */}
+        <div className="shrink-0 border-t border-cream-200 px-5 py-3 bg-cream-50 flex items-center justify-between gap-3 flex-wrap">
+          {editing ? (
+            <>
+              <button
+                onClick={handleCancel}
+                disabled={saving}
+                className="px-4 py-2 rounded-lg border border-cream-300 text-slate-600 text-sm font-semibold
+                  hover:bg-cream-100 transition-colors disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-navy-900 text-gold-400
+                  text-sm font-semibold hover:bg-navy-800 transition-colors shadow-warm-xs
+                  disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {saving ? 'A guardar...' : 'Guardar'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-cream-300 text-slate-600 text-sm font-semibold
+                  hover:bg-cream-100 transition-colors"
+              >
+                Fechar
+              </button>
+              <button
+                onClick={handleEdit}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-navy-900 text-gold-400
+                  text-sm font-semibold hover:bg-navy-800 transition-colors shadow-warm-xs"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Editar dados
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── List view ────────────────────────────────────────────────────────────────
+// ─── Candidates table ─────────────────────────────────────────────────────────
+
+function CandidatosTable({
+  candidatos,
+  preparacaoNome,
+  onCandidatoSaved,
+}: {
+  candidatos: CandidatoSacramento[];
+  preparacaoNome: string;
+  onCandidatoSaved: (rowName: string, updates: Partial<CandidatoSacramento>) => void;
+}) {
+  const [filter, setFilter] = useState('');
+  const [selected, setSelected] = useState<CandidatoSacramento | null>(null);
+
+  const visible = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return candidatos;
+    return candidatos.filter((c) =>
+      c.catecumeno?.toLowerCase().includes(q) ||
+      c.encarregado?.toLowerCase().includes(q) ||
+      c.padrinhos?.toLowerCase().includes(q)
+    );
+  }, [candidatos, filter]);
+
+  // Keep modal in sync when parent updates the row
+  useEffect(() => {
+    if (!selected) return;
+    const fresh = candidatos.find((c) => c.name === selected.name);
+    if (fresh) setSelected(fresh);
+  }, [candidatos, selected?.name]);
+
+  return (
+    <>
+      {/* Search */}
+      {candidatos.length > 3 && (
+        <div className="px-4 py-3 border-b border-cream-200">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Pesquisar por candidato, encarregado ou padrinho..."
+              className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-cream-300 bg-cream-50
+                focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-700/20 focus:border-navy-700/30 transition-all"
+            />
+            {filter && (
+              <button
+                onClick={() => setFilter('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
+      {visible.length === 0 ? (
+        <div className="py-14 text-center text-slate-400 text-sm font-display italic">
+          {filter ? `Nenhum resultado para "${filter}"` : 'Nenhum candidato nesta preparação.'}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-cream-50 border-b border-cream-200">
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 w-full">
+                  Candidato
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 hidden sm:table-cell whitespace-nowrap">
+                  Encarregado
+                </th>
+                <th className="text-center px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell">
+                  Fase
+                </th>
+                <th className="text-center px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell whitespace-nowrap">
+                  Dia
+                </th>
+                <th className="text-center px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Ficha
+                </th>
+                <th className="text-center px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                  Docs
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-cream-100">
+              {visible.map((c) => (
+                <tr
+                  key={c.name}
+                  onClick={() => setSelected(c)}
+                  className="hover:bg-cream-50 cursor-pointer transition-colors group"
+                >
+                  {/* Name */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-navy-900 flex items-center justify-center
+                        text-gold-400 text-xs font-bold shrink-0 group-hover:bg-navy-800 transition-colors">
+                        {c.catecumeno?.charAt(0)?.toUpperCase() ?? '?'}
+                      </div>
+                      <span className="font-semibold text-navy-900 truncate group-hover:text-navy-700 transition-colors">
+                        {c.catecumeno}
+                      </span>
+                    </div>
+                  </td>
+                  {/* Encarregado */}
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    <span className="text-slate-600 truncate block max-w-[14rem]">{c.encarregado || '—'}</span>
+                  </td>
+                  {/* Fase */}
+                  <td className="px-3 py-3 hidden md:table-cell text-center">
+                    {c.fase ? <PhaseChip fase={c.fase} /> : <span className="text-slate-400">—</span>}
+                  </td>
+                  {/* Dia */}
+                  <td className="px-3 py-3 hidden lg:table-cell text-center">
+                    <span className="text-slate-600 whitespace-nowrap">{c.dia || '—'}</span>
+                  </td>
+                  {/* Ficha */}
+                  <td className="px-3 py-3 text-center">
+                    {c.ficha
+                      ? <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                      : <X className="w-4 h-4 text-rose-400 mx-auto" />}
+                  </td>
+                  {/* Docs */}
+                  <td className="px-3 py-3 text-center">
+                    {c.documentos_padrinhos
+                      ? <Check className="w-4 h-4 text-emerald-500 mx-auto" />
+                      : <X className="w-4 h-4 text-rose-400 mx-auto" />}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Modal */}
+      {selected && (
+        <CandidatoModal
+          candidato={selected}
+          preparacaoNome={preparacaoNome}
+          onClose={() => setSelected(null)}
+          onSaved={(updates) => {
+            onCandidatoSaved(selected.name, updates);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Lista de preparações ─────────────────────────────────────────────────────
 
 function ListaPreparacoes({ items }: { items: PreparacaoSacramentoLista[] }) {
   if (items.length === 0) {
@@ -459,7 +637,6 @@ function ListaPreparacoes({ items }: { items: PreparacaoSacramentoLista[] }) {
       </div>
     );
   }
-
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {items.map((p) => (
@@ -475,25 +652,20 @@ function ListaPreparacoes({ items }: { items: PreparacaoSacramentoLista[] }) {
             </div>
             <span className="flex items-center gap-1.5 text-xs text-slate-500 bg-cream-100
               border border-cream-300 rounded-full px-2.5 py-0.5 mt-1">
-              <Users className="w-3 h-3" />
-              {p.total_candidatos}
+              <Users className="w-3 h-3" />{p.total_candidatos}
             </span>
           </div>
           <h3 className="font-display font-bold text-navy-900 text-base group-hover:text-navy-700 transition-colors">
             {p.sacramento}
           </h3>
-          {p.ano_lectivo && (
-            <p className="text-xs text-slate-500 mt-0.5">{p.ano_lectivo}</p>
-          )}
+          {p.ano_lectivo && <p className="text-xs text-slate-500 mt-0.5">{p.ano_lectivo}</p>}
           {p.data_do_sacramento && (
             <p className="flex items-center gap-1.5 text-xs text-slate-500 mt-2">
               <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
               {fmtDate(p.data_do_sacramento)}
             </p>
           )}
-          <div className="mt-3 text-xs text-navy-700 font-semibold group-hover:underline">
-            Ver detalhes →
-          </div>
+          <div className="mt-3 text-xs text-navy-700 font-semibold group-hover:underline">Ver detalhes →</div>
         </a>
       ))}
     </div>
@@ -506,7 +678,6 @@ function DetalhePreparacao({ nome }: { nome: string }) {
   const [data, setData] = useState<PreparacaoSacramento | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     api.getPreparacaoSacramento(nome)
@@ -515,30 +686,15 @@ function DetalhePreparacao({ nome }: { nome: string }) {
       .finally(() => setLoading(false));
   }, [nome]);
 
-  const candidatosFiltrados = useMemo(() => {
-    if (!data) return [];
-    const q = filter.trim().toLowerCase();
-    if (!q) return data.candidatos;
-    return data.candidatos.filter((c) => {
-      return (
-        c.catecumeno?.toLowerCase().includes(q) ||
-        c.encarregado?.toLowerCase().includes(q) ||
-        c.padrinhos?.toLowerCase().includes(q)
-      );
-    });
-  }, [data, filter]);
-
-  function handleCandidatoSaved(rowName: string, updates: Partial<CandidatoSacramento>) {
+  const handleSaved = useCallback((rowName: string, updates: Partial<CandidatoSacramento>) => {
     setData((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
-        candidatos: prev.candidatos.map((c) =>
-          c.name === rowName ? { ...c, ...updates } : c
-        ),
+        candidatos: prev.candidatos.map((c) => c.name === rowName ? { ...c, ...updates } : c),
       };
     });
-  }
+  }, []);
 
   if (loading) return <Loading />;
 
@@ -547,16 +703,16 @@ function DetalhePreparacao({ nome }: { nome: string }) {
       <div className="flex flex-col items-center justify-center py-20 text-slate-500">
         <AlertCircle className="w-10 h-10 mb-3 text-rose-400" />
         <p className="font-display italic">{error || 'Preparação não encontrada.'}</p>
-        <button onClick={() => history.back()} className="mt-4 text-navy-700 text-sm hover:underline">
-          ← Voltar
-        </button>
+        <button onClick={() => history.back()} className="mt-4 text-navy-700 text-sm hover:underline">← Voltar</button>
       </div>
     );
   }
 
-  const ficha_ok = data.candidatos.filter((c) => c.ficha).length;
-  const docs_ok = data.candidatos.filter((c) => c.documentos_padrinhos).length;
+  const fichaOk = data.candidatos.filter((c) => c.ficha).length;
+  const docsOk = data.candidatos.filter((c) => c.documentos_padrinhos).length;
   const total = data.candidatos.length;
+  const documentosText = htmlToText(data.documentos_exigidos);
+  const observacoesText = htmlToText(data.observacoes);
 
   return (
     <div className="animate-fade-up space-y-5">
@@ -565,11 +721,10 @@ function DetalhePreparacao({ nome }: { nome: string }) {
         onClick={() => history.back()}
         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-navy-900 transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" />
-        Voltar
+        <ArrowLeft className="w-4 h-4" />Voltar
       </button>
 
-      {/* Header card */}
+      {/* Header */}
       <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs overflow-hidden">
         <div className="bg-navy-900 bg-cross-pattern px-6 py-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -581,152 +736,96 @@ function DetalhePreparacao({ nome }: { nome: string }) {
                 </span>
               </div>
               <h1 className="font-display text-2xl font-bold text-white">{data.sacramento}</h1>
-              {data.ano_lectivo && (
-                <p className="text-sm text-white/60 mt-1">{data.ano_lectivo}</p>
-              )}
+              {data.ano_lectivo && <p className="text-sm text-white/60 mt-1">{data.ano_lectivo}</p>}
             </div>
             {data.data_do_sacramento && (
-              <div className="bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-right">
+              <div className="bg-white/10 border border-white/20 rounded-xl px-4 py-2.5">
                 <div className="text-xs text-white/60 mb-0.5">Data</div>
-                <div className="text-white font-semibold text-sm">
-                  {fmtDate(data.data_do_sacramento)}
-                </div>
+                <div className="text-white font-semibold text-sm">{fmtDate(data.data_do_sacramento)}</div>
               </div>
             )}
           </div>
         </div>
-
-        {/* Progress summary */}
-        <div className="grid grid-cols-3 divide-x divide-cream-200 border-t border-cream-200">
+        {/* Summary bar */}
+        <div className="grid grid-cols-3 divide-x divide-cream-200">
           <div className="px-4 py-3 text-center">
             <div className="text-xl font-display font-bold text-navy-900">{total}</div>
             <div className="text-xs text-slate-500">Candidatos</div>
           </div>
           <div className="px-4 py-3 text-center">
-            <div className="text-xl font-display font-bold text-emerald-600">{ficha_ok}</div>
+            <div className="text-xl font-display font-bold text-emerald-600">{fichaOk}</div>
             <div className="text-xs text-slate-500">Fichas</div>
           </div>
           <div className="px-4 py-3 text-center">
-            <div className="text-xl font-display font-bold text-emerald-600">{docs_ok}</div>
-            <div className="text-xs text-slate-500">Docs Padrinhos</div>
+            <div className="text-xl font-display font-bold text-emerald-600">{docsOk}</div>
+            <div className="text-xs text-slate-500">Docs Padr.</div>
           </div>
         </div>
       </div>
 
-      {/* Requisitos e Custos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Documentos + observações */}
-        {(data.documentos_exigidos || data.observacoes) && (
-          <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs p-5">
-            {data.documentos_exigidos && (
-              <>
-                <h2 className="flex items-center gap-2 font-semibold text-navy-900 text-sm mb-3">
-                  <FileText className="w-4 h-4 text-slate-400" />
-                  Documentos Exigidos
-                </h2>
-                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                  {data.documentos_exigidos}
-                </p>
-              </>
-            )}
-            {data.observacoes && (
-              <div className={`${data.documentos_exigidos ? 'mt-4 pt-4 border-t border-cream-200' : ''}`}>
-                <h2 className="font-semibold text-navy-900 text-sm mb-2">Observações</h2>
-                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                  {data.observacoes}
-                </p>
+      {/* Requisitos e Custos — only show when there's actual content */}
+      {(documentosText || observacoesText || data.valor_ofertorio != null || data.valor_cracha != null) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(documentosText || observacoesText) && (
+            <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs p-5 space-y-4">
+              {documentosText && (
+                <div>
+                  <h2 className="flex items-center gap-2 font-semibold text-navy-900 text-sm mb-2">
+                    <FileText className="w-4 h-4 text-slate-400" />Documentos Exigidos
+                  </h2>
+                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{documentosText}</p>
+                </div>
+              )}
+              {observacoesText && (
+                <div className={documentosText ? 'pt-3 border-t border-cream-200' : ''}>
+                  <h2 className="font-semibold text-navy-900 text-sm mb-2">Observações</h2>
+                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{observacoesText}</p>
+                </div>
+              )}
+            </div>
+          )}
+          {(data.valor_ofertorio != null || data.valor_cracha != null) && (
+            <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs p-5">
+              <h2 className="font-semibold text-navy-900 text-sm mb-4">Custos de Referência</h2>
+              <div className="space-y-3">
+                {data.valor_ofertorio != null && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-500">Ofertório</span>
+                    <span className="text-sm font-semibold text-navy-900">{fmt(data.valor_ofertorio)}</span>
+                  </div>
+                )}
+                {data.valor_cracha != null && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-500">Crachá</span>
+                    <span className="text-sm font-semibold text-navy-900">{fmt(data.valor_cracha)}</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Custos base */}
-        {(data.valor_ofertorio != null || data.valor_cracha != null) && (
-          <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs p-5">
-            <h2 className="flex items-center gap-2 font-semibold text-navy-900 text-sm mb-4">
-              <Euro className="w-4 h-4 text-slate-400" />
-              Custos de Referência
-            </h2>
-            <div className="space-y-3">
-              {data.valor_ofertorio != null && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-500">Ofertório</span>
-                  <span className="text-sm font-semibold text-navy-900">{fmt(data.valor_ofertorio)}</span>
-                </div>
-              )}
-              {data.valor_cracha != null && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-500">Crachá</span>
-                  <span className="text-sm font-semibold text-navy-900">{fmt(data.valor_cracha)}</span>
-                </div>
-              )}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {/* Candidates section */}
+      {/* Candidates table */}
       <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs overflow-hidden">
-        {/* Header + search */}
-        <div className="px-5 py-4 border-b border-cream-200 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-slate-400" />
-            <h2 className="font-semibold text-navy-900">
-              Candidatos ao Sacramento
-            </h2>
-            <span className="text-xs text-slate-400 bg-cream-100 border border-cream-300
-              rounded-full px-2 py-0.5">
-              {filter ? `${candidatosFiltrados.length}/` : ''}{total}
-            </span>
-          </div>
-
-          {total > 3 && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="text"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                placeholder="Pesquisar candidato, encarregado, padrinho..."
-                className="pl-9 pr-8 py-2 text-sm rounded-xl border border-cream-300 bg-cream-50
-                  focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-700/20 focus:border-navy-700/30
-                  transition-all w-full sm:w-72"
-              />
-              {filter && (
-                <button
-                  onClick={() => setFilter('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          )}
+        <div className="px-5 py-4 border-b border-cream-200 flex items-center gap-3">
+          <Users className="w-4 h-4 text-slate-400" />
+          <h2 className="font-semibold text-navy-900">Candidatos ao Sacramento</h2>
+          <span className="text-xs text-slate-400 bg-cream-100 border border-cream-300 rounded-full px-2 py-0.5">
+            {total}
+          </span>
         </div>
-
-        {/* Candidate list */}
-        <div className="p-4 space-y-3">
-          {candidatosFiltrados.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-sm font-display italic">
-              {filter ? `Nenhum resultado para "${filter}"` : 'Nenhum candidato nesta preparação.'}
-            </div>
-          ) : (
-            candidatosFiltrados.map((c) => (
-              <CandidatoCard
-                key={c.name}
-                candidato={c}
-                preparacaoNome={data.name}
-                onSaved={(updates) => handleCandidatoSaved(c.name, updates)}
-              />
-            ))
-          )}
-        </div>
+        <CandidatosTable
+          candidatos={data.candidatos}
+          preparacaoNome={data.name}
+          onCandidatoSaved={handleSaved}
+        />
       </div>
     </div>
   );
 }
 
-// ─── Root content ─────────────────────────────────────────────────────────────
+// ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function SacramentoContent() {
   const params = useSearchParams();
@@ -746,12 +845,8 @@ export default function SacramentoContent() {
     }
   }, [nome]);
 
-  // Detail view
-  if (nome) {
-    return <DetalhePreparacao nome={nome} />;
-  }
+  if (nome) return <DetalhePreparacao nome={nome} />;
 
-  // List view
   return (
     <div className="animate-fade-up">
       <div className="mb-6">
@@ -766,9 +861,7 @@ export default function SacramentoContent() {
         </p>
       </div>
 
-      {loadingLista ? (
-        <Loading />
-      ) : errorLista ? (
+      {loadingLista ? <Loading /> : errorLista ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500">
           <AlertCircle className="w-10 h-10 mb-3 text-rose-400" />
           <p className="font-display italic">{errorLista}</p>
