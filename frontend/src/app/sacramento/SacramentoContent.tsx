@@ -241,7 +241,7 @@ function CandidatoModal({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0" onClick={onClose} />
 
       {/* Panel */}
       <div className="relative z-10 w-full sm:max-w-2xl bg-white sm:rounded-2xl shadow-warm-lg
