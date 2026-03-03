@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, AlertCircle, Search, X, Check, Save,
@@ -241,7 +242,7 @@ function CandidatoModal({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
 
       {/* Panel */}
       <div className="relative z-10 w-full sm:max-w-2xl bg-white sm:rounded-2xl shadow-warm-lg
@@ -486,6 +487,9 @@ function CandidatosTable({
 }) {
   const [filter, setFilter] = useState('');
   const [selected, setSelected] = useState<CandidatoSacramento | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const visible = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -547,10 +551,7 @@ function CandidatosTable({
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 hidden sm:table-cell whitespace-nowrap">
                   Encarregado
                 </th>
-                <th className="text-center px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell">
-                  Fase
-                </th>
-                <th className="text-center px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell whitespace-nowrap">
+                <th className="text-center px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell whitespace-nowrap">
                   Dia
                 </th>
                 <th className="text-center px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -584,12 +585,8 @@ function CandidatosTable({
                   <td className="px-4 py-3 hidden sm:table-cell">
                     <span className="text-slate-600 truncate block max-w-[14rem]">{c.encarregado || '—'}</span>
                   </td>
-                  {/* Fase */}
-                  <td className="px-3 py-3 hidden md:table-cell text-center">
-                    {c.fase ? <PhaseChip fase={c.fase} /> : <span className="text-slate-400">—</span>}
-                  </td>
                   {/* Dia */}
-                  <td className="px-3 py-3 hidden lg:table-cell text-center">
+                  <td className="px-3 py-3 hidden md:table-cell text-center">
                     <span className="text-slate-600 whitespace-nowrap">{c.dia || '—'}</span>
                   </td>
                   {/* Ficha */}
@@ -611,8 +608,8 @@ function CandidatosTable({
         </div>
       )}
 
-      {/* Modal */}
-      {selected && (
+      {/* Modal — rendered at document.body via portal to escape stacking context */}
+      {selected && mounted && createPortal(
         <CandidatoModal
           candidato={selected}
           preparacaoNome={preparacaoNome}
@@ -620,7 +617,8 @@ function CandidatosTable({
           onSaved={(updates) => {
             onCandidatoSaved(selected.name, updates);
           }}
-        />
+        />,
+        document.body,
       )}
     </>
   );
