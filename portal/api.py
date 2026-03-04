@@ -289,7 +289,8 @@ def get_preparacao_sacramento(nome):
             c.valor_cracha,
             c.valor_accao_gracas,
             c.valor_fotos,
-            c.obs
+            c.obs,
+            c.enc_obs
         FROM `tabCandidatos ao Sacramento Table` c
         WHERE c.parent = %s
           AND c.parentfield = 'candidatos_sacramento_table'
@@ -305,7 +306,7 @@ def atualizar_candidato_sacramento(
     preparacao_nome, row_name,
     encarregado=None, contacto_encarregado=None,
     padrinhos=None, contacto_padrinhos=None,
-    idade=None, data_de_nascimento=None, dia=None,
+    idade=None, data_de_nascimento=None, dia=None, enc_obs=None,
 ):
     """
     Permite ao encarregado actualizar os campos editáveis do candidato.
@@ -338,6 +339,8 @@ def atualizar_candidato_sacramento(
         child_updates["idade"] = cint(idade)
     if data_de_nascimento is not None:
         child_updates["data_de_nascimento"] = data_de_nascimento
+    if enc_obs is not None:
+        child_updates["enc_obs"] = enc_obs
 
     if child_updates:
         frappe.db.set_value("Candidatos ao Sacramento Table", row_name, child_updates)

@@ -86,6 +86,7 @@ export interface CandidatoSacramento {
   valor_accao_gracas?: number;
   valor_fotos?: number;
   obs?: string;
+  enc_obs?: string;
 }
 
 export interface PreparacaoSacramento extends PreparacaoSacramentoLista {

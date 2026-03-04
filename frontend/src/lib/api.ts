@@ -87,6 +87,7 @@ export const api = {
       idade?: number;
       data_de_nascimento?: string;
       dia?: string;
+      enc_obs?: string;
     }
   ) =>
     frappePOST<{ success: boolean }>(`${APP}.atualizar_candidato_sacramento`, {

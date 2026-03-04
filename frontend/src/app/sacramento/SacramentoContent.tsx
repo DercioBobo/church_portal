@@ -59,6 +59,7 @@ interface EditState {
   idade: string;
   data_de_nascimento: string;
   dia: string;
+  enc_obs: string;
 }
 
 function toEditState(c: CandidatoSacramento): EditState {
@@ -70,6 +71,7 @@ function toEditState(c: CandidatoSacramento): EditState {
     idade: c.idade != null ? String(c.idade) : '',
     data_de_nascimento: c.data_de_nascimento ?? '',
     dia: c.dia ?? '',
+    enc_obs: c.enc_obs ?? '',
   };
 }
 
@@ -157,11 +159,10 @@ function CandidatoModal({
   onClose: () => void;
   onSaved: (updates: Partial<CandidatoSacramento>) => void;
 }) {
-  const [candidato, setCandidato] = useState(initial);
+  const [candidato] = useState(initial);
   const [form, setForm] = useState<EditState>(toEditState(initial));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [saved, setSaved] = useState(false);
 
   // Close on Escape
   useEffect(() => {
@@ -177,7 +178,7 @@ function CandidatoModal({
   }, []);
 
   function field(key: keyof EditState) {
-    return (v: string) => { setForm((p) => ({ ...p, [key]: v })); setSaved(false); };
+    return (v: string) => setForm((p) => ({ ...p, [key]: v }));
   }
 
   async function handleSave() {
@@ -192,6 +193,7 @@ function CandidatoModal({
         idade: form.idade ? parseInt(form.idade, 10) : undefined,
         data_de_nascimento: form.data_de_nascimento || undefined,
         dia: form.dia || undefined,
+        enc_obs: form.enc_obs || undefined,
       });
       const updates: Partial<CandidatoSacramento> = {
         encarregado: form.encarregado,
@@ -201,11 +203,10 @@ function CandidatoModal({
         idade: form.idade ? parseInt(form.idade, 10) : candidato.idade,
         data_de_nascimento: form.data_de_nascimento,
         dia: form.dia,
+        enc_obs: form.enc_obs,
       };
-      setCandidato((prev) => ({ ...prev, ...updates }));
       onSaved(updates);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      onClose();
     } catch {
       setSaveError('Erro ao guardar. Tente novamente.');
     } finally {
@@ -248,11 +249,6 @@ function CandidatoModal({
                   <BookOpen className="w-3 h-3" />{candidato.turma}
                 </span>
               )}
-              {saved && (
-                <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                  <Check className="w-3 h-3" />Guardado
-                </span>
-              )}
             </div>
           </div>
           <button
@@ -270,13 +266,7 @@ function CandidatoModal({
             {/* ── Personal data ───────────────────────────────────────── */}
             <div>
               <SectionHeading icon={User} label="Dados Pessoais" />
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-cream-50 rounded-xl border border-cream-200 px-3 py-2.5 text-center">
-                  <div className="text-xs text-slate-500 mb-0.5">Sexo</div>
-                  <div className="text-sm font-semibold text-navy-900">
-                    {candidato.sexo === 'M' ? 'Masculino' : candidato.sexo === 'F' ? 'Feminino' : (candidato.sexo || '—')}
-                  </div>
-                </div>
+              <div className="grid grid-cols-2 gap-3">
                 <EditField label="Idade" value={form.idade} onChange={field('idade')} type="number" placeholder="0" />
                 <EditField label="Nascimento" value={form.data_de_nascimento} onChange={field('data_de_nascimento')} type="date" />
               </div>
@@ -307,6 +297,20 @@ function CandidatoModal({
                 <EditField label="Nome(s)" value={form.padrinhos} onChange={field('padrinhos')} placeholder="Nome dos padrinhos" />
                 <EditField label="Contacto" value={form.contacto_padrinhos} onChange={field('contacto_padrinhos')} type="tel" placeholder="+258 8X XXX XXXX" />
               </div>
+            </div>
+
+            {/* ── Obs Encarregados/Padrinhos ───────────────────────────── */}
+            <div>
+              <SectionHeading icon={FileText} label="Observações dos Encarregados/Padrinhos" />
+              <textarea
+                value={form.enc_obs}
+                onChange={(e) => field('enc_obs')(e.target.value)}
+                rows={3}
+                placeholder="Observações ou notas dos encarregados e padrinhos..."
+                className="w-full px-3 py-2 text-sm rounded-lg border border-cream-300 bg-cream-50
+                  focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-700/20 focus:border-navy-700/40
+                  transition-all placeholder:text-slate-400 resize-none"
+              />
             </div>
 
             {saveError && (
