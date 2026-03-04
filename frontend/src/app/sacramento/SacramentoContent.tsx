@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, AlertCircle, Search, X, Check, Save,
-  CalendarDays, Users, FileText, Pencil, Phone,
+  CalendarDays, Users, FileText,
   User, Users2, BookOpen, Sparkles, BadgeCheck, BadgeX,
 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -47,10 +47,7 @@ function htmlToText(html?: string | null): string {
   return text;
 }
 
-const DIA_OPTIONS = [
-  '', 'Domingo', 'Segunda-feira', 'Terça-feira',
-  'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado',
-];
+const DIA_OPTIONS = ['', 'Sábado', 'Domingo'];
 
 // ─── edit form state ───────────────────────────────────────────────────────────
 
@@ -161,7 +158,6 @@ function CandidatoModal({
   onSaved: (updates: Partial<CandidatoSacramento>) => void;
 }) {
   const [candidato, setCandidato] = useState(initial);
-  const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditState>(toEditState(initial));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -181,19 +177,7 @@ function CandidatoModal({
   }, []);
 
   function field(key: keyof EditState) {
-    return (v: string) => setForm((p) => ({ ...p, [key]: v }));
-  }
-
-  function handleEdit() {
-    setForm(toEditState(candidato));
-    setEditing(true);
-    setSaved(false);
-    setSaveError('');
-  }
-
-  function handleCancel() {
-    setEditing(false);
-    setSaveError('');
+    return (v: string) => { setForm((p) => ({ ...p, [key]: v })); setSaved(false); };
   }
 
   async function handleSave() {
@@ -221,7 +205,6 @@ function CandidatoModal({
       setCandidato((prev) => ({ ...prev, ...updates }));
       onSaved(updates);
       setSaved(true);
-      setEditing(false);
       setTimeout(() => setSaved(false), 3000);
     } catch {
       setSaveError('Erro ao guardar. Tente novamente.');
@@ -287,102 +270,49 @@ function CandidatoModal({
             {/* ── Personal data ───────────────────────────────────────── */}
             <div>
               <SectionHeading icon={User} label="Dados Pessoais" />
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="bg-cream-50 rounded-xl border border-cream-200 px-3 py-2.5 text-center">
                   <div className="text-xs text-slate-500 mb-0.5">Sexo</div>
                   <div className="text-sm font-semibold text-navy-900">
                     {candidato.sexo === 'M' ? 'Masculino' : candidato.sexo === 'F' ? 'Feminino' : (candidato.sexo || '—')}
                   </div>
                 </div>
-                <div className="bg-cream-50 rounded-xl border border-cream-200 px-3 py-2.5 text-center">
-                  <div className="text-xs text-slate-500 mb-0.5">Idade</div>
-                  <div className="text-sm font-semibold text-navy-900">
-                    {candidato.idade != null ? `${candidato.idade} anos` : '—'}
-                  </div>
-                </div>
-                <div className="col-span-2 sm:col-span-1 bg-cream-50 rounded-xl border border-cream-200 px-3 py-2.5 text-center">
-                  <div className="text-xs text-slate-500 mb-0.5">Nascimento</div>
-                  <div className="text-sm font-semibold text-navy-900">{fmtDate(candidato.data_de_nascimento)}</div>
-                </div>
+                <EditField label="Idade" value={form.idade} onChange={field('idade')} type="number" placeholder="0" />
+                <EditField label="Nascimento" value={form.data_de_nascimento} onChange={field('data_de_nascimento')} type="date" />
               </div>
-              {(candidato.date || candidato.dia || candidato.sacerdote) && (
-                <div className="mt-3 space-y-0 bg-white rounded-xl border border-cream-200">
-                  {candidato.dia && <Row label="Dia da Celebração" value={
-                    <span className="flex items-center justify-end gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5 text-slate-400" />{candidato.dia}
-                    </span>
-                  } />}
+              <div className="mt-3">
+                <SelectField label="Dia da Celebração" value={form.dia} options={DIA_OPTIONS} onChange={field('dia')} />
+              </div>
+              {(candidato.date || candidato.sacerdote) && (
+                <div className="mt-3 bg-white rounded-xl border border-cream-200">
                   {candidato.date && <Row label="Data Cerimónia" value={fmtDate(candidato.date)} />}
                   {candidato.sacerdote && <Row label="Sacerdote" value={candidato.sacerdote} />}
                 </div>
               )}
             </div>
 
-            {/* ── Encarregado + Padrinhos (edit / view) ───────────────── */}
-            {editing ? (
-              <div className="space-y-4">
-                <div>
-                  <SectionHeading icon={User} label="Encarregado de Educação" />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <EditField label="Nome" value={form.encarregado} onChange={field('encarregado')} placeholder="Nome completo" />
-                    <EditField label="Contacto" value={form.contacto_encarregado} onChange={field('contacto_encarregado')} type="tel" placeholder="+258 8X XXX XXXX" />
-                  </div>
-                </div>
-                <div>
-                  <SectionHeading icon={Users2} label="Padrinhos" />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <EditField label="Nome(s)" value={form.padrinhos} onChange={field('padrinhos')} placeholder="Nome dos padrinhos" />
-                    <EditField label="Contacto" value={form.contacto_padrinhos} onChange={field('contacto_padrinhos')} type="tel" placeholder="+258 8X XXX XXXX" />
-                  </div>
-                </div>
-                <div>
-                  <SectionHeading icon={CalendarDays} label="Dados Pessoais — Editar" />
-                  <div className="grid grid-cols-3 gap-3">
-                    <EditField label="Idade" value={form.idade} onChange={field('idade')} type="number" placeholder="0" />
-                    <div className="col-span-2">
-                      <EditField label="Data de Nascimento" value={form.data_de_nascimento} onChange={field('data_de_nascimento')} type="date" />
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <SelectField label="Dia da Celebração" value={form.dia} options={DIA_OPTIONS} onChange={field('dia')} />
-                  </div>
-                </div>
-
-                {saveError && (
-                  <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
-                    {saveError}
-                  </p>
-                )}
+            {/* ── Encarregado ─────────────────────────────────────────── */}
+            <div>
+              <SectionHeading icon={User} label="Encarregado de Educação" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <EditField label="Nome" value={form.encarregado} onChange={field('encarregado')} placeholder="Nome completo" />
+                <EditField label="Contacto" value={form.contacto_encarregado} onChange={field('contacto_encarregado')} type="tel" placeholder="+258 8X XXX XXXX" />
               </div>
-            ) : (
-              <>
-                <div>
-                  <SectionHeading icon={User} label="Encarregado de Educação" />
-                  <div className="bg-white rounded-xl border border-cream-200">
-                    <Row label="Nome" value={candidato.encarregado} />
-                    <Row label="Contacto" value={
-                      candidato.contacto_encarregado
-                        ? <span className="flex items-center justify-end gap-1.5">
-                            <Phone className="w-3.5 h-3.5 text-slate-400" />{candidato.contacto_encarregado}
-                          </span>
-                        : null
-                    } />
-                  </div>
-                </div>
-                <div>
-                  <SectionHeading icon={Users2} label="Padrinhos" />
-                  <div className="bg-white rounded-xl border border-cream-200">
-                    <Row label="Nome(s)" value={candidato.padrinhos} />
-                    <Row label="Contacto" value={
-                      candidato.contacto_padrinhos
-                        ? <span className="flex items-center justify-end gap-1.5">
-                            <Phone className="w-3.5 h-3.5 text-slate-400" />{candidato.contacto_padrinhos}
-                          </span>
-                        : null
-                    } />
-                  </div>
-                </div>
-              </>
+            </div>
+
+            {/* ── Padrinhos ────────────────────────────────────────────── */}
+            <div>
+              <SectionHeading icon={Users2} label="Padrinhos" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <EditField label="Nome(s)" value={form.padrinhos} onChange={field('padrinhos')} placeholder="Nome dos padrinhos" />
+                <EditField label="Contacto" value={form.contacto_padrinhos} onChange={field('contacto_padrinhos')} type="tel" placeholder="+258 8X XXX XXXX" />
+              </div>
+            </div>
+
+            {saveError && (
+              <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                {saveError}
+              </p>
             )}
 
             {/* ── Documentação (read-only) ─────────────────────────────── */}
@@ -428,46 +358,23 @@ function CandidatoModal({
 
         {/* Modal footer */}
         <div className="shrink-0 border-t border-cream-200 px-5 py-3 bg-cream-50 flex items-center justify-between gap-3 flex-wrap">
-          {editing ? (
-            <>
-              <button
-                onClick={handleCancel}
-                disabled={saving}
-                className="px-4 py-2 rounded-lg border border-cream-300 text-slate-600 text-sm font-semibold
-                  hover:bg-cream-100 transition-colors disabled:opacity-60"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-navy-900 text-gold-400
-                  text-sm font-semibold hover:bg-navy-800 transition-colors shadow-warm-xs
-                  disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <Save className="w-3.5 h-3.5" />
-                {saving ? 'A guardar...' : 'Guardar'}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 rounded-lg border border-cream-300 text-slate-600 text-sm font-semibold
-                  hover:bg-cream-100 transition-colors"
-              >
-                Fechar
-              </button>
-              <button
-                onClick={handleEdit}
-                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-navy-900 text-gold-400
-                  text-sm font-semibold hover:bg-navy-800 transition-colors shadow-warm-xs"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                Editar dados
-              </button>
-            </>
-          )}
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg border border-cream-300 text-slate-600 text-sm font-semibold
+              hover:bg-cream-100 transition-colors"
+          >
+            Fechar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-navy-900 text-gold-400
+              text-sm font-semibold hover:bg-navy-800 transition-colors shadow-warm-xs
+              disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <Save className="w-3.5 h-3.5" />
+            {saving ? 'A guardar...' : 'Guardar'}
+          </button>
         </div>
       </div>
     </div>
