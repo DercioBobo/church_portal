@@ -47,8 +47,6 @@ function htmlToText(html?: string | null): string {
   return text;
 }
 
-const DIA_OPTIONS = ['', 'Sábado', 'Domingo'];
-
 // ─── edit form state ───────────────────────────────────────────────────────────
 
 interface EditState {
@@ -58,7 +56,6 @@ interface EditState {
   contacto_padrinhos: string;
   idade: string;
   data_de_nascimento: string;
-  dia: string;
   enc_obs: string;
 }
 
@@ -70,7 +67,6 @@ function toEditState(c: CandidatoSacramento): EditState {
     contacto_padrinhos: c.contacto_padrinhos ?? '',
     idade: c.idade != null ? String(c.idade) : '',
     data_de_nascimento: c.data_de_nascimento ?? '',
-    dia: c.dia ?? '',
     enc_obs: c.enc_obs ?? '',
   };
 }
@@ -116,23 +112,6 @@ function EditField({
   );
 }
 
-function SelectField({
-  label, value, options, onChange,
-}: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-base sm:text-sm rounded-lg border border-cream-300 bg-cream-50
-          focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-700/20 focus:border-navy-700/40 transition-all"
-      >
-        {options.map((o) => <option key={o} value={o}>{o || 'Seleccionar...'}</option>)}
-      </select>
-    </div>
-  );
-}
 
 function DocBadge({ ok, label }: { ok: boolean; label: string }) {
   return (
@@ -192,7 +171,6 @@ function CandidatoModal({
         contacto_padrinhos: form.contacto_padrinhos || undefined,
         idade: form.idade ? parseInt(form.idade, 10) : undefined,
         data_de_nascimento: form.data_de_nascimento || undefined,
-        dia: form.dia || undefined,
         enc_obs: form.enc_obs || undefined,
       });
       const updates: Partial<CandidatoSacramento> = {
@@ -202,7 +180,6 @@ function CandidatoModal({
         contacto_padrinhos: form.contacto_padrinhos,
         idade: form.idade ? parseInt(form.idade, 10) : candidato.idade,
         data_de_nascimento: form.data_de_nascimento,
-        dia: form.dia,
         enc_obs: form.enc_obs,
       };
       onSaved(updates);
@@ -270,11 +247,9 @@ function CandidatoModal({
                 <EditField label="Idade" value={form.idade} onChange={field('idade')} type="number" placeholder="0" />
                 <EditField label="Nascimento" value={form.data_de_nascimento} onChange={field('data_de_nascimento')} type="date" />
               </div>
-              <div className="mt-3">
-                <SelectField label="Dia da Celebração" value={form.dia} options={DIA_OPTIONS} onChange={field('dia')} />
-              </div>
-              {(candidato.date || candidato.sacerdote) && (
+              {(candidato.date || candidato.sacerdote || candidato.dia) && (
                 <div className="mt-3 bg-white rounded-xl border border-cream-200">
+                  {candidato.dia && <Row label="Dia da Celebração" value={candidato.dia} />}
                   {candidato.date && <Row label="Data Cerimónia" value={fmtDate(candidato.date)} />}
                   {candidato.sacerdote && <Row label="Sacerdote" value={candidato.sacerdote} />}
                 </div>
