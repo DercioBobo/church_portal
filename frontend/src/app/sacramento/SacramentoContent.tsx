@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, AlertCircle, Search, X, Check, Save,
+  AlertCircle, Search, X, Check, Save,
   CalendarDays, Users, FileText,
   User, Users2, BookOpen, Sparkles, BadgeCheck, BadgeX,
 } from 'lucide-react';
@@ -108,7 +108,7 @@ function EditField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 text-sm rounded-lg border border-cream-300 bg-cream-50
+        className="w-full px-3 py-2 text-base sm:text-sm rounded-lg border border-cream-300 bg-cream-50
           focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-700/20 focus:border-navy-700/40
           transition-all placeholder:text-slate-400"
       />
@@ -125,7 +125,7 @@ function SelectField({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-sm rounded-lg border border-cream-300 bg-cream-50
+        className="w-full px-3 py-2 text-base sm:text-sm rounded-lg border border-cream-300 bg-cream-50
           focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-700/20 focus:border-navy-700/40 transition-all"
       >
         {options.map((o) => <option key={o} value={o}>{o || 'Seleccionar...'}</option>)}
@@ -307,7 +307,7 @@ function CandidatoModal({
                 onChange={(e) => field('enc_obs')(e.target.value)}
                 rows={3}
                 placeholder="Observações ou notas dos encarregados e padrinhos..."
-                className="w-full px-3 py-2 text-sm rounded-lg border border-cream-300 bg-cream-50
+                className="w-full px-3 py-2 text-base sm:text-sm rounded-lg border border-cream-300 bg-cream-50
                   focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-700/20 focus:border-navy-700/40
                   transition-all placeholder:text-slate-400 resize-none"
               />
@@ -431,7 +431,7 @@ function CandidatosTable({
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder="Pesquisar por candidato, encarregado ou padrinho..."
-              className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-cream-300 bg-cream-50
+              className="w-full pl-9 pr-8 py-2 text-base sm:text-sm rounded-xl border border-cream-300 bg-cream-50
                 focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy-700/20 focus:border-navy-700/30 transition-all"
             />
             {filter && (
@@ -612,7 +612,6 @@ function DetalhePreparacao({ nome }: { nome: string }) {
       <div className="flex flex-col items-center justify-center py-20 text-slate-500">
         <AlertCircle className="w-10 h-10 mb-3 text-rose-400" />
         <p className="font-display italic">{error || 'Preparação não encontrada.'}</p>
-        <button onClick={() => history.back()} className="mt-4 text-navy-700 text-sm hover:underline">← Voltar</button>
       </div>
     );
   }
@@ -625,14 +624,6 @@ function DetalhePreparacao({ nome }: { nome: string }) {
 
   return (
     <div className="animate-fade-up space-y-5">
-      {/* Back */}
-      <button
-        onClick={() => history.back()}
-        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-navy-900 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />Voltar
-      </button>
-
       {/* Header */}
       <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs overflow-hidden">
         <div className="bg-navy-900 bg-cross-pattern px-6 py-5">
