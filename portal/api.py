@@ -168,19 +168,22 @@ def get_catecumenos_aniversariantes(tipo="hoje"):
         condition = "MONTH(c.data_de_nascimento) = %s AND DAY(c.data_de_nascimento) = %s"
         params = (today.month, today.day)
     else:
-        week_end = today + timedelta(days=7)
-        if week_end.month == today.month:
+        # Week runs Sunday–Saturday; today.weekday(): Mon=0 … Sun=6
+        days_since_sunday = (today.weekday() + 1) % 7
+        week_start = today - timedelta(days=days_since_sunday)
+        week_end = week_start + timedelta(days=6)
+        if week_start.month == week_end.month:
             condition = """
                 MONTH(c.data_de_nascimento) = %s
                 AND DAY(c.data_de_nascimento) BETWEEN %s AND %s
             """
-            params = (today.month, today.day, week_end.day)
+            params = (week_start.month, week_start.day, week_end.day)
         else:
             condition = """
                 (MONTH(c.data_de_nascimento) = %s AND DAY(c.data_de_nascimento) >= %s)
                 OR (MONTH(c.data_de_nascimento) = %s AND DAY(c.data_de_nascimento) <= %s)
             """
-            params = (today.month, today.day, week_end.month, week_end.day)
+            params = (week_start.month, week_start.day, week_end.month, week_end.day)
 
     aniversariantes = frappe.db.sql(f"""
         SELECT
