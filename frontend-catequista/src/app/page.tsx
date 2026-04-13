@@ -300,7 +300,7 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
     if (!cat) return;
     const initial: Record<string, string | number> = {};
     fieldConfig.forEach(f => {
-      if (!f.editable) return;
+      if (f.source === 'turma') return;
       const raw = getCatValue(cat, f.fieldname);
       if (f.fieldtype === 'Int' || f.fieldtype === 'Float') {
         initial[f.fieldname] = raw !== null && raw !== undefined ? Number(raw) : 0;
@@ -308,6 +308,9 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
         initial[f.fieldname] = raw !== null && raw !== undefined ? String(raw) : '';
       }
     });
+    // Seed idade from live calculation if data_de_nascimento is present
+    const liveAge = calcAge(cat.data_de_nascimento, cat.idade);
+    if (liveAge !== null) initial['idade'] = liveAge;
     setForm(initial);
     setError('');
   }, [cat, fieldConfig]);
@@ -353,21 +356,26 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
       const payload: Record<string, string | number | null | undefined> = {
         row_name: cat.row_name,
       };
-      fieldConfig.filter(f => f.editable).forEach(f => {
+      fieldConfig.filter(f => f.editable && f.source !== 'turma').forEach(f => {
         payload[f.fieldname] = form[f.fieldname] ?? null;
       });
+      // Always include computed idade when data_de_nascimento is editable
+      if ('idade' in form && !('idade' in payload)) {
+        payload['idade'] = form['idade'] ?? null;
+      }
 
       await api.atualizarCatecumeno(cat.name, payload);
 
       // Build updated catecumeno for optimistic update
       const updated: CatecumenoCompleto = { ...cat };
-      fieldConfig.filter(f => f.editable).forEach(f => {
-        (updated as unknown as Record<string, unknown>)[f.fieldname] = form[f.fieldname] ?? null;
+      Object.entries(payload).forEach(([k, v]) => {
+        if (k !== 'row_name') (updated as unknown as Record<string, unknown>)[k] = v;
       });
 
       onSaved(updated);
     } catch (e) {
       setError(String((e as Error).message || e));
+    } finally {
       setSaving(false);
     }
   }
@@ -447,11 +455,24 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
                           <FieldInput
                             field={field}
                             value={form[field.fieldname] ?? ''}
-                            onChange={v => setForm(f => ({ ...f, [field.fieldname]: v }))}
+                            onChange={v => setForm(f => {
+                              const next = { ...f, [field.fieldname]: v };
+                              if (field.fieldname === 'data_de_nascimento' && v) {
+                                const age = calcAge(String(v), null);
+                                if (age !== null) next['idade'] = age;
+                              }
+                              return next;
+                            })}
                           />
                         ) : (
                           <p className="text-sm text-navy-900 bg-cream-50 rounded-lg px-3 py-2 border border-cream-200">
-                            {renderPanelValue(resolveValue(field) as string | number | boolean | null, field)}
+                            {renderPanelValue(
+                              // Show live form value for idade so auto-calc is visible immediately
+                              field.fieldname === 'idade' && 'idade' in form
+                                ? (form['idade'] as string | number | null)
+                                : resolveValue(field) as string | number | boolean | null,
+                              field,
+                            )}
                           </p>
                         )}
                       </div>
