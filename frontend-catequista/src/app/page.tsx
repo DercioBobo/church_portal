@@ -53,7 +53,7 @@ function formatDate(val: string | null): string {
 }
 
 function getCatValue(cat: CatecumenoCompleto, fieldname: string): unknown {
-  return (cat as Record<string, unknown>)[fieldname];
+  return (cat as unknown as Record<string, unknown>)[fieldname];
 }
 
 // ── Column width mapping ──────────────────────────────────────────────────────
@@ -346,7 +346,7 @@ function SidePanel({ open, cat, fieldConfig, onClose, onSaved }: SidePanelProps)
       // Build updated catecumeno for optimistic update
       const updated: CatecumenoCompleto = { ...cat };
       fieldConfig.filter(f => f.editable).forEach(f => {
-        (updated as Record<string, unknown>)[f.fieldname] = form[f.fieldname] ?? null;
+        (updated as unknown as Record<string, unknown>)[f.fieldname] = form[f.fieldname] ?? null;
       });
 
       onSaved(updated);
