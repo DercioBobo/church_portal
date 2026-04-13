@@ -199,7 +199,7 @@ function EditModal({ cat, onClose, onSaved }: EditModalProps) {
           {/* Header */}
           <div className="flex items-start justify-between p-5 border-b border-cream-200 shrink-0">
             <div>
-              <h3 className="font-display font-bold text-navy-900 text-lg leading-tight">{cat.name}</h3>
+              <h3 className="font-display font-bold text-navy-900 text-lg leading-tight">{cat.nome_completo || cat.name}</h3>
               <div className="flex items-center gap-2 mt-1">
                 <PhaseChip fase={cat.fase} />
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -518,7 +518,7 @@ function CatecumenosTable({ catecumenos, onEdit }: TableProps) {
                       <div className="flex items-center gap-1.5 min-w-0">
                         {bday && <span title="Aniversário hoje!"><Cake className="w-3.5 h-3.5 text-amber-500 shrink-0" /></span>}
                         {bdaySoon && <span title="Aniversário esta semana"><Cake className="w-3.5 h-3.5 text-amber-300 shrink-0" /></span>}
-                        <span className="text-sm font-medium text-navy-900 truncate">{cat.name}</span>
+                        <span className="text-sm font-medium text-navy-900 truncate">{cat.nome_completo || cat.name}</span>
                       </div>
                       <span className="text-sm text-slate-500">{cat.sexo || '—'}</span>
                       <span className="text-sm text-slate-500">{age !== null ? age : '—'}</span>
@@ -542,7 +542,7 @@ function CatecumenosTable({ catecumenos, onEdit }: TableProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           {(bday || bdaySoon) && <Cake className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                          <span className="text-sm font-medium text-navy-900 truncate">{cat.name}</span>
+                          <span className="text-sm font-medium text-navy-900 truncate">{cat.nome_completo || cat.name}</span>
                         </div>
                         <div className="flex items-center gap-3 mt-0.5">
                           {cat.encarregado && (

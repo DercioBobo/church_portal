@@ -4,7 +4,8 @@ export interface AuthInfo {
 }
 
 export interface CatecumenoCompleto {
-  name: string;
+  name: string;         // primary key (used for API calls)
+  nome_completo: string | null;  // display name
   fase: string | null;
   sexo: 'M' | 'F' | string | null;
   status: string;
