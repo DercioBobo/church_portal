@@ -443,21 +443,19 @@ def get_minha_turma():
         ORDER BY fase ASC, name ASC
     """, as_dict=True)
 
+    # Only select Catecumeno fields that exist in this installation
+    WANTED_FIELDS = ["fase", "sexo", "status", "encarregado", "contacto_encarregado",
+                     "padrinhos", "contacto_padrinhos", "data_de_nascimento", "idade", "obs"]
+    meta_fieldnames = {f.fieldname for f in frappe.get_meta("Catecumeno").fields}
+    extra_cols = "".join(
+        f",\n                c.`{f}`" for f in WANTED_FIELDS if f in meta_fieldnames
+    )
+
     result = []
     for turma in turmas:
-        catecumenos = frappe.db.sql("""
+        catecumenos = frappe.db.sql(f"""
             SELECT
-                c.name,
-                c.fase,
-                c.sexo,
-                c.status,
-                c.encarregado,
-                c.contacto_encarregado,
-                c.padrinhos,
-                c.contacto_padrinhos,
-                c.data_de_nascimento,
-                c.idade,
-                c.obs,
+                c.name{extra_cols},
                 tc.name                          AS row_name,
                 COALESCE(tc.total_presencas, 0)  AS total_presencas,
                 COALESCE(tc.total_faltas, 0)     AS total_faltas
@@ -509,12 +507,13 @@ def atualizar_catecumeno(
     if not turma or (turma.catequista != cat_name and turma.catequista_adj != cat_name):
         frappe.throw(_("Sem permissão para editar este catecúmeno"), frappe.PermissionError)
 
-    # Build Catecumeno update dict (only allowed fields)
+    # Build Catecumeno update dict (only allowed fields that exist in this installation)
+    _meta_fields = {f.fieldname for f in frappe.get_meta("Catecumeno").fields}
     ALLOWED = {
         "sexo", "encarregado", "contacto_encarregado",
         "padrinhos", "contacto_padrinhos",
         "data_de_nascimento", "obs",
-    }
+    } & _meta_fields
     cat_updates = {}
     local_vars = {
         "sexo": sexo, "encarregado": encarregado,
