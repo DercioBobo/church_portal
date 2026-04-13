@@ -404,17 +404,26 @@ def _default_field_config():
     Always returns the common fields so the portal works out-of-the-box.
     """
     return [
-        {"fieldname": "name",                  "label": "Nome",                  "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": False, "column_width": "lg", "panel_section": "",                        "source": "catecumeno",        "col_span": "2"},
-        {"fieldname": "sexo",                  "label": "Sexo",                  "fieldtype": "Select",     "options": "M\nF", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Dados Pessoais",          "source": "catecumeno",        "col_span": "1"},
-        {"fieldname": "idade",                 "label": "Idade",                 "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Dados Pessoais",          "source": "catecumeno",        "col_span": "1"},
-        {"fieldname": "data_de_nascimento",    "label": "Data de Nascimento",    "fieldtype": "Date",       "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Dados Pessoais",          "source": "catecumeno",        "col_span": "2"},
-        {"fieldname": "encarregado",           "label": "Encarregado",           "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "md", "panel_section": "Encarregado de Educação", "source": "catecumeno",        "col_span": "2"},
-        {"fieldname": "contacto_encarregado",  "label": "Contacto Encarregado",  "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Encarregado de Educação", "source": "catecumeno",        "col_span": "2"},
-        {"fieldname": "padrinhos",             "label": "Padrinhos",             "fieldtype": "Data",       "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "md", "panel_section": "Padrinhos / Madrinhas",   "source": "catecumeno",        "col_span": "2"},
-        {"fieldname": "contacto_padrinhos",    "label": "Contacto Padrinhos",    "fieldtype": "Data",       "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Padrinhos / Madrinhas",   "source": "catecumeno",        "col_span": "2"},
-        {"fieldname": "total_presencas",       "label": "Presenças",             "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos", "col_span": "1"},
-        {"fieldname": "total_faltas",          "label": "Faltas",                "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos", "col_span": "1"},
-        {"fieldname": "obs",                   "label": "Observações",           "fieldtype": "Small Text", "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "lg", "panel_section": "Observações",             "source": "catecumeno",        "col_span": "2"},
+        # ── Catecumeno ────────────────────────────────────────────────────────
+        {"fieldname": "name",                 "label": "Nome",                 "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": False, "column_width": "lg", "panel_section": "",                        "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "sexo",                 "label": "Sexo",                 "fieldtype": "Select",     "options": "M\nF", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Dados Pessoais",          "source": "catecumeno",        "col_span": "1"},
+        {"fieldname": "idade",                "label": "Idade",                "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Dados Pessoais",          "source": "catecumeno",        "col_span": "1"},
+        {"fieldname": "data_de_nascimento",   "label": "Data de Nascimento",   "fieldtype": "Date",       "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Dados Pessoais",          "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "encarregado",          "label": "Encarregado",          "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "md", "panel_section": "Encarregado de Educação", "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "contacto_encarregado", "label": "Contacto Encarregado", "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Encarregado de Educação", "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "padrinhos",            "label": "Padrinhos",            "fieldtype": "Data",       "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "md", "panel_section": "Padrinhos / Madrinhas",   "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "contacto_padrinhos",   "label": "Contacto Padrinhos",   "fieldtype": "Data",       "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Padrinhos / Madrinhas",   "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "obs",                  "label": "Observações",          "fieldtype": "Small Text", "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "lg", "panel_section": "Observações",             "source": "catecumeno",        "col_span": "2"},
+        # ── Turma Catecumenos (lista_catecumenos child table) ──────────────────
+        {"fieldname": "total_presencas",      "label": "Presenças",            "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos", "col_span": "1"},
+        {"fieldname": "total_faltas",         "label": "Faltas",               "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos", "col_span": "1"},
+        # ── Turma ─────────────────────────────────────────────────────────────
+        # show_in_table = shown in TurmaHeader info bar
+        # show_in_panel = shown in catecumeno side panel (read-only)
+        {"fieldname": "local",                "label": "Local",                "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": False, "editable": False, "column_width": "md", "panel_section": "Turma",                   "source": "turma",             "col_span": "2"},
+        {"fieldname": "dia",                  "label": "Dia",                  "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": False, "editable": False, "column_width": "sm", "panel_section": "Turma",                   "source": "turma",             "col_span": "1"},
+        {"fieldname": "hora",                 "label": "Hora",                 "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": False, "editable": False, "column_width": "sm", "panel_section": "Turma",                   "source": "turma",             "col_span": "1"},
+        {"fieldname": "catequista_adj",       "label": "Catequista Adjunto",   "fieldtype": "Data",       "options": "",     "show_in_table": False, "show_in_panel": False, "editable": False, "column_width": "md", "panel_section": "Turma",                   "source": "turma",             "col_span": "2"},
     ]
 
 
@@ -575,27 +584,29 @@ def sync_catecumeno_fields():
         existing.add(f.fieldname)
         added += 1
 
-    # Turma Catecumenos — only presencas / faltas
+    # ── Turma Catecumenos (lista_catecumenos) — all fields ────────────────────
     tc_meta = frappe.get_meta("Turma Catecumenos")
     tc_fieldnames = {f.fieldname for f in tc_meta.fields}
 
-    presenca_candidates = ["total_presencas"]
-    falta_candidates = ["total_faltas", "nr_de_faltas"]
+    # Presencas/faltas get stable aliases so the frontend always sees the same key
+    PRESENCA_CANDIDATES = ["total_presencas"]
+    FALTA_CANDIDATES    = ["total_faltas", "nr_de_faltas"]
+    handled_tc_actuals  = set()
 
     for group, alias, section in [
-        (presenca_candidates, "total_presencas", "Presenças"),
-        (falta_candidates, "total_faltas", "Presenças"),
+        (PRESENCA_CANDIDATES, "total_presencas", "Presenças"),
+        (FALTA_CANDIDATES,    "total_faltas",    "Presenças"),
     ]:
         actual = next((c for c in group if c in tc_fieldnames), None)
         if actual is None:
             continue
-        # Use alias as fieldname so frontend always sees total_presencas / total_faltas
+        handled_tc_actuals.add(actual)
         if alias not in existing:
-            f = next((x for x in tc_meta.fields if x.fieldname == actual), None)
+            fobj = next((x for x in tc_meta.fields if x.fieldname == actual), None)
             doc.append("field_config", {
                 "fieldname": alias,
-                "label": (f.label if f else alias),
-                "fieldtype": _normalize_ft((f.fieldtype if f else "Int") or "Int"),
+                "label": fobj.label if fobj else alias,
+                "fieldtype": _normalize_ft((fobj.fieldtype if fobj else "Int") or "Int"),
                 "options": "",
                 "show_in_table": 1,
                 "show_in_panel": 1,
@@ -607,6 +618,66 @@ def sync_catecumeno_fields():
             })
             existing.add(alias)
             added += 1
+
+    # Remaining TC fields (direct fieldnames, no alias needed)
+    for f in tc_meta.fields:
+        if f.fieldname in SKIP_FIELDS or f.fieldtype in SKIP_TYPES:
+            continue
+        if f.fieldname in handled_tc_actuals or f.fieldname in existing:
+            continue
+        normalized_ft = _normalize_ft(f.fieldtype or "Data")
+        doc.append("field_config", {
+            "fieldname": f.fieldname,
+            "label": f.label or f.fieldname,
+            "fieldtype": normalized_ft,
+            "options": f.options or "" if normalized_ft == "Select" else "",
+            "show_in_table": 0,
+            "show_in_panel": 1,
+            "editable": 0,
+            "column_width": "sm",
+            "panel_section": "Presenças",
+            "source": "turma_catecumenos",
+            "col_span": "2",
+        })
+        existing.add(f.fieldname)
+        added += 1
+
+    # ── Turma fields ───────────────────────────────────────────────────────────
+    # show_in_table = shown in TurmaHeader info bar
+    # show_in_panel = shown as read-only section in the catecumeno side panel
+    turma_meta = frappe.get_meta("Turma")
+    SKIP_TURMA_FIELDS = SKIP_FIELDS | {"name", "fase", "status", "catequista",
+                                        "catequista_adj", "ano_lectivo", "total_catecumenos"}
+    # Add the key display fields first with sensible defaults
+    TURMA_DEFAULTS = {
+        "local":          {"show_in_table": 1, "show_in_panel": 0, "column_width": "md"},
+        "dia":            {"show_in_table": 1, "show_in_panel": 0, "column_width": "sm", "col_span": "1"},
+        "hora":           {"show_in_table": 1, "show_in_panel": 0, "column_width": "sm", "col_span": "1"},
+        "catequista_adj": {"show_in_table": 0, "show_in_panel": 0, "column_width": "md"},
+        "ano_lectivo":    {"show_in_table": 0, "show_in_panel": 0, "column_width": "sm"},
+    }
+    for f in turma_meta.fields:
+        if f.fieldname in SKIP_TURMA_FIELDS or f.fieldtype in SKIP_TYPES:
+            continue
+        if f.fieldname in existing:
+            continue
+        normalized_ft = _normalize_ft(f.fieldtype or "Data")
+        defaults = TURMA_DEFAULTS.get(f.fieldname, {})
+        doc.append("field_config", {
+            "fieldname": f.fieldname,
+            "label": f.label or f.fieldname,
+            "fieldtype": normalized_ft,
+            "options": f.options or "" if normalized_ft == "Select" else "",
+            "show_in_table": defaults.get("show_in_table", 0),
+            "show_in_panel": defaults.get("show_in_panel", 0),
+            "editable": 0,
+            "column_width": defaults.get("column_width", "sm"),
+            "panel_section": "Turma",
+            "source": "turma",
+            "col_span": defaults.get("col_span", "2"),
+        })
+        existing.add(f.fieldname)
+        added += 1
 
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -660,8 +731,9 @@ def get_minha_turma():
         f",\n                c.`{f}`" for f in wanted_cat if f in cat_meta
     )
 
-    # Turma Catecumenos presencas / faltas — always included
-    tc_meta = {f.fieldname for f in frappe.get_meta("Turma Catecumenos").fields}
+    # Turma Catecumenos — presencas/faltas with stable aliases, plus other TC fields
+    tc_meta_obj = frappe.get_meta("Turma Catecumenos")
+    tc_meta = {f.fieldname for f in tc_meta_obj.fields}
 
     def _tc_col(candidates, alias):
         actual = next((c for c in candidates if c in tc_meta), None)
@@ -670,6 +742,16 @@ def get_minha_turma():
     presencas_col = _tc_col(["total_presencas"], "total_presencas")
     faltas_col    = _tc_col(["total_faltas", "nr_de_faltas"], "total_faltas")
 
+    # Additional TC fields from config (direct select, no alias needed)
+    ALIASED_TC = {"total_presencas", "total_faltas"}
+    extra_tc_cols = "".join(
+        f",\n                tc.`{entry['fieldname']}`"
+        for entry in config
+        if entry["source"] == "turma_catecumenos"
+        and entry["fieldname"] not in ALIASED_TC
+        and entry["fieldname"] in tc_meta
+    )
+
     result = []
     for turma in turmas:
         catecumenos = frappe.db.sql(f"""
@@ -677,7 +759,7 @@ def get_minha_turma():
                 c.name{extra_cols},
                 tc.name  AS row_name,
                 {presencas_col},
-                {faltas_col}
+                {faltas_col}{extra_tc_cols}
             FROM `tabTurma Catecumenos` tc
             JOIN `tabCatecumeno` c ON c.name = tc.catecumeno
             WHERE tc.parent = %s
@@ -736,21 +818,48 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
     if cat_updates:
         frappe.db.set_value("Catecumeno", catecumeno_nome, cat_updates)
 
-    # ── Turma Catecumenos fields (presencas / faltas) ──────────────────────────
+    # ── Turma Catecumenos fields ───────────────────────────────────────────────
     if row_name:
-        tc_meta = {f.fieldname for f in frappe.get_meta("Turma Catecumenos").fields}
+        tc_meta_obj = frappe.get_meta("Turma Catecumenos")
+        tc_meta     = {f.fieldname for f in tc_meta_obj.fields}
 
+        # Map alias → actual fieldname for presencas/faltas
         def _tc_actual(candidates):
             return next((c for c in candidates if c in tc_meta), None)
 
         pf = _tc_actual(["total_presencas"])
         ff = _tc_actual(["total_faltas", "nr_de_faltas"])
+        alias_map = {}
+        if pf: alias_map["total_presencas"] = pf
+        if ff: alias_map["total_faltas"]    = ff
+
+        # Editable TC fields from config (direct fieldnames, not aliases)
+        config = _load_field_config()
+        editable_tc_direct = {
+            entry["fieldname"]
+            for entry in config
+            if entry["source"] == "turma_catecumenos"
+            and entry["editable"]
+            and entry["fieldname"] not in alias_map          # handled separately
+            and entry["fieldname"] in tc_meta
+        }
 
         row_updates = {}
-        if "total_presencas" in submitted and pf and submitted["total_presencas"] not in (None, ""):
-            row_updates[pf] = max(0, cint(submitted["total_presencas"]))
-        if "total_faltas" in submitted and ff and submitted["total_faltas"] not in (None, ""):
-            row_updates[ff] = max(0, cint(submitted["total_faltas"]))
+
+        # Aliased fields (presencas / faltas)
+        for alias, actual in alias_map.items():
+            if alias in submitted and submitted[alias] not in (None, ""):
+                row_updates[actual] = max(0, cint(submitted[alias]))
+
+        # Direct TC fields
+        for field in editable_tc_direct:
+            if field not in submitted or submitted[field] in (None, ""):
+                continue
+            fobj = next((f for f in tc_meta_obj.fields if f.fieldname == field), None)
+            if fobj and fobj.fieldtype in ("Int", "Float"):
+                row_updates[field] = cint(submitted[field])
+            else:
+                row_updates[field] = submitted[field]
 
         if row_updates:
             frappe.db.set_value("Turma Catecumenos", row_name, row_updates)

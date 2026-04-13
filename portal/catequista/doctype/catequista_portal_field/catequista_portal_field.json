@@ -51,7 +51,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Fonte",
-   "options": "catecumeno\nturma_catecumenos",
+   "options": "catecumeno\nturma_catecumenos\nturma",
    "default": "catecumeno"
   },
   {

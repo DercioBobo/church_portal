@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   MapPin, Clock, Calendar, Users, Search, X,
   Save, BookOpen, Cake, AlertCircle, ChevronRight,
@@ -67,7 +67,17 @@ const COL_WIDTHS: Record<string, string> = {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function TurmaHeader({ turma }: { turma: TurmaComCatecumenos }) {
+const TURMA_FIELD_ICONS: Record<string, React.ReactNode> = {
+  local: <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />,
+  dia:   <Calendar className="w-3.5 h-3.5 shrink-0 text-slate-400" />,
+  hora:  <Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />,
+};
+
+function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; fieldConfig: FieldConfigItem[] }) {
+  // show_in_table on turma-source fields = "show in header info bar"
+  const headerFields = fieldConfig.filter(f => f.source === 'turma' && f.show_in_table);
+  const turmaAny = turma as unknown as Record<string, unknown>;
+
   return (
     <div className="bg-white rounded-2xl border border-cream-200 shadow-warm-xs overflow-hidden animate-fade-up">
       <div className={`h-1.5 w-full ${phaseStripe(turma.fase)}`} />
@@ -89,26 +99,29 @@ function TurmaHeader({ turma }: { turma: TurmaComCatecumenos }) {
             </span>
           </div>
         </div>
-        <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm text-slate-500">
-          {turma.local && (
-            <span className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-              {turma.local}
-            </span>
-          )}
-          {turma.dia && (
-            <span className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-              {turma.dia}
-            </span>
-          )}
-          {turma.hora && (
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-              {turma.hora}
-            </span>
-          )}
-        </div>
+
+        {/* Dynamic info bar from config — falls back to hardcoded if no config */}
+        {headerFields.length > 0 ? (
+          <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm text-slate-500">
+            {headerFields.map(f => {
+              const val = turmaAny[f.fieldname];
+              if (!val) return null;
+              return (
+                <span key={f.fieldname} className="flex items-center gap-1.5">
+                  {TURMA_FIELD_ICONS[f.fieldname] ?? null}
+                  {String(val)}
+                </span>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm text-slate-500">
+            {turma.local && <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.local}</span>}
+            {turma.dia   && <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.dia}</span>}
+            {turma.hora  && <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.hora}</span>}
+          </div>
+        )}
+
         {turma.catequista_adj && (
           <p className="mt-2 text-xs text-slate-400">
             Catequista adj.: <span className="text-slate-600">{turma.catequista_adj}</span>
@@ -175,13 +188,7 @@ function renderCellValue(cat: CatecumenoCompleto, field: FieldConfigItem): React
   );
 }
 
-function renderPanelValue(cat: CatecumenoCompleto, field: FieldConfigItem): string {
-  const val = getCatValue(cat, field.fieldname);
-
-  if (field.fieldname === 'idade') {
-    const age = calcAge(cat.data_de_nascimento, cat.idade);
-    return age !== null ? String(age) : '—';
-  }
+function renderPanelValue(val: string | number | boolean | null | undefined, field: FieldConfigItem): string {
   if (field.fieldtype === 'Date') return formatDate(val as string | null);
   if (field.fieldtype === 'Check') return val ? 'Sim' : 'Não';
   if (field.fieldname === 'sexo') return val === 'M' ? 'Masculino' : val === 'F' ? 'Feminino' : (val as string) || '—';
@@ -277,12 +284,13 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
 interface SidePanelProps {
   open: boolean;
   cat: CatecumenoCompleto | null;
+  turma: TurmaComCatecumenos | null;
   fieldConfig: FieldConfigItem[];
   onClose: () => void;
   onSaved: (updated: CatecumenoCompleto) => void;
 }
 
-function SidePanel({ open, cat, fieldConfig, onClose, onSaved }: SidePanelProps) {
+function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePanelProps) {
   const [form, setForm] = useState<Record<string, string | number>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -316,6 +324,14 @@ function SidePanel({ open, cat, fieldConfig, onClose, onSaved }: SidePanelProps)
     () => fieldConfig.filter(f => f.show_in_panel && f.fieldname !== 'name'),
     [fieldConfig],
   );
+
+  // Resolve value for any field, regardless of source
+  function resolveValue(field: FieldConfigItem): unknown {
+    if (field.source === 'turma' && turma) {
+      return (turma as unknown as Record<string, unknown>)[field.fieldname];
+    }
+    return cat ? getCatValue(cat, field.fieldname) : undefined;
+  }
 
   // Group by section, preserving order of first appearance
   const sections = useMemo(() => {
@@ -427,7 +443,7 @@ function SidePanel({ open, cat, fieldConfig, onClose, onSaved }: SidePanelProps)
                         <label className="block text-xs font-medium text-slate-500 mb-1">
                           {field.label}
                         </label>
-                        {field.editable ? (
+                        {field.editable && field.source !== 'turma' ? (
                           <FieldInput
                             field={field}
                             value={form[field.fieldname] ?? ''}
@@ -435,7 +451,7 @@ function SidePanel({ open, cat, fieldConfig, onClose, onSaved }: SidePanelProps)
                           />
                         ) : (
                           <p className="text-sm text-navy-900 bg-cream-50 rounded-lg px-3 py-2 border border-cream-200">
-                            {renderPanelValue(cat, field)}
+                            {renderPanelValue(resolveValue(field) as string | number | boolean | null, field)}
                           </p>
                         )}
                       </div>
@@ -639,7 +655,7 @@ export default function DashboardPage() {
   const [fieldConfig, setFieldConfig] = useState<FieldConfigItem[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState('');
-  const [panel, setPanel] = useState<{ cat: CatecumenoCompleto; turmaIdx: number } | null>(null);
+  const [panel, setPanel] = useState<{ cat: CatecumenoCompleto; turma: TurmaComCatecumenos; turmaIdx: number } | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
   useEffect(() => {
@@ -656,8 +672,8 @@ export default function DashboardPage() {
       });
   }, [auth]);
 
-  const openPanel = useCallback((cat: CatecumenoCompleto, turmaIdx: number) => {
-    setPanel({ cat, turmaIdx });
+  const openPanel = useCallback((cat: CatecumenoCompleto, turma: TurmaComCatecumenos, turmaIdx: number) => {
+    setPanel({ cat, turma, turmaIdx });
     setPanelOpen(true);
   }, []);
 
@@ -678,7 +694,7 @@ export default function DashboardPage() {
       };
     }));
     // Update panel to show fresh data
-    setPanel(p => p ? { ...p, cat: updated } : null);
+    setPanel(p => p ? { ...p, cat: updated } : null);  // keep turma reference
     setPanelOpen(false);
     setTimeout(() => setPanel(null), 320);
   }, [panel]);
@@ -752,7 +768,7 @@ export default function DashboardPage() {
                 Turma {turmaIdx + 1}
               </p>
             )}
-            <TurmaHeader turma={turma} />
+            <TurmaHeader turma={turma} fieldConfig={fieldConfig} />
             <div className="mt-5">
               <h3 className="font-display font-bold text-navy-900 text-base mb-3 px-0.5">
                 Catecúmenos
@@ -760,7 +776,7 @@ export default function DashboardPage() {
               <CatecumenosTable
                 catecumenos={turma.catecumenos}
                 fieldConfig={fieldConfig}
-                onSelect={cat => openPanel(cat, turmaIdx)}
+                onSelect={cat => openPanel(cat, turma, turmaIdx)}
               />
             </div>
           </div>
@@ -771,6 +787,7 @@ export default function DashboardPage() {
       <SidePanel
         open={panelOpen}
         cat={panel?.cat ?? null}
+        turma={panel?.turma ?? null}
         fieldConfig={fieldConfig}
         onClose={closePanel}
         onSaved={handleSaved}
