@@ -10,7 +10,14 @@ export class AuthError extends Error {
   }
 }
 
+// Stored after getSessionInfo — avoids relying on cookie parsing
+let _csrfToken = '';
+
+export function setCsrfToken(token: string) { _csrfToken = token; }
+
 function getCsrfToken(): string {
+  if (_csrfToken) return _csrfToken;
+  // Fallback: try cookie (may not work in all deployments)
   if (typeof document === 'undefined') return '';
   const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : '';
@@ -121,7 +128,10 @@ export async function logout(): Promise<void> {
 
 export const api = {
   getSessionInfo: (): Promise<AuthInfo> =>
-    frappeFetch<AuthInfo>('get_catequista_session_info'),
+    frappeFetch<AuthInfo>('get_catequista_session_info').then(info => {
+      if (info.csrf_token) setCsrfToken(info.csrf_token);
+      return info;
+    }),
 
   getMinhaTurma: (): Promise<TurmaComCatecumenos[]> =>
     frappeFetch<TurmaComCatecumenos[]>('get_minha_turma'),

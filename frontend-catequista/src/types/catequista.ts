@@ -1,6 +1,7 @@
 export interface AuthInfo {
   catequista: string;
   user: string;
+  csrf_token: string;
 }
 
 export interface CatecumenoCompleto {

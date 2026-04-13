@@ -422,6 +422,7 @@ def get_catequista_session_info():
     return {
         "catequista": cat,
         "user": frappe.session.user,
+        "csrf_token": frappe.session.data.csrf_token,
     }
 
 
