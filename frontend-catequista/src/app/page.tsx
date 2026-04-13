@@ -367,12 +367,13 @@ function SidePanel({ open, cat, fieldConfig, onClose, onSaved }: SidePanelProps)
       {/* Panel — right drawer on desktop, bottom sheet on mobile */}
       <div
         className={[
-          'fixed z-50 bg-white shadow-2xl flex flex-col overflow-hidden',
+          'fixed z-50 bg-white shadow-2xl flex flex-col',
           'transition-transform duration-300 ease-in-out',
-          // Mobile: bottom sheet
-          'inset-x-0 bottom-0 h-[90dvh] rounded-t-2xl',
-          // Desktop: right drawer
-          'md:inset-y-0 md:right-0 md:bottom-auto md:h-auto md:w-96 md:rounded-none md:inset-x-auto',
+          // Mobile: bottom sheet — overflow-hidden clips the rounded corners
+          'inset-x-0 bottom-0 h-[90dvh] rounded-t-2xl overflow-hidden',
+          // Desktop: right drawer — full height via inset-y-0, % width
+          'md:inset-y-0 md:right-0 md:bottom-auto md:rounded-none md:inset-x-auto md:overflow-visible',
+          'md:w-[42%] md:max-w-2xl',
           open
             ? 'translate-y-0 md:translate-y-0 md:translate-x-0'
             : 'translate-y-full md:translate-y-0 md:translate-x-full',
@@ -411,7 +412,7 @@ function SidePanel({ open, cat, fieldConfig, onClose, onSaved }: SidePanelProps)
             </div>
 
             {/* Body — scrollable */}
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-6">
+            <div className="overflow-y-auto flex-1 min-h-0 px-5 py-4 space-y-6">
               {sections.map(section => (
                 <div key={section.title}>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
