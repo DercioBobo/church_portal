@@ -77,19 +77,7 @@ if grep -q "your-erpnext.domain.com" "$ENV_FILE"; then
     exit 1
 fi
 
-# ── Passo 0b: Verificar/criar .env.local (portal catequista)
-ENV_FILE_CAT="$PORTAL_DIR/frontend-catequista/.env.local"
-if [ ! -f "$ENV_FILE_CAT" ]; then
-    cp "$PORTAL_DIR/frontend-catequista/.env.example" "$ENV_FILE_CAT"
-    # Copy the same FRAPPE_URL from the public portal env
-    FRAPPE_URL=$(grep NEXT_PUBLIC_FRAPPE_URL "$ENV_FILE" | cut -d= -f2-)
-    PARISH_NAME=$(grep NEXT_PUBLIC_PARISH_NAME "$ENV_FILE" | cut -d= -f2- || echo "")
-    PARISH_SHORT=$(grep NEXT_PUBLIC_PARISH_SHORT "$ENV_FILE" | cut -d= -f2- || echo "")
-    [ -n "$FRAPPE_URL" ]  && sed -i "s|NEXT_PUBLIC_FRAPPE_URL=.*|NEXT_PUBLIC_FRAPPE_URL=$FRAPPE_URL|" "$ENV_FILE_CAT"
-    [ -n "$PARISH_NAME" ] && sed -i "s|NEXT_PUBLIC_PARISH_NAME=.*|NEXT_PUBLIC_PARISH_NAME=$PARISH_NAME|" "$ENV_FILE_CAT"
-    [ -n "$PARISH_SHORT" ] && sed -i "s|NEXT_PUBLIC_PARISH_SHORT=.*|NEXT_PUBLIC_PARISH_SHORT=$PARISH_SHORT|" "$ENV_FILE_CAT"
-    echo -e "${GREEN}frontend-catequista/.env.local criado automaticamente a partir do frontend/.env.local${NC}"
-fi
+# ── Passo 0b: .env.local do portal catequista (criado pelo build-catequista.sh se faltar)
 
 # ── Passo 1: Build dos frontends ──────────────────────────
 echo -e "${GREEN}[1/4] A compilar o portal público...${NC}"

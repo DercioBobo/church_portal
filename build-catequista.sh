@@ -24,16 +24,8 @@ fi
 echo "Node: $(node --version)  NPM: $(npm --version)"
 
 if [ ! -f "$FRONTEND_DIR/.env.local" ]; then
-    echo ""
-    echo "ERROR: frontend-catequista/.env.local não encontrado!"
-    echo "  cp $FRONTEND_DIR/.env.example $FRONTEND_DIR/.env.local"
-    echo "  nano $FRONTEND_DIR/.env.local"
-    exit 1
-fi
-
-if grep -q "your-erpnext.domain.com" "$FRONTEND_DIR/.env.local"; then
-    echo "AVISO: Configure NEXT_PUBLIC_FRAPPE_URL em frontend-catequista/.env.local!"
-    echo ""
+    cp "$FRONTEND_DIR/.env.example" "$FRONTEND_DIR/.env.local"
+    echo "Criado .env.local a partir do .env.example (URL relativo — mesmo servidor)."
 fi
 
 echo "A instalar dependências..."
