@@ -39,6 +39,7 @@ def after_install():
     _ensure_role()
     _setup_permissions()
     _setup_custom_fields()
+    _seed_field_config()
     frappe.db.commit()
     print("[portal] Setup completo: papel 'Catequista', permissões e campos personalizados configurados.")
 
@@ -94,3 +95,23 @@ def _setup_custom_fields():
         "no_copy": 1,
     }).insert(ignore_permissions=True)
     print("[portal] Campo 'senha_temporaria' adicionado ao Catequista.")
+
+
+def _seed_field_config():
+    """
+    Seeds Catequista Portal Settings with the default field configuration.
+    Safe to call multiple times — skips if the Settings doc already exists.
+    """
+    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
+        print("[portal] Configuração de campos já existe, a ignorar seed.")
+        return
+
+    try:
+        from portal.api import _default_field_config
+        doc = frappe.new_doc("Catequista Portal Settings")
+        for entry in _default_field_config():
+            doc.append("field_config", entry)
+        doc.insert(ignore_permissions=True)
+        print("[portal] Configuração inicial de campos do portal criada.")
+    except Exception as e:
+        print(f"[portal] Aviso: não foi possível criar configuração inicial de campos: {e}")

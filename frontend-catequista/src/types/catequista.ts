@@ -35,15 +35,15 @@ export interface TurmaComCatecumenos {
   total_catecumenos: number;
 }
 
-export interface EditFormData {
-  sexo: string;
-  encarregado: string;
-  contacto_encarregado: string;
-  padrinhos: string;
-  contacto_padrinhos: string;
-  data_de_nascimento: string;
-  idade: string;
-  obs: string;
-  total_presencas: number;
-  total_faltas: number;
+export interface FieldConfigItem {
+  fieldname: string;
+  label: string;
+  fieldtype: string;
+  options: string;
+  show_in_table: boolean;
+  show_in_panel: boolean;
+  editable: boolean;
+  column_width: 'xs' | 'sm' | 'md' | 'lg';
+  panel_section: string;
+  source: 'catecumeno' | 'turma_catecumenos';
 }

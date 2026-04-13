@@ -662,22 +662,10 @@ def get_minha_turma():
 
 
 @frappe.whitelist()
-def atualizar_catecumeno(
-    catecumeno_nome,
-    row_name=None,
-    sexo=None,
-    encarregado=None,
-    contacto_encarregado=None,
-    padrinhos=None,
-    contacto_padrinhos=None,
-    data_de_nascimento=None,
-    idade=None,
-    obs=None,
-    total_presencas=None,
-    total_faltas=None,
-):
+def atualizar_catecumeno(catecumeno_nome, row_name=None):
     """
     Actualiza campos do catecúmeno e presenças/faltas na turma.
+    Os campos permitidos são determinados pela configuração em Catequista Portal Settings.
     O catequista só pode editar catecúmenos da sua própria turma.
     """
     cat_name = _assert_catequista()
@@ -695,42 +683,44 @@ def atualizar_catecumeno(
     if not turma or (turma.catequista != cat_name and turma.catequista_adj != cat_name):
         frappe.throw(_("Sem permissão para editar este catecúmeno"), frappe.PermissionError)
 
-    # Build Catecumeno update dict (only allowed fields that exist in this installation)
-    _meta_fields = {f.fieldname for f in frappe.get_meta("Catecumeno").fields}
-    ALLOWED = {
-        "sexo", "encarregado", "contacto_encarregado",
-        "padrinhos", "contacto_padrinhos",
-        "data_de_nascimento", "obs",
-    } & _meta_fields
+    # All POST params except the routing keys
+    SKIP_KEYS = {"catecumeno_nome", "row_name", "cmd", "csrf_token", "type"}
+    submitted = {k: v for k, v in frappe.form_dict.items() if k not in SKIP_KEYS}
+
+    # ── Catecumeno fields ──────────────────────────────────────────────────────
+    editable_cat = _get_editable_cat_fields()
     cat_updates = {}
-    local_vars = {
-        "sexo": sexo, "encarregado": encarregado,
-        "contacto_encarregado": contacto_encarregado,
-        "padrinhos": padrinhos, "contacto_padrinhos": contacto_padrinhos,
-        "data_de_nascimento": data_de_nascimento, "obs": obs,
-    }
-    for field in ALLOWED:
-        val = local_vars.get(field)
-        if val is not None:
-            cat_updates[field] = val
-    if idade is not None:
-        cat_updates["idade"] = cint(idade)
+    for field, value in submitted.items():
+        if field not in editable_cat:
+            continue
+        # Convert Int fields
+        meta_field = next(
+            (f for f in frappe.get_meta("Catecumeno").fields if f.fieldname == field), None
+        )
+        if meta_field and meta_field.fieldtype in ("Int", "Float"):
+            cat_updates[field] = cint(value) if value not in (None, "") else None
+        else:
+            cat_updates[field] = value if value != "" else None
 
     if cat_updates:
         frappe.db.set_value("Catecumeno", catecumeno_nome, cat_updates)
 
-    # Update presencas/faltas on the Turma Catecumenos child row (only if columns exist)
-    if row_name and (total_presencas is not None or total_faltas is not None):
+    # ── Turma Catecumenos fields (presencas / faltas) ──────────────────────────
+    if row_name:
         tc_meta = {f.fieldname for f in frappe.get_meta("Turma Catecumenos").fields}
-        def _tc_field(candidates):
+
+        def _tc_actual(candidates):
             return next((c for c in candidates if c in tc_meta), None)
+
+        pf = _tc_actual(["total_presencas"])
+        ff = _tc_actual(["total_faltas", "nr_de_faltas"])
+
         row_updates = {}
-        pf = _tc_field(["total_presencas"])
-        ff = _tc_field(["total_faltas", "nr_de_faltas"])
-        if total_presencas is not None and pf:
-            row_updates[pf] = max(0, cint(total_presencas))
-        if total_faltas is not None and ff:
-            row_updates[ff] = max(0, cint(total_faltas))
+        if "total_presencas" in submitted and pf and submitted["total_presencas"] not in (None, ""):
+            row_updates[pf] = max(0, cint(submitted["total_presencas"]))
+        if "total_faltas" in submitted and ff and submitted["total_faltas"] not in (None, ""):
+            row_updates[ff] = max(0, cint(submitted["total_faltas"]))
+
         if row_updates:
             frappe.db.set_value("Turma Catecumenos", row_name, row_updates)
 
