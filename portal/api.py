@@ -398,6 +398,61 @@ def get_catecumenos_publicos():
 
 # ─── Portal do Catequista (autenticado) ───────────────────────────────────────
 
+def _default_field_config():
+    """
+    Static default config used when no Catequista Portal Settings doc exists.
+    Always returns the common fields so the portal works out-of-the-box.
+    """
+    return [
+        {"fieldname": "name",                  "label": "Nome",                  "fieldtype": "Data",       "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": False, "column_width": "lg", "panel_section": "",                       "source": "catecumeno"},
+        {"fieldname": "sexo",                  "label": "Sexo",                  "fieldtype": "Select",     "options": "M\nF", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Dados Pessoais",         "source": "catecumeno"},
+        {"fieldname": "idade",                 "label": "Idade",                 "fieldtype": "Int",        "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Dados Pessoais",         "source": "catecumeno"},
+        {"fieldname": "data_de_nascimento",    "label": "Data de Nascimento",    "fieldtype": "Date",       "options": "", "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Dados Pessoais",         "source": "catecumeno"},
+        {"fieldname": "encarregado",           "label": "Encarregado",           "fieldtype": "Data",       "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "md", "panel_section": "Encarregado de Educação", "source": "catecumeno"},
+        {"fieldname": "contacto_encarregado",  "label": "Contacto Encarregado",  "fieldtype": "Data",       "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Encarregado de Educação", "source": "catecumeno"},
+        {"fieldname": "padrinhos",             "label": "Padrinhos",             "fieldtype": "Data",       "options": "", "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "md", "panel_section": "Padrinhos / Madrinhas",   "source": "catecumeno"},
+        {"fieldname": "contacto_padrinhos",    "label": "Contacto Padrinhos",    "fieldtype": "Data",       "options": "", "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Padrinhos / Madrinhas",   "source": "catecumeno"},
+        {"fieldname": "total_presencas",       "label": "Presenças",             "fieldtype": "Int",        "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos"},
+        {"fieldname": "total_faltas",          "label": "Faltas",                "fieldtype": "Int",        "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos"},
+        {"fieldname": "obs",                   "label": "Observações",           "fieldtype": "Small Text", "options": "", "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "lg", "panel_section": "Observações",             "source": "catecumeno"},
+    ]
+
+
+def _load_field_config():
+    """Load field config from Settings doc, falling back to defaults."""
+    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
+        doc = frappe.get_doc("Catequista Portal Settings")
+        if doc.field_config:
+            return [
+                {
+                    "fieldname": row.fieldname,
+                    "label": row.label,
+                    "fieldtype": row.fieldtype or "Data",
+                    "options": row.options or "",
+                    "show_in_table": bool(row.show_in_table),
+                    "show_in_panel": bool(row.show_in_panel),
+                    "editable": bool(row.editable),
+                    "column_width": row.column_width or "sm",
+                    "panel_section": row.panel_section or "",
+                    "source": row.source or "catecumeno",
+                }
+                for row in doc.field_config
+            ]
+    return _default_field_config()
+
+
+def _get_editable_cat_fields():
+    """Returns the set of Catecumeno field names that are editable per config."""
+    config = _load_field_config()
+    _meta_fields = {f.fieldname for f in frappe.get_meta("Catecumeno").fields}
+    editable = {
+        entry["fieldname"]
+        for entry in config
+        if entry["editable"] and entry["source"] == "catecumeno"
+    }
+    return editable & _meta_fields
+
+
 def _assert_catequista():
     """
     Verify the request comes from an authenticated catequista.
@@ -416,6 +471,118 @@ def _assert_catequista():
 
 
 @frappe.whitelist()
+def get_catecumeno_field_config():
+    """Returns the field configuration for the catequista portal (used by the frontend)."""
+    _assert_catequista()
+    return _load_field_config()
+
+
+@frappe.whitelist()
+def sync_catecumeno_fields():
+    """
+    Scans Catecumeno and Turma Catecumenos meta and adds any fields not yet in
+    Catequista Portal Settings. Existing rows are never overwritten.
+    Called from the Sync button on the Settings desk form.
+    """
+    if frappe.session.user == "Guest":
+        frappe.throw(_("Não autenticado"), frappe.AuthenticationError)
+
+    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
+        doc = frappe.get_doc("Catequista Portal Settings")
+    else:
+        doc = frappe.new_doc("Catequista Portal Settings")
+
+    existing = {row.fieldname for row in doc.field_config}
+
+    SKIP_TYPES = {
+        "Section Break", "Column Break", "Tab Break", "HTML",
+        "Heading", "Button", "Table", "Table MultiSelect", "Image",
+    }
+    SKIP_FIELDS = {
+        "name", "owner", "creation", "modified", "modified_by",
+        "docstatus", "idx", "parent", "parenttype", "parentfield",
+        "naming_series", "amended_from",
+    }
+
+    added = 0
+
+    # Add name pseudo-field first if missing
+    if "name" not in existing:
+        doc.append("field_config", {
+            "fieldname": "name",
+            "label": "Nome",
+            "fieldtype": "Data",
+            "options": "",
+            "show_in_table": 1,
+            "show_in_panel": 1,
+            "editable": 0,
+            "column_width": "lg",
+            "panel_section": "",
+            "source": "catecumeno",
+        })
+        existing.add("name")
+        added += 1
+
+    # Catecumeno fields
+    cat_meta = frappe.get_meta("Catecumeno")
+    for f in cat_meta.fields:
+        if f.fieldname in SKIP_FIELDS or f.fieldtype in SKIP_TYPES:
+            continue
+        if f.fieldname in existing:
+            continue
+        doc.append("field_config", {
+            "fieldname": f.fieldname,
+            "label": f.label or f.fieldname,
+            "fieldtype": f.fieldtype or "Data",
+            "options": f.options or "",
+            "show_in_table": 0,
+            "show_in_panel": 1,
+            "editable": 0,
+            "column_width": "sm",
+            "panel_section": "",
+            "source": "catecumeno",
+        })
+        existing.add(f.fieldname)
+        added += 1
+
+    # Turma Catecumenos — only presencas / faltas
+    tc_meta = frappe.get_meta("Turma Catecumenos")
+    tc_fieldnames = {f.fieldname for f in tc_meta.fields}
+
+    presenca_candidates = ["total_presencas"]
+    falta_candidates = ["total_faltas", "nr_de_faltas"]
+
+    for group, alias, section in [
+        (presenca_candidates, "total_presencas", "Presenças"),
+        (falta_candidates, "total_faltas", "Presenças"),
+    ]:
+        actual = next((c for c in group if c in tc_fieldnames), None)
+        if actual is None:
+            continue
+        # Use alias as fieldname so frontend always sees total_presencas / total_faltas
+        if alias not in existing:
+            f = next((x for x in tc_meta.fields if x.fieldname == actual), None)
+            doc.append("field_config", {
+                "fieldname": alias,
+                "label": (f.label if f else alias),
+                "fieldtype": (f.fieldtype if f else "Int") or "Int",
+                "options": "",
+                "show_in_table": 1,
+                "show_in_panel": 1,
+                "editable": 1,
+                "column_width": "xs",
+                "panel_section": section,
+                "source": "turma_catecumenos",
+            })
+            existing.add(alias)
+            added += 1
+
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"added": added}
+
+
+@frappe.whitelist()
 def get_catequista_session_info():
     """Verifica sessão e devolve informação do catequista autenticado."""
     cat = _assert_catequista()
@@ -430,7 +597,8 @@ def get_catequista_session_info():
 def get_minha_turma():
     """
     Devolve todas as turmas activas do catequista autenticado (titular ou adjunto)
-    com a lista completa de catecúmenos, incluindo campos privados e presenças.
+    com a lista completa de catecúmenos. Os campos seleccionados são determinados
+    pela configuração em Catequista Portal Settings.
     """
     cat_name = _assert_catequista()
     e = frappe.db.escape(cat_name)
@@ -444,14 +612,24 @@ def get_minha_turma():
         ORDER BY fase ASC, name ASC
     """, as_dict=True)
 
-    # Only select fields that exist in this installation
-    WANTED_CAT = ["fase", "sexo", "status", "encarregado", "contacto_encarregado",
-                  "padrinhos", "contacto_padrinhos", "data_de_nascimento", "idade", "obs"]
+    # Build SELECT cols from field config — only catecumeno source, skip 'name' (always selected)
+    config = _load_field_config()
+    wanted_cat = [
+        entry["fieldname"]
+        for entry in config
+        if entry["source"] == "catecumeno" and entry["fieldname"] != "name"
+    ]
+    # Always include status and fase (needed by the UI even if not in config)
+    for always in ("fase", "status"):
+        if always not in wanted_cat:
+            wanted_cat.append(always)
+
     cat_meta = {f.fieldname for f in frappe.get_meta("Catecumeno").fields}
     extra_cols = "".join(
-        f",\n                c.`{f}`" for f in WANTED_CAT if f in cat_meta
+        f",\n                c.`{f}`" for f in wanted_cat if f in cat_meta
     )
 
+    # Turma Catecumenos presencas / faltas — always included
     tc_meta = {f.fieldname for f in frappe.get_meta("Turma Catecumenos").fields}
 
     def _tc_col(candidates, alias):

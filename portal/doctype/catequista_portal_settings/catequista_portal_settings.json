@@ -1,0 +1,47 @@
+{
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "field_order": [
+  "sync_button",
+  "field_config"
+ ],
+ "fields": [
+  {
+   "fieldname": "sync_button",
+   "fieldtype": "Button",
+   "label": "Sincronizar Campos do Catecúmeno",
+   "description": "Detecta campos do DocType Catecúmeno e Turma Catecumenos e adiciona os que ainda não estão configurados."
+  },
+  {
+   "fieldname": "field_config",
+   "fieldtype": "Table",
+   "label": "Configuração de Campos",
+   "options": "Catequista Portal Field"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Portal",
+ "name": "Catequista Portal Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

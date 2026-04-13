@@ -1,0 +1,103 @@
+{
+ "autoname": "autoincrement",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "fieldname",
+  "label",
+  "fieldtype",
+  "options",
+  "source",
+  "column_break_1",
+  "show_in_table",
+  "show_in_panel",
+  "editable",
+  "column_width",
+  "panel_section"
+ ],
+ "fields": [
+  {
+   "fieldname": "fieldname",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nome do Campo",
+   "reqd": 1
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Etiqueta",
+   "reqd": 1
+  },
+  {
+   "fieldname": "fieldtype",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Tipo",
+   "options": "Data\nInt\nFloat\nDate\nSelect\nText\nSmall Text\nLong Text\nCheck\nLink",
+   "reqd": 1
+  },
+  {
+   "fieldname": "options",
+   "fieldtype": "Small Text",
+   "label": "Opções (uma por linha)"
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Fonte",
+   "options": "catecumeno\nturma_catecumenos",
+   "default": "catecumeno"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "show_in_table",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Mostrar na Tabela"
+  },
+  {
+   "fieldname": "show_in_panel",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Mostrar no Painel"
+  },
+  {
+   "fieldname": "editable",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Editável"
+  },
+  {
+   "fieldname": "column_width",
+   "fieldtype": "Select",
+   "label": "Largura da Coluna (tabela)",
+   "options": "xs\nsm\nmd\nlg",
+   "default": "sm"
+  },
+  {
+   "fieldname": "panel_section",
+   "fieldtype": "Data",
+   "label": "Secção no Painel"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Portal",
+ "name": "Catequista Portal Field",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 0
+}
