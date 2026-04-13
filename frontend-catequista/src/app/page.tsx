@@ -516,8 +516,8 @@ function CatecumenosTable({ catecumenos, onEdit }: TableProps) {
                     {/* Desktop row */}
                     <div className="hidden md:grid grid-cols-[2fr_2rem_3rem_2fr_6rem_4rem_4rem_2.5rem] gap-2 items-center px-4 py-3">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        {bday && <Cake className="w-3.5 h-3.5 text-amber-500 shrink-0" title="Aniversário hoje!" />}
-                        {bdaySoon && <Cake className="w-3.5 h-3.5 text-amber-300 shrink-0" title="Aniversário esta semana" />}
+                        {bday && <span title="Aniversário hoje!"><Cake className="w-3.5 h-3.5 text-amber-500 shrink-0" /></span>}
+                        {bdaySoon && <span title="Aniversário esta semana"><Cake className="w-3.5 h-3.5 text-amber-300 shrink-0" /></span>}
                         <span className="text-sm font-medium text-navy-900 truncate">{cat.name}</span>
                       </div>
                       <span className="text-sm text-slate-500">{cat.sexo || '—'}</span>
