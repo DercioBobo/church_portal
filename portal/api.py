@@ -443,22 +443,31 @@ def get_minha_turma():
         ORDER BY fase ASC, name ASC
     """, as_dict=True)
 
-    # Only select Catecumeno fields that exist in this installation
-    WANTED_FIELDS = ["fase", "sexo", "status", "encarregado", "contacto_encarregado",
-                     "padrinhos", "contacto_padrinhos", "data_de_nascimento", "idade", "obs"]
-    meta_fieldnames = {f.fieldname for f in frappe.get_meta("Catecumeno").fields}
+    # Only select fields that exist in this installation
+    WANTED_CAT = ["fase", "sexo", "status", "encarregado", "contacto_encarregado",
+                  "padrinhos", "contacto_padrinhos", "data_de_nascimento", "idade", "obs"]
+    cat_meta = {f.fieldname for f in frappe.get_meta("Catecumeno").fields}
     extra_cols = "".join(
-        f",\n                c.`{f}`" for f in WANTED_FIELDS if f in meta_fieldnames
+        f",\n                c.`{f}`" for f in WANTED_CAT if f in cat_meta
     )
+
+    tc_meta = {f.fieldname for f in frappe.get_meta("Turma Catecumenos").fields}
+
+    def _tc_col(candidates, alias):
+        actual = next((c for c in candidates if c in tc_meta), None)
+        return f"COALESCE(tc.`{actual}`, 0) AS {alias}" if actual else f"0 AS {alias}"
+
+    presencas_col = _tc_col(["total_presencas"], "total_presencas")
+    faltas_col    = _tc_col(["total_faltas", "nr_de_faltas"], "total_faltas")
 
     result = []
     for turma in turmas:
         catecumenos = frappe.db.sql(f"""
             SELECT
                 c.name{extra_cols},
-                tc.name                          AS row_name,
-                COALESCE(tc.total_presencas, 0)  AS total_presencas,
-                COALESCE(tc.total_faltas, 0)     AS total_faltas
+                tc.name  AS row_name,
+                {presencas_col},
+                {faltas_col}
             FROM `tabTurma Catecumenos` tc
             JOIN `tabCatecumeno` c ON c.name = tc.catecumeno
             WHERE tc.parent = %s
@@ -531,13 +540,18 @@ def atualizar_catecumeno(
     if cat_updates:
         frappe.db.set_value("Catecumeno", catecumeno_nome, cat_updates)
 
-    # Update presencas/faltas on the Turma Catecumenos child row
+    # Update presencas/faltas on the Turma Catecumenos child row (only if columns exist)
     if row_name and (total_presencas is not None or total_faltas is not None):
+        tc_meta = {f.fieldname for f in frappe.get_meta("Turma Catecumenos").fields}
+        def _tc_field(candidates):
+            return next((c for c in candidates if c in tc_meta), None)
         row_updates = {}
-        if total_presencas is not None:
-            row_updates["total_presencas"] = max(0, cint(total_presencas))
-        if total_faltas is not None:
-            row_updates["total_faltas"] = max(0, cint(total_faltas))
+        pf = _tc_field(["total_presencas"])
+        ff = _tc_field(["total_faltas", "nr_de_faltas"])
+        if total_presencas is not None and pf:
+            row_updates[pf] = max(0, cint(total_presencas))
+        if total_faltas is not None and ff:
+            row_updates[ff] = max(0, cint(total_faltas))
         if row_updates:
             frappe.db.set_value("Turma Catecumenos", row_name, row_updates)
 
