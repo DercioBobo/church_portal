@@ -497,12 +497,39 @@ def sync_catecumeno_fields():
     SKIP_TYPES = {
         "Section Break", "Column Break", "Tab Break", "HTML",
         "Heading", "Button", "Table", "Table MultiSelect", "Image",
+        "Attach", "Attach Image", "Fold", "HTML Editor",
     }
     SKIP_FIELDS = {
         "name", "owner", "creation", "modified", "modified_by",
         "docstatus", "idx", "parent", "parenttype", "parentfield",
         "naming_series", "amended_from",
     }
+
+    # Map Frappe fieldtypes that aren't in our allowed set to a safe equivalent
+    ALLOWED_TYPES = {"Data", "Int", "Float", "Date", "Select", "Text", "Small Text", "Long Text", "Check", "Link"}
+    FIELDTYPE_MAP = {
+        "Text Editor":      "Text",
+        "Markdown Editor":  "Text",
+        "Code":             "Text",
+        "Datetime":         "Date",
+        "Time":             "Data",
+        "Duration":         "Data",
+        "Phone":            "Data",
+        "Color":            "Data",
+        "Password":         "Data",
+        "Read Only":        "Data",
+        "Autocomplete":     "Data",
+        "Currency":         "Float",
+        "Percent":          "Float",
+        "Rating":           "Int",
+        "Signature":        "Data",
+        "Barcode":          "Data",
+        "Geolocation":      "Data",
+    }
+
+    def _normalize_ft(ft):
+        ft = FIELDTYPE_MAP.get(ft, ft)
+        return ft if ft in ALLOWED_TYPES else "Data"
 
     added = 0
 
@@ -530,11 +557,12 @@ def sync_catecumeno_fields():
             continue
         if f.fieldname in existing:
             continue
+        normalized_ft = _normalize_ft(f.fieldtype or "Data")
         doc.append("field_config", {
             "fieldname": f.fieldname,
             "label": f.label or f.fieldname,
-            "fieldtype": f.fieldtype or "Data",
-            "options": f.options or "",
+            "fieldtype": normalized_ft,
+            "options": f.options or "" if normalized_ft == "Select" else "",
             "show_in_table": 0,
             "show_in_panel": 1,
             "editable": 0,
@@ -565,7 +593,7 @@ def sync_catecumeno_fields():
             doc.append("field_config", {
                 "fieldname": alias,
                 "label": (f.label if f else alias),
-                "fieldtype": (f.fieldtype if f else "Int") or "Int",
+                "fieldtype": _normalize_ft((f.fieldtype if f else "Int") or "Int"),
                 "options": "",
                 "show_in_table": 1,
                 "show_in_panel": 1,
