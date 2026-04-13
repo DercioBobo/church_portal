@@ -394,3 +394,173 @@ def get_catecumenos_publicos():
         ORDER BY c.name ASC
     """, as_dict=True)
     return catecumenos
+
+
+# ─── Portal do Catequista (autenticado) ───────────────────────────────────────
+
+def _assert_catequista():
+    """
+    Verify the request comes from an authenticated catequista.
+    Returns the Catequista document name (their full name identifier).
+    Throws AuthenticationError / PermissionError otherwise.
+    """
+    user = frappe.session.user
+    if user == "Guest":
+        frappe.throw(_("Não autenticado"), frappe.AuthenticationError)
+
+    cat = frappe.db.get_value("Catequista", {"user": user}, "name")
+    if not cat:
+        frappe.throw(_("Utilizador não é catequista"), frappe.PermissionError)
+
+    return cat
+
+
+@frappe.whitelist()
+def get_catequista_session_info():
+    """Verifica sessão e devolve informação do catequista autenticado."""
+    cat = _assert_catequista()
+    return {
+        "catequista": cat,
+        "user": frappe.session.user,
+    }
+
+
+@frappe.whitelist()
+def get_minha_turma():
+    """
+    Devolve todas as turmas activas do catequista autenticado (titular ou adjunto)
+    com a lista completa de catecúmenos, incluindo campos privados e presenças.
+    """
+    cat_name = _assert_catequista()
+    e = frappe.db.escape(cat_name)
+
+    turmas = frappe.db.sql(f"""
+        SELECT name, fase, ano_lectivo, local, dia, hora,
+               catequista, catequista_adj, status
+        FROM `tabTurma`
+        WHERE (catequista = {e} OR catequista_adj = {e})
+          AND status = 'Activo'
+        ORDER BY fase ASC, name ASC
+    """, as_dict=True)
+
+    result = []
+    for turma in turmas:
+        catecumenos = frappe.db.sql("""
+            SELECT
+                c.name,
+                c.fase,
+                c.sexo,
+                c.status,
+                c.encarregado,
+                c.contacto_encarregado,
+                c.padrinhos,
+                c.contacto_padrinhos,
+                c.data_de_nascimento,
+                c.idade,
+                c.obs,
+                tc.name                          AS row_name,
+                COALESCE(tc.total_presencas, 0)  AS total_presencas,
+                COALESCE(tc.total_faltas, 0)     AS total_faltas
+            FROM `tabTurma Catecumenos` tc
+            JOIN `tabCatecumeno` c ON c.name = tc.catecumeno
+            WHERE tc.parent = %s
+              AND tc.parentfield = 'lista_catecumenos'
+            ORDER BY c.name ASC
+        """, (turma.name,), as_dict=True)
+
+        turma["catecumenos"] = catecumenos
+        turma["total_catecumenos"] = len(catecumenos)
+        result.append(turma)
+
+    return result
+
+
+@frappe.whitelist()
+def atualizar_catecumeno(
+    catecumeno_nome,
+    row_name=None,
+    sexo=None,
+    encarregado=None,
+    contacto_encarregado=None,
+    padrinhos=None,
+    contacto_padrinhos=None,
+    data_de_nascimento=None,
+    idade=None,
+    obs=None,
+    total_presencas=None,
+    total_faltas=None,
+):
+    """
+    Actualiza campos do catecúmeno e presenças/faltas na turma.
+    O catequista só pode editar catecúmenos da sua própria turma.
+    """
+    cat_name = _assert_catequista()
+
+    # Verify the catequista owns this catecumeno's turma
+    turma_name = frappe.db.get_value("Catecumeno", catecumeno_nome, "turma")
+    if not turma_name:
+        frappe.throw(_("Catecúmeno não encontrado"), frappe.DoesNotExistError)
+
+    turma = frappe.db.get_value(
+        "Turma", turma_name,
+        ["catequista", "catequista_adj"],
+        as_dict=True,
+    )
+    if not turma or (turma.catequista != cat_name and turma.catequista_adj != cat_name):
+        frappe.throw(_("Sem permissão para editar este catecúmeno"), frappe.PermissionError)
+
+    # Build Catecumeno update dict (only allowed fields)
+    ALLOWED = {
+        "sexo", "encarregado", "contacto_encarregado",
+        "padrinhos", "contacto_padrinhos",
+        "data_de_nascimento", "obs",
+    }
+    cat_updates = {}
+    local_vars = {
+        "sexo": sexo, "encarregado": encarregado,
+        "contacto_encarregado": contacto_encarregado,
+        "padrinhos": padrinhos, "contacto_padrinhos": contacto_padrinhos,
+        "data_de_nascimento": data_de_nascimento, "obs": obs,
+    }
+    for field in ALLOWED:
+        val = local_vars.get(field)
+        if val is not None:
+            cat_updates[field] = val
+    if idade is not None:
+        cat_updates["idade"] = cint(idade)
+
+    if cat_updates:
+        frappe.db.set_value("Catecumeno", catecumeno_nome, cat_updates)
+
+    # Update presencas/faltas on the Turma Catecumenos child row
+    if row_name and (total_presencas is not None or total_faltas is not None):
+        row_updates = {}
+        if total_presencas is not None:
+            row_updates["total_presencas"] = max(0, cint(total_presencas))
+        if total_faltas is not None:
+            row_updates["total_faltas"] = max(0, cint(total_faltas))
+        if row_updates:
+            frappe.db.set_value("Turma Catecumenos", row_name, row_updates)
+
+    frappe.db.commit()
+    return {"success": True}
+
+
+@frappe.whitelist()
+def alterar_senha(senha_atual, senha_nova):
+    """Altera a senha do catequista autenticado após verificar a senha actual."""
+    user = frappe.session.user
+    if user == "Guest":
+        frappe.throw(_("Não autenticado"), frappe.AuthenticationError)
+
+    if not senha_nova or len(senha_nova.strip()) < 6:
+        frappe.throw(_("A nova senha deve ter pelo menos 6 caracteres"))
+
+    from frappe.utils.password import check_password, update_password
+    try:
+        check_password(user, senha_atual)
+    except frappe.AuthenticationError:
+        frappe.throw(_("Senha actual incorrecta"))
+
+    update_password(user, senha_nova.strip())
+    return {"success": True}

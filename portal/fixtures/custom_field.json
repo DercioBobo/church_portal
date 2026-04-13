@@ -1,0 +1,19 @@
+[
+  {
+    "doctype": "Custom Field",
+    "name": "Catequista-senha_temporaria",
+    "dt": "Catequista",
+    "label": "Senha Temporária",
+    "fieldname": "senha_temporaria",
+    "fieldtype": "Data",
+    "insert_after": "user",
+    "description": "Senha gerada automaticamente. Copie e partilhe com o catequista para o primeiro acesso ao portal.",
+    "no_copy": 1,
+    "in_list_view": 0,
+    "bold": 0,
+    "hidden": 0,
+    "read_only": 0,
+    "reqd": 0,
+    "translatable": 0
+  }
+]

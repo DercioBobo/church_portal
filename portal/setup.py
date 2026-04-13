@@ -38,8 +38,9 @@ DOCTYPE_PERMISSIONS = [
 def after_install():
     _ensure_role()
     _setup_permissions()
+    _setup_custom_fields()
     frappe.db.commit()
-    print("[portal] Setup completo: papel 'Catequista' e permissões configuradas.")
+    print("[portal] Setup completo: papel 'Catequista', permissões e campos personalizados configurados.")
 
 
 def _ensure_role():
@@ -71,3 +72,25 @@ def _setup_permissions():
             update_permission_property(dt, ROLE, p["permlevel"], prop, p.get(prop, 0))
 
         print(f"[portal] Permissões definidas: {ROLE} → {dt}")
+
+
+def _setup_custom_fields():
+    """
+    Add the senha_temporaria field to the Catequista doctype.
+    Safe to run multiple times — skips if already exists.
+    """
+    if frappe.db.exists("Custom Field", "Catequista-senha_temporaria"):
+        print("[portal] Campo 'senha_temporaria' já existe.")
+        return
+
+    frappe.get_doc({
+        "doctype": "Custom Field",
+        "dt": "Catequista",
+        "label": "Senha Temporária",
+        "fieldname": "senha_temporaria",
+        "fieldtype": "Data",
+        "insert_after": "user",
+        "description": "Senha gerada automaticamente. Copie e partilhe com o catequista.",
+        "no_copy": 1,
+    }).insert(ignore_permissions=True)
+    print("[portal] Campo 'senha_temporaria' adicionado ao Catequista.")

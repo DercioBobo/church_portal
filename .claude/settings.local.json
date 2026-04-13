@@ -7,7 +7,8 @@
       "Bash(node_modules/typescript/bin/tsc:*)",
       "Bash(npm run build:*)",
       "Bash(npx next build:*)",
-      "Bash(node_modules/.bin/next build:*)"
+      "Bash(node_modules/.bin/next build:*)",
+      "Bash(find . -type f \\\\\\( -name \"*.py\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.json\" \\\\\\) ! -path \"./frontend/.next/*\" ! -path \"./node_modules/*\" ! -path \"./.git/*\" -exec wc -l {} +)"
     ]
   }
 }

@@ -49,7 +49,7 @@ echo -e "Bench: ${GREEN}$BENCH_DIR${NC}"
 echo -e "Site:  ${GREEN}$SITE${NC}"
 echo ""
 
-# ── Passo 0: Verificar/criar .env.local ──────────────────
+# ── Passo 0: Verificar/criar .env.local (portal público) ─
 ENV_FILE="$PORTAL_DIR/frontend/.env.local"
 if [ ! -f "$ENV_FILE" ]; then
     cp "$PORTAL_DIR/frontend/.env.example" "$ENV_FILE"
@@ -77,9 +77,26 @@ if grep -q "your-erpnext.domain.com" "$ENV_FILE"; then
     exit 1
 fi
 
-# ── Passo 1: Build do frontend ────────────────────────────
-echo -e "${GREEN}[1/3] A compilar o frontend...${NC}"
+# ── Passo 0b: Verificar/criar .env.local (portal catequista)
+ENV_FILE_CAT="$PORTAL_DIR/frontend-catequista/.env.local"
+if [ ! -f "$ENV_FILE_CAT" ]; then
+    cp "$PORTAL_DIR/frontend-catequista/.env.example" "$ENV_FILE_CAT"
+    # Copy the same FRAPPE_URL from the public portal env
+    FRAPPE_URL=$(grep NEXT_PUBLIC_FRAPPE_URL "$ENV_FILE" | cut -d= -f2-)
+    PARISH_NAME=$(grep NEXT_PUBLIC_PARISH_NAME "$ENV_FILE" | cut -d= -f2- || echo "")
+    PARISH_SHORT=$(grep NEXT_PUBLIC_PARISH_SHORT "$ENV_FILE" | cut -d= -f2- || echo "")
+    [ -n "$FRAPPE_URL" ]  && sed -i "s|NEXT_PUBLIC_FRAPPE_URL=.*|NEXT_PUBLIC_FRAPPE_URL=$FRAPPE_URL|" "$ENV_FILE_CAT"
+    [ -n "$PARISH_NAME" ] && sed -i "s|NEXT_PUBLIC_PARISH_NAME=.*|NEXT_PUBLIC_PARISH_NAME=$PARISH_NAME|" "$ENV_FILE_CAT"
+    [ -n "$PARISH_SHORT" ] && sed -i "s|NEXT_PUBLIC_PARISH_SHORT=.*|NEXT_PUBLIC_PARISH_SHORT=$PARISH_SHORT|" "$ENV_FILE_CAT"
+    echo -e "${GREEN}frontend-catequista/.env.local criado automaticamente a partir do frontend/.env.local${NC}"
+fi
+
+# ── Passo 1: Build dos frontends ──────────────────────────
+echo -e "${GREEN}[1/4] A compilar o portal público...${NC}"
 bash "$PORTAL_DIR/build.sh"
+
+echo -e "${GREEN}[1/4] A compilar o portal do catequista...${NC}"
+bash "$PORTAL_DIR/build-catequista.sh"
 
 # ── Passo 2: Instalar a app no site ──────────────────────
 echo ""
@@ -93,10 +110,11 @@ echo ""
 echo -e "${GREEN}[3/4] A publicar assets estáticos...${NC}"
 bench build --app portal
 
-# ── Passo 4: Configurar CORS e reiniciar ─────────────────
+# ── Passo 4: Configurar CORS, migrar e reiniciar ─────────
 echo ""
-echo -e "${GREEN}[4/4] A configurar CORS e reiniciar...${NC}"
+echo -e "${GREEN}[4/4] A configurar CORS, migrar e reiniciar...${NC}"
 bench --site "$SITE" set-config allow_cors "*"
+bench --site "$SITE" migrate
 bench restart
 
 # ── Concluído ─────────────────────────────────────────────
@@ -105,6 +123,7 @@ echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════╗${NC}"
 echo -e "${BOLD}║   Instalação concluída!                   ║${NC}"
 echo -e "${BOLD}╠══════════════════════════════════════════╣${NC}"
-echo -e "${BOLD}║   Portal: http://$FRAPPE_URL/portal      ║${NC}"
-echo -e "${BOLD}╚══════════════════════════════════════════╝${NC}"
+echo -e "${BOLD}║   Portal público:    http://$FRAPPE_URL/portal      ║${NC}"
+echo -e "${BOLD}║   Portal catequista: http://$FRAPPE_URL/catequista  ║${NC}"
+echo -e "${BOLD}╚══════════════════════════════════════════════════════╝${NC}"
 echo ""

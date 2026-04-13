@@ -6,6 +6,15 @@ app_email = "admin@pnsa.mz"
 app_license = "MIT"
 app_version = "0.0.1"
 
+# ── Fixtures ───────────────────────────────────────────────────────────────────
+# Synced automatically on bench migrate.
+fixtures = [
+    {
+        "dt": "Custom Field",
+        "filters": [["dt", "=", "Catequista"]],
+    }
+]
+
 # Required apps (pnsa_app must be installed for DocTypes to exist)
 # required_apps = ["pnsa_app"]
 
