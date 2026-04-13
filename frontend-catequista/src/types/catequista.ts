@@ -46,4 +46,5 @@ export interface FieldConfigItem {
   column_width: 'xs' | 'sm' | 'md' | 'lg';
   panel_section: string;
   source: 'catecumeno' | 'turma_catecumenos';
+  col_span: '1' | '2';
 }

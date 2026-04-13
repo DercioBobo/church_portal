@@ -404,17 +404,17 @@ def _default_field_config():
     Always returns the common fields so the portal works out-of-the-box.
     """
     return [
-        {"fieldname": "name",                  "label": "Nome",                  "fieldtype": "Data",       "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": False, "column_width": "lg", "panel_section": "",                       "source": "catecumeno"},
-        {"fieldname": "sexo",                  "label": "Sexo",                  "fieldtype": "Select",     "options": "M\nF", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Dados Pessoais",         "source": "catecumeno"},
-        {"fieldname": "idade",                 "label": "Idade",                 "fieldtype": "Int",        "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Dados Pessoais",         "source": "catecumeno"},
-        {"fieldname": "data_de_nascimento",    "label": "Data de Nascimento",    "fieldtype": "Date",       "options": "", "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Dados Pessoais",         "source": "catecumeno"},
-        {"fieldname": "encarregado",           "label": "Encarregado",           "fieldtype": "Data",       "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "md", "panel_section": "Encarregado de Educação", "source": "catecumeno"},
-        {"fieldname": "contacto_encarregado",  "label": "Contacto Encarregado",  "fieldtype": "Data",       "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Encarregado de Educação", "source": "catecumeno"},
-        {"fieldname": "padrinhos",             "label": "Padrinhos",             "fieldtype": "Data",       "options": "", "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "md", "panel_section": "Padrinhos / Madrinhas",   "source": "catecumeno"},
-        {"fieldname": "contacto_padrinhos",    "label": "Contacto Padrinhos",    "fieldtype": "Data",       "options": "", "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Padrinhos / Madrinhas",   "source": "catecumeno"},
-        {"fieldname": "total_presencas",       "label": "Presenças",             "fieldtype": "Int",        "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos"},
-        {"fieldname": "total_faltas",          "label": "Faltas",                "fieldtype": "Int",        "options": "", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos"},
-        {"fieldname": "obs",                   "label": "Observações",           "fieldtype": "Small Text", "options": "", "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "lg", "panel_section": "Observações",             "source": "catecumeno"},
+        {"fieldname": "name",                  "label": "Nome",                  "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": False, "column_width": "lg", "panel_section": "",                        "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "sexo",                  "label": "Sexo",                  "fieldtype": "Select",     "options": "M\nF", "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Dados Pessoais",          "source": "catecumeno",        "col_span": "1"},
+        {"fieldname": "idade",                 "label": "Idade",                 "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Dados Pessoais",          "source": "catecumeno",        "col_span": "1"},
+        {"fieldname": "data_de_nascimento",    "label": "Data de Nascimento",    "fieldtype": "Date",       "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Dados Pessoais",          "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "encarregado",           "label": "Encarregado",           "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "md", "panel_section": "Encarregado de Educação", "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "contacto_encarregado",  "label": "Contacto Encarregado",  "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Encarregado de Educação", "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "padrinhos",             "label": "Padrinhos",             "fieldtype": "Data",       "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "md", "panel_section": "Padrinhos / Madrinhas",   "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "contacto_padrinhos",    "label": "Contacto Padrinhos",    "fieldtype": "Data",       "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "sm", "panel_section": "Padrinhos / Madrinhas",   "source": "catecumeno",        "col_span": "2"},
+        {"fieldname": "total_presencas",       "label": "Presenças",             "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos", "col_span": "1"},
+        {"fieldname": "total_faltas",          "label": "Faltas",                "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos", "col_span": "1"},
+        {"fieldname": "obs",                   "label": "Observações",           "fieldtype": "Small Text", "options": "",     "show_in_table": False, "show_in_panel": True,  "editable": True,  "column_width": "lg", "panel_section": "Observações",             "source": "catecumeno",        "col_span": "2"},
     ]
 
 
@@ -435,6 +435,7 @@ def _load_field_config():
                     "column_width": row.column_width or "sm",
                     "panel_section": row.panel_section or "",
                     "source": row.source or "catecumeno",
+                    "col_span": row.col_span or "2",
                 }
                 for row in doc.field_config
             ]
@@ -569,6 +570,7 @@ def sync_catecumeno_fields():
             "column_width": "sm",
             "panel_section": "",
             "source": "catecumeno",
+            "col_span": "2",
         })
         existing.add(f.fieldname)
         added += 1
@@ -601,6 +603,7 @@ def sync_catecumeno_fields():
                 "column_width": "xs",
                 "panel_section": section,
                 "source": "turma_catecumenos",
+                "col_span": "1",
             })
             existing.add(alias)
             added += 1

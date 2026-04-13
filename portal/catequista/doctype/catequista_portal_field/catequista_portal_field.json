@@ -15,7 +15,8 @@
   "show_in_panel",
   "editable",
   "column_width",
-  "panel_section"
+  "panel_section",
+  "col_span"
  ],
  "fields": [
   {
@@ -86,6 +87,15 @@
    "fieldname": "panel_section",
    "fieldtype": "Data",
    "label": "Secção no Painel"
+  },
+  {
+   "fieldname": "col_span",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Colunas (painel)",
+   "options": "1\n2",
+   "default": "2",
+   "description": "1 = meia largura (dois campos por linha), 2 = largura total"
   }
  ],
  "istable": 1,

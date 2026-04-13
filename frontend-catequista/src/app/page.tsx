@@ -369,10 +369,10 @@ function SidePanel({ open, cat, fieldConfig, onClose, onSaved }: SidePanelProps)
         className={[
           'fixed z-50 bg-white shadow-2xl flex flex-col',
           'transition-transform duration-300 ease-in-out',
-          // Mobile: bottom sheet — overflow-hidden clips the rounded corners
+          // Mobile: bottom sheet
           'inset-x-0 bottom-0 h-[90dvh] rounded-t-2xl overflow-hidden',
-          // Desktop: right drawer — full height via inset-y-0, % width
-          'md:inset-y-0 md:right-0 md:bottom-auto md:rounded-none md:inset-x-auto md:overflow-visible',
+          // Desktop: full-height right drawer — top-0+bottom-0 fills screen, h-auto resets h-[90dvh]
+          'md:top-0 md:bottom-0 md:right-0 md:left-auto md:h-auto md:rounded-none md:overflow-visible',
           'md:w-[42%] md:max-w-2xl',
           open
             ? 'translate-y-0 md:translate-y-0 md:translate-x-0'
@@ -418,9 +418,12 @@ function SidePanel({ open, cat, fieldConfig, onClose, onSaved }: SidePanelProps)
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
                     {section.title}
                   </p>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {section.fields.map(field => (
-                      <div key={field.fieldname}>
+                      <div
+                        key={field.fieldname}
+                        className={field.col_span === '1' ? 'col-span-1' : 'col-span-2'}
+                      >
                         <label className="block text-xs font-medium text-slate-500 mb-1">
                           {field.label}
                         </label>
