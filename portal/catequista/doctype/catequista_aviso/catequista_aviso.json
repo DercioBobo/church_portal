@@ -1,0 +1,97 @@
+{
+ "autoname": "field:titulo",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "titulo",
+  "mensagem",
+  "column_break_1",
+  "ativo",
+  "prioridade",
+  "section_exibicao",
+  "modo_exibicao",
+  "nr_exibicoes",
+  "data_fim"
+ ],
+ "fields": [
+  {
+   "fieldname": "titulo",
+   "fieldtype": "Data",
+   "label": "Título",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "mensagem",
+   "fieldtype": "Text",
+   "label": "Mensagem",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ativo",
+   "fieldtype": "Check",
+   "label": "Ativo",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "prioridade",
+   "fieldtype": "Select",
+   "label": "Prioridade",
+   "options": "Normal\nUrgente",
+   "default": "Normal",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_exibicao",
+   "fieldtype": "Section Break",
+   "label": "Exibição"
+  },
+  {
+   "fieldname": "modo_exibicao",
+   "fieldtype": "Select",
+   "label": "Modo de Exibição",
+   "options": "Uma vez\nCada login\nN vezes",
+   "default": "Uma vez",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nr_exibicoes",
+   "fieldtype": "Int",
+   "label": "Nº de Exibições",
+   "description": "Apenas para o modo 'N vezes'",
+   "default": "3"
+  },
+  {
+   "fieldname": "data_fim",
+   "fieldtype": "Date",
+   "label": "Data de Fim",
+   "description": "Aviso não é exibido após esta data (opcional)"
+  }
+ ],
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Catequista Aviso",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

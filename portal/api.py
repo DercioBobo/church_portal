@@ -886,3 +886,100 @@ def alterar_senha(senha_atual, senha_nova):
 
     update_password(user, senha_nova.strip())
     return {"success": True}
+
+
+@frappe.whitelist()
+def get_avisos_ativos():
+    """Devolve os avisos activos que o catequista ainda deve ver."""
+    user = frappe.session.user
+    if user == "Guest":
+        frappe.throw(_("Não autenticado"), frappe.AuthenticationError)
+
+    # Resolve o nome do catequista ligado a este user
+    catequista_name = frappe.db.get_value("Catequista", {"user": user}, "name")
+    if not catequista_name:
+        return []
+
+    today = date.today().isoformat()
+
+    avisos = frappe.db.sql("""
+        SELECT name, titulo, mensagem, prioridade, modo_exibicao, nr_exibicoes
+        FROM `tabCatequista Aviso`
+        WHERE ativo = 1
+          AND (data_fim IS NULL OR data_fim >= %s)
+        ORDER BY
+            CASE prioridade WHEN 'Urgente' THEN 0 ELSE 1 END ASC,
+            modified DESC
+    """, (today,), as_dict=True)
+
+    resultado = []
+    for aviso in avisos:
+        log = frappe.db.get_value(
+            "Catequista Aviso Log",
+            {"aviso": aviso.name, "catequista": catequista_name},
+            ["name", "visualizacoes"],
+            as_dict=True,
+        )
+        views = log.visualizacoes if log else 0
+        modo = aviso.modo_exibicao
+
+        if modo == "Uma vez" and views >= 1:
+            continue
+        if modo == "N vezes" and views >= cint(aviso.nr_exibicoes or 1):
+            continue
+        # "Cada login" — frontend controla via sessionStorage; sempre enviamos
+
+        resultado.append({
+            "name": aviso.name,
+            "titulo": aviso.titulo,
+            "mensagem": aviso.mensagem,
+            "prioridade": aviso.prioridade,
+            "modo_exibicao": modo,
+        })
+
+    return resultado
+
+
+@frappe.whitelist()
+def marcar_aviso_visto(aviso_name):
+    """Regista que o catequista autenticado viu e dispensou o aviso."""
+    user = frappe.session.user
+    if user == "Guest":
+        frappe.throw(_("Não autenticado"), frappe.AuthenticationError)
+
+    catequista_name = frappe.db.get_value("Catequista", {"user": user}, "name")
+    if not catequista_name:
+        frappe.throw(_("Catequista não encontrado"))
+
+    # Verifica que o aviso existe
+    if not frappe.db.exists("Catequista Aviso", aviso_name):
+        frappe.throw(_("Aviso não encontrado"))
+
+    log_name = frappe.db.get_value(
+        "Catequista Aviso Log",
+        {"aviso": aviso_name, "catequista": catequista_name},
+        "name",
+    )
+
+    now = frappe.utils.now()
+    if log_name:
+        frappe.db.set_value(
+            "Catequista Aviso Log",
+            log_name,
+            {
+                "visualizacoes": frappe.db.get_value("Catequista Aviso Log", log_name, "visualizacoes") + 1,
+                "ultima_visualizacao": now,
+            },
+        )
+    else:
+        doc = frappe.get_doc({
+            "doctype": "Catequista Aviso Log",
+            "aviso": aviso_name,
+            "catequista": catequista_name,
+            "visualizacoes": 1,
+            "ultima_visualizacao": now,
+        })
+        doc.insert(ignore_permissions=True)
+
+    frappe.db.commit()
+    return {"success": True}

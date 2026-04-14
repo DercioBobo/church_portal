@@ -10,7 +10,7 @@ import PhaseChip from '@/components/PhaseChip';
 import { FullPageLoading } from '@/components/Loading';
 import { useAuthGuard } from '@/lib/useAuthGuard';
 import { api } from '@/lib/api';
-import type { TurmaComCatecumenos, CatecumenoCompleto, FieldConfigItem } from '@/types/catequista';
+import type { TurmaComCatecumenos, CatecumenoCompleto, FieldConfigItem, AvisoAtivo } from '@/types/catequista';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -668,6 +668,116 @@ function CatecumenosTable({ catecumenos, fieldConfig, onSelect }: TableProps) {
   );
 }
 
+// ── Aviso Modal ───────────────────────────────────────────────────────────────
+
+const AVISO_SESSION_KEY = 'avisos_vistos_sessao';
+
+function getSessionViews(): Set<string> {
+  try {
+    const raw = sessionStorage.getItem(AVISO_SESSION_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function addSessionView(name: string) {
+  try {
+    const views = getSessionViews();
+    views.add(name);
+    sessionStorage.setItem(AVISO_SESSION_KEY, JSON.stringify([...views]));
+  } catch { /* ignore */ }
+}
+
+function AvisoModal({
+  avisos,
+  onDismissed,
+}: {
+  avisos: AvisoAtivo[];
+  onDismissed: (aviso: AvisoAtivo) => void;
+}) {
+  const [idx, setIdx] = useState(0);
+  const [dismissing, setDismissing] = useState(false);
+
+  // Filter out "Cada login" avisos already seen this session
+  const queue = useMemo(() => {
+    const sessionViews = getSessionViews();
+    return avisos.filter(a => {
+      if (a.modo_exibicao === 'Cada login' && sessionViews.has(a.name)) return false;
+      return true;
+    });
+  }, [avisos]);
+
+  if (queue.length === 0 || idx >= queue.length) return null;
+
+  const aviso = queue[idx];
+  const isUrgente = aviso.prioridade === 'Urgente';
+
+  async function handleCompreendi() {
+    if (dismissing) return;
+    setDismissing(true);
+    try {
+      await api.marcarAvisoVisto(aviso.name);
+      if (aviso.modo_exibicao === 'Cada login') addSessionView(aviso.name);
+      onDismissed(aviso);
+      setIdx(i => i + 1);
+    } catch { /* still advance even if logging fails */ }
+    finally {
+      setDismissing(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-900/70 backdrop-blur-sm">
+      <div
+        className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fade-up
+          ${isUrgente ? 'bg-rose-50 border-2 border-rose-300' : 'bg-white border border-cream-200'}`}
+      >
+        {/* Priority stripe */}
+        {isUrgente && <div className="h-1.5 w-full bg-rose-500" />}
+        {!isUrgente && <div className="h-1.5 w-full bg-gold-400" />}
+
+        <div className="p-6">
+          {/* Counter badge when multiple */}
+          {queue.length > 1 && (
+            <span className="inline-block mb-3 text-xs font-semibold text-slate-400 bg-cream-100 px-2.5 py-0.5 rounded-full">
+              {idx + 1} / {queue.length}
+            </span>
+          )}
+
+          {isUrgente && (
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+              <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">Urgente</span>
+            </div>
+          )}
+
+          <h2 className={`font-display font-bold text-lg mb-3 ${isUrgente ? 'text-rose-900' : 'text-navy-900'}`}>
+            {aviso.titulo}
+          </h2>
+          <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
+            {aviso.mensagem}
+          </p>
+        </div>
+
+        <div className="px-6 pb-6">
+          <button
+            onClick={handleCompreendi}
+            disabled={dismissing}
+            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all
+              ${isUrgente
+                ? 'bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-60'
+                : 'bg-navy-900 hover:bg-navy-800 text-white disabled:opacity-60'
+              }`}
+          >
+            {dismissing ? 'A registar...' : 'Compreendi'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -678,13 +788,15 @@ export default function DashboardPage() {
   const [dataError, setDataError] = useState('');
   const [panel, setPanel] = useState<{ cat: CatecumenoCompleto; turma: TurmaComCatecumenos; turmaIdx: number } | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [avisos, setAvisos] = useState<AvisoAtivo[]>([]);
 
   useEffect(() => {
     if (!auth) return;
-    Promise.all([api.getMinhaTurma(), api.getFieldConfig()])
-      .then(([data, config]) => {
+    Promise.all([api.getMinhaTurma(), api.getFieldConfig(), api.getAvisosAtivos()])
+      .then(([data, config, av]) => {
         setTurmas(data);
         setFieldConfig(config);
+        setAvisos(av);
         setDataLoading(false);
       })
       .catch(e => {
@@ -723,8 +835,8 @@ export default function DashboardPage() {
   const retry = useCallback(() => {
     setDataLoading(true);
     setDataError('');
-    Promise.all([api.getMinhaTurma(), api.getFieldConfig()])
-      .then(([data, config]) => { setTurmas(data); setFieldConfig(config); })
+    Promise.all([api.getMinhaTurma(), api.getFieldConfig(), api.getAvisosAtivos()])
+      .then(([data, config, av]) => { setTurmas(data); setFieldConfig(config); setAvisos(av); })
       .catch(e => setDataError(String(e.message || e)))
       .finally(() => setDataLoading(false));
   }, []);
@@ -733,6 +845,13 @@ export default function DashboardPage() {
 
   return (
     <>
+      {avisos.length > 0 && (
+        <AvisoModal
+          avisos={avisos}
+          onDismissed={dismissed => setAvisos(prev => prev.filter(a => a.name !== dismissed.name))}
+        />
+      )}
+
       <Nav catequistaNome={auth?.catequista} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">

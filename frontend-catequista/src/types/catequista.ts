@@ -35,6 +35,14 @@ export interface TurmaComCatecumenos {
   total_catecumenos: number;
 }
 
+export interface AvisoAtivo {
+  name: string;
+  titulo: string;
+  mensagem: string;
+  prioridade: 'Normal' | 'Urgente';
+  modo_exibicao: 'Uma vez' | 'Cada login' | 'N vezes';
+}
+
 export interface FieldConfigItem {
   fieldname: string;
   label: string;

@@ -1,4 +1,4 @@
-import type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem } from '@/types/catequista';
+import type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, AvisoAtivo } from '@/types/catequista';
 
 const BASE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL || '';
 const APP = 'portal.api';
@@ -150,7 +150,13 @@ export const api = {
 
   alterarSenha: (senha_atual: string, senha_nova: string): Promise<{ success: boolean }> =>
     frappePOST<{ success: boolean }>('alterar_senha', { senha_atual, senha_nova }),
+
+  getAvisosAtivos: (): Promise<AvisoAtivo[]> =>
+    frappeFetch<AvisoAtivo[]>('get_avisos_ativos'),
+
+  marcarAvisoVisto: (aviso_name: string): Promise<{ success: boolean }> =>
+    frappePOST<{ success: boolean }>('marcar_aviso_visto', { aviso_name }),
 };
 
 // Re-export types for convenience
-export type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem };
+export type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, AvisoAtivo };
