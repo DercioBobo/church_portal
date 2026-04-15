@@ -33,6 +33,8 @@ export interface TurmaComCatecumenos {
   status: string;
   catecumenos: CatecumenoCompleto[];
   total_catecumenos: number;
+  // Dynamic extra turma fields from field config (e.g. catecismo)
+  [key: string]: unknown;
 }
 
 export interface AvisoAtivo {

@@ -78,12 +78,16 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
   const headerFields = fieldConfig.filter(f => f.source === 'turma' && f.show_in_table);
   const turmaAny = turma as unknown as Record<string, unknown>;
 
+  // Fields with known short icons render as inline chips; rest render as subtitle rows
+  const chipFields = headerFields.filter(f => f.fieldname in TURMA_FIELD_ICONS);
+  const subtitleFields = headerFields.filter(f => !(f.fieldname in TURMA_FIELD_ICONS));
+
   return (
     <div className="bg-white rounded-2xl border border-cream-200 shadow-warm-xs overflow-hidden animate-fade-up">
       <div className={`h-1.5 w-full ${phaseStripe(turma.fase)}`} />
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
               <PhaseChip fase={turma.fase} />
               {turma.ano_lectivo && (
@@ -91,6 +95,18 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
               )}
             </div>
             <h2 className="font-display font-bold text-navy-900 text-lg">{turma.name}</h2>
+
+            {/* Subtitle row — long-text turma fields (e.g. catecismo) */}
+            {subtitleFields.map(f => {
+              const val = turmaAny[f.fieldname];
+              if (!val) return null;
+              return (
+                <div key={f.fieldname} className="flex items-center gap-1.5 mt-1.5">
+                  <BookOpen className="w-3.5 h-3.5 shrink-0 text-gold-500" />
+                  <span className="text-sm text-slate-600 font-medium leading-snug">{String(val)}</span>
+                </div>
+              );
+            })}
           </div>
           <div className="flex items-center gap-1.5 bg-cream-100 px-3 py-1.5 rounded-full shrink-0">
             <Users className="w-3.5 h-3.5 text-slate-500" />
@@ -100,25 +116,26 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
           </div>
         </div>
 
-        {/* Dynamic info bar from config — falls back to hardcoded if no config */}
-        {headerFields.length > 0 ? (
+        {/* Chip info bar — short fields with icons (local, dia, hora) */}
+        {(chipFields.length > 0 || headerFields.length === 0) && (
           <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm text-slate-500">
-            {headerFields.map(f => {
+            {chipFields.length > 0 ? chipFields.map(f => {
               const val = turmaAny[f.fieldname];
               if (!val) return null;
               return (
                 <span key={f.fieldname} className="flex items-center gap-1.5">
-                  {TURMA_FIELD_ICONS[f.fieldname] ?? null}
+                  {TURMA_FIELD_ICONS[f.fieldname]}
                   {String(val)}
                 </span>
               );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm text-slate-500">
-            {turma.local && <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.local}</span>}
-            {turma.dia   && <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.dia}</span>}
-            {turma.hora  && <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.hora}</span>}
+            }) : (
+              // Fallback when no config at all
+              <>
+                {turma.local && <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.local}</span>}
+                {turma.dia   && <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.dia}</span>}
+                {turma.hora  && <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.hora}</span>}
+              </>
+            )}
           </div>
         )}
 

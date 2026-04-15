@@ -653,6 +653,7 @@ def sync_catecumeno_fields():
         "local":          {"show_in_table": 1, "show_in_panel": 0, "column_width": "md"},
         "dia":            {"show_in_table": 1, "show_in_panel": 0, "column_width": "sm", "col_span": "1"},
         "hora":           {"show_in_table": 1, "show_in_panel": 0, "column_width": "sm", "col_span": "1"},
+        "catecismo":      {"show_in_table": 1, "show_in_panel": 0, "column_width": "lg", "col_span": "2"},
         "catequista_adj": {"show_in_table": 0, "show_in_panel": 0, "column_width": "md"},
         "ano_lectivo":    {"show_in_table": 0, "show_in_panel": 0, "column_width": "sm"},
     }
@@ -705,9 +706,26 @@ def get_minha_turma():
     cat_name = _assert_catequista()
     e = frappe.db.escape(cat_name)
 
+    # Load field config once — used for both turma and catecumeno column selection
+    config = _load_field_config()
+
+    # Always-needed turma fields
+    TURMA_ALWAYS = {"name", "fase", "ano_lectivo", "local", "dia", "hora",
+                    "catequista", "catequista_adj", "status"}
+    # Add extra turma fields from config (source='turma')
+    turma_meta_obj = frappe.get_meta("Turma")
+    turma_meta_fields = {f.fieldname for f in turma_meta_obj.fields}
+    extra_turma_cols = "".join(
+        f",\n               `{entry['fieldname']}`"
+        for entry in config
+        if entry["source"] == "turma"
+        and entry["fieldname"] not in TURMA_ALWAYS
+        and entry["fieldname"] in turma_meta_fields
+    )
+
     turmas = frappe.db.sql(f"""
         SELECT name, fase, ano_lectivo, local, dia, hora,
-               catequista, catequista_adj, status
+               catequista, catequista_adj, status{extra_turma_cols}
         FROM `tabTurma`
         WHERE (catequista = {e} OR catequista_adj = {e})
           AND status = 'Activo'
@@ -715,7 +733,6 @@ def get_minha_turma():
     """, as_dict=True)
 
     # Build SELECT cols from field config — only catecumeno source, skip 'name' (always selected)
-    config = _load_field_config()
     wanted_cat = [
         entry["fieldname"]
         for entry in config
