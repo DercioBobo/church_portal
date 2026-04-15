@@ -418,12 +418,13 @@ def _default_field_config():
         {"fieldname": "total_presencas",      "label": "Presenças",            "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos", "col_span": "1"},
         {"fieldname": "total_faltas",         "label": "Faltas",               "fieldtype": "Int",        "options": "",     "show_in_table": True,  "show_in_panel": True,  "editable": True,  "column_width": "xs", "panel_section": "Presenças",               "source": "turma_catecumenos", "col_span": "1"},
         # ── Turma ─────────────────────────────────────────────────────────────
-        # show_in_table = shown in TurmaHeader info bar
-        # show_in_panel = shown in catecumeno side panel (read-only)
-        {"fieldname": "local",                "label": "Local",                "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": False, "editable": False, "column_width": "md", "panel_section": "Turma",                   "source": "turma",             "col_span": "2"},
-        {"fieldname": "dia",                  "label": "Dia",                  "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": False, "editable": False, "column_width": "sm", "panel_section": "Turma",                   "source": "turma",             "col_span": "1"},
-        {"fieldname": "hora",                 "label": "Hora",                 "fieldtype": "Data",       "options": "",     "show_in_table": True,  "show_in_panel": False, "editable": False, "column_width": "sm", "panel_section": "Turma",                   "source": "turma",             "col_span": "1"},
-        {"fieldname": "catequista_adj",       "label": "Catequista Adjunto",   "fieldtype": "Data",       "options": "",     "show_in_table": False, "show_in_panel": False, "editable": False, "column_width": "md", "panel_section": "Turma",                   "source": "turma",             "col_span": "2"},
+        # show_in_header = shown in TurmaHeader banner
+        # show_in_panel  = shown in catecumeno side panel (read-only)
+        {"fieldname": "local",          "label": "Local",              "fieldtype": "Data", "options": "", "show_in_table": False, "show_in_panel": False, "show_in_header": True,  "editable": False, "column_width": "md", "panel_section": "Turma", "source": "turma", "col_span": "2"},
+        {"fieldname": "dia",            "label": "Dia",                "fieldtype": "Data", "options": "", "show_in_table": False, "show_in_panel": False, "show_in_header": True,  "editable": False, "column_width": "sm", "panel_section": "Turma", "source": "turma", "col_span": "1"},
+        {"fieldname": "hora",           "label": "Hora",               "fieldtype": "Data", "options": "", "show_in_table": False, "show_in_panel": False, "show_in_header": True,  "editable": False, "column_width": "sm", "panel_section": "Turma", "source": "turma", "col_span": "1"},
+        {"fieldname": "catecismo",      "label": "Catecismo",          "fieldtype": "Data", "options": "", "show_in_table": False, "show_in_panel": False, "show_in_header": True,  "editable": False, "column_width": "lg", "panel_section": "Turma", "source": "turma", "col_span": "2"},
+        {"fieldname": "catequista_adj", "label": "Catequista Adjunto", "fieldtype": "Data", "options": "", "show_in_table": False, "show_in_panel": False, "show_in_header": False, "editable": False, "column_width": "md", "panel_section": "Turma", "source": "turma", "col_span": "2"},
     ]
 
 
@@ -440,6 +441,7 @@ def _load_field_config():
                     "options": row.options or "",
                     "show_in_table": bool(row.show_in_table),
                     "show_in_panel": bool(row.show_in_panel),
+                    "show_in_header": bool(row.get("show_in_header")),
                     "editable": bool(row.editable),
                     "column_width": row.column_width or "sm",
                     "panel_section": row.panel_section or "",
@@ -643,19 +645,19 @@ def sync_catecumeno_fields():
         added += 1
 
     # ── Turma fields ───────────────────────────────────────────────────────────
-    # show_in_table = shown in TurmaHeader info bar
-    # show_in_panel = shown as read-only section in the catecumeno side panel
+    # show_in_header = shown in TurmaHeader banner
+    # show_in_panel  = shown as read-only section in the catecumeno side panel
     turma_meta = frappe.get_meta("Turma")
     SKIP_TURMA_FIELDS = SKIP_FIELDS | {"name", "fase", "status", "catequista",
                                         "catequista_adj", "ano_lectivo", "total_catecumenos"}
-    # Add the key display fields first with sensible defaults
+    # Sensible defaults for known turma fields
     TURMA_DEFAULTS = {
-        "local":          {"show_in_table": 1, "show_in_panel": 0, "column_width": "md"},
-        "dia":            {"show_in_table": 1, "show_in_panel": 0, "column_width": "sm", "col_span": "1"},
-        "hora":           {"show_in_table": 1, "show_in_panel": 0, "column_width": "sm", "col_span": "1"},
-        "catecismo":      {"show_in_table": 1, "show_in_panel": 0, "column_width": "lg", "col_span": "2"},
-        "catequista_adj": {"show_in_table": 0, "show_in_panel": 0, "column_width": "md"},
-        "ano_lectivo":    {"show_in_table": 0, "show_in_panel": 0, "column_width": "sm"},
+        "local":          {"show_in_header": 1, "show_in_panel": 0, "column_width": "md"},
+        "dia":            {"show_in_header": 1, "show_in_panel": 0, "column_width": "sm", "col_span": "1"},
+        "hora":           {"show_in_header": 1, "show_in_panel": 0, "column_width": "sm", "col_span": "1"},
+        "catecismo":      {"show_in_header": 1, "show_in_panel": 0, "column_width": "lg", "col_span": "2"},
+        "catequista_adj": {"show_in_header": 0, "show_in_panel": 0, "column_width": "md"},
+        "ano_lectivo":    {"show_in_header": 0, "show_in_panel": 0, "column_width": "sm"},
     }
     for f in turma_meta.fields:
         if f.fieldname in SKIP_TURMA_FIELDS or f.fieldtype in SKIP_TYPES:
@@ -669,8 +671,9 @@ def sync_catecumeno_fields():
             "label": f.label or f.fieldname,
             "fieldtype": normalized_ft,
             "options": f.options or "" if normalized_ft == "Select" else "",
-            "show_in_table": defaults.get("show_in_table", 0),
+            "show_in_table": 0,
             "show_in_panel": defaults.get("show_in_panel", 0),
+            "show_in_header": defaults.get("show_in_header", 0),
             "editable": 0,
             "column_width": defaults.get("column_width", "sm"),
             "panel_section": "Turma",

@@ -13,6 +13,7 @@
   "column_break_1",
   "show_in_table",
   "show_in_panel",
+  "show_in_header",
   "editable",
   "column_width",
   "panel_section",
@@ -69,6 +70,13 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Mostrar no Painel"
+  },
+  {
+   "fieldname": "show_in_header",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Mostrar no Cabeçalho",
+   "description": "Mostra o campo no cabeçalho da turma (apenas para campos da Turma)"
   },
   {
    "fieldname": "editable",

@@ -52,6 +52,7 @@ export interface FieldConfigItem {
   options: string;
   show_in_table: boolean;
   show_in_panel: boolean;
+  show_in_header: boolean;
   editable: boolean;
   column_width: 'xs' | 'sm' | 'md' | 'lg';
   panel_section: string;

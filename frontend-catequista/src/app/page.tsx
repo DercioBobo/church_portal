@@ -74,8 +74,7 @@ const TURMA_FIELD_ICONS: Record<string, React.ReactNode> = {
 };
 
 function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; fieldConfig: FieldConfigItem[] }) {
-  // show_in_table on turma-source fields = "show in header info bar"
-  const headerFields = fieldConfig.filter(f => f.source === 'turma' && f.show_in_table);
+  const headerFields = fieldConfig.filter(f => f.source === 'turma' && f.show_in_header);
   const turmaAny = turma as unknown as Record<string, unknown>;
 
   // Fields with known short icons render as inline chips; rest render as subtitle rows
