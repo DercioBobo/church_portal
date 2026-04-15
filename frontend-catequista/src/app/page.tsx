@@ -133,7 +133,7 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
                 {turma.total_catecumenos} catecúmenos
               </span>
             </div>
-            {turma.programa && (
+            {!!turma.programa && (
               <ProgramaButton programa={turma.programa as { titulo?: string | null; ficheiro: string }} />
             )}
           </div>
