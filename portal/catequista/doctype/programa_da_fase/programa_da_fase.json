@@ -1,0 +1,62 @@
+{
+ "autoname": "format:{fase}-{ano_lectivo}",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "fase",
+  "ano_lectivo",
+  "titulo",
+  "ficheiro"
+ ],
+ "fields": [
+  {
+   "fieldname": "fase",
+   "fieldtype": "Data",
+   "label": "Fase",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "ano_lectivo",
+   "fieldtype": "Data",
+   "label": "Ano Lectivo",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "titulo",
+   "fieldtype": "Data",
+   "label": "Título",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ficheiro",
+   "fieldtype": "Attach",
+   "label": "Ficheiro",
+   "reqd": 1,
+   "in_list_view": 1
+  }
+ ],
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Programa da Fase",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ],
+ "sort_field": "ano_lectivo",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

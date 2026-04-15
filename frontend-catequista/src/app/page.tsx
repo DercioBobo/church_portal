@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   MapPin, Clock, Calendar, Users, Search, X,
-  Save, BookOpen, Cake, AlertCircle, ChevronRight,
+  Save, BookOpen, Cake, AlertCircle, ChevronRight, FileDown,
 } from 'lucide-react';
 import Nav from '@/components/Nav';
 import PhaseChip from '@/components/PhaseChip';
@@ -67,6 +67,25 @@ const COL_WIDTHS: Record<string, string> = {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
+const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL || '';
+
+function ProgramaButton({ programa }: { programa: { titulo?: string | null; ficheiro: string } }) {
+  const url = FRAPPE_URL + programa.ficheiro;
+  const label = programa.titulo || 'Programa da Fase';
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-navy-700 bg-cream-100 hover:bg-cream-200 border border-cream-300 px-3 py-1.5 rounded-full transition-colors shrink-0"
+      title={`Abrir: ${label}`}
+    >
+      <FileDown className="w-3.5 h-3.5 shrink-0" />
+      {label}
+    </a>
+  );
+}
+
 const TURMA_FIELD_ICONS: Record<string, React.ReactNode> = {
   local: <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />,
   dia:   <Calendar className="w-3.5 h-3.5 shrink-0 text-slate-400" />,
@@ -107,11 +126,16 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
               );
             })}
           </div>
-          <div className="flex items-center gap-1.5 bg-cream-100 px-3 py-1.5 rounded-full shrink-0">
-            <Users className="w-3.5 h-3.5 text-slate-500" />
-            <span className="text-xs font-semibold text-slate-700">
-              {turma.total_catecumenos} catecúmenos
-            </span>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 bg-cream-100 px-3 py-1.5 rounded-full">
+              <Users className="w-3.5 h-3.5 text-slate-500" />
+              <span className="text-xs font-semibold text-slate-700">
+                {turma.total_catecumenos} catecúmenos
+              </span>
+            </div>
+            {turma.programa && (
+              <ProgramaButton programa={turma.programa as { titulo?: string | null; ficheiro: string }} />
+            )}
           </div>
         </div>
 

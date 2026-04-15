@@ -789,6 +789,18 @@ def get_minha_turma():
 
         turma["catecumenos"] = catecumenos
         turma["total_catecumenos"] = len(catecumenos)
+
+        # Fetch the programa da fase for this turma's fase + ano_lectivo
+        programa = None
+        if turma.get("fase") and turma.get("ano_lectivo"):
+            programa = frappe.db.get_value(
+                "Programa da Fase",
+                {"fase": turma["fase"], "ano_lectivo": turma["ano_lectivo"]},
+                ["titulo", "ficheiro"],
+                as_dict=True,
+            )
+        turma["programa"] = programa or None
+
         result.append(turma)
 
     return result
