@@ -701,7 +701,7 @@ function addSessionView(name: string) {
   try {
     const views = getSessionViews();
     views.add(name);
-    sessionStorage.setItem(AVISO_SESSION_KEY, JSON.stringify([...views]));
+    sessionStorage.setItem(AVISO_SESSION_KEY, JSON.stringify(Array.from(views)));
   } catch { /* ignore */ }
 }
 
