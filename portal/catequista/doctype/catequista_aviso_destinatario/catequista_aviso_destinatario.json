@@ -14,7 +14,8 @@
    "options": "Catequista",
    "reqd": 1,
    "in_list_view": 1,
-   "columns": 12
+   "in_grid_footer": 0,
+   "columns": 4
   }
  ],
  "istable": 1,

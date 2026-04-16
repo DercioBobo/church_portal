@@ -75,14 +75,17 @@
    "fieldname": "nr_exibicoes",
    "fieldtype": "Int",
    "label": "Nº de Exibições",
-   "description": "Apenas para o modo 'N vezes'",
-   "default": "3"
+   "description": "Número máximo de vezes que o aviso é exibido por catequista",
+   "default": "3",
+   "depends_on": "eval:doc.modo_exibicao=='N vezes'",
+   "mandatory_depends_on": "eval:doc.modo_exibicao=='N vezes'"
   },
   {
    "fieldname": "data_fim",
    "fieldtype": "Date",
    "label": "Data de Fim",
-   "description": "Aviso não é exibido após esta data. Para modo 'Cada login', se deixado em branco, o sistema aplica automaticamente um limite de 30 dias a partir da criação."
+   "description": "Aviso não é exibido após esta data. Para 'Cada login' sem data definida, o sistema aplica automaticamente 30 dias a partir da criação.",
+   "depends_on": "eval:['Cada login','N vezes'].includes(doc.modo_exibicao)"
   },
   {
    "fieldname": "section_destinatarios",
@@ -100,9 +103,9 @@
   },
   {
    "fieldname": "fase_destino",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Fase",
-   "options": "\n1ª Fase\n2ª Fase\n3ª Fase\nPré-Catecumenato\nCatecumenato",
+   "options": "Fase",
    "depends_on": "eval:doc.tipo_destinatario=='Por Fase'",
    "mandatory_depends_on": "eval:doc.tipo_destinatario=='Por Fase'"
   },
