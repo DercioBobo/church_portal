@@ -20,8 +20,9 @@
   },
   {
    "fieldname": "ano_lectivo",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "label": "Ano Lectivo",
+   "options": "Ano Lectivo",
    "reqd": 1,
    "in_list_view": 1,
    "search_index": 1

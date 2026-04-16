@@ -1044,7 +1044,7 @@ def get_quotas_grid(ano):
     _assert_system_manager()
 
     catequistas = frappe.db.sql(
-        "SELECT name FROM `tabCatequista` ORDER BY name ASC", as_dict=True
+        "SELECT name FROM `tabCatequista` WHERE status = 'Activo' ORDER BY name ASC", as_dict=True
     )
 
     quotas = frappe.db.sql("""
@@ -1147,7 +1147,7 @@ def get_quotas_resumo(ano=""):
         ano = str(frappe.utils.now_datetime().year)
 
     catequistas = frappe.db.sql(
-        "SELECT name FROM `tabCatequista` ORDER BY name ASC", as_dict=True
+        "SELECT name FROM `tabCatequista` WHERE status = 'Activo' ORDER BY name ASC", as_dict=True
     )
 
     quotas = frappe.db.sql("""
