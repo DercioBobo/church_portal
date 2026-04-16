@@ -71,7 +71,7 @@ export interface QuotaMesResumo {
 
 export interface QuotaCatequistaResumoRow {
   catequista: string;
-  meses: Record<string, QuotaMesResumo>; // key: "01".."12"
+  meses: Record<string, QuotaMesResumo>; // key: "Janeiro".."Dezembro"
   total: number;
   meses_pagos: number;
 }

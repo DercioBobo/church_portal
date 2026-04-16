@@ -15,7 +15,6 @@ const MESES_FULL  = [
   'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
 ];
-const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 
 function fmt(v: number) {
   return v.toLocaleString('pt-MZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' MT';
@@ -50,12 +49,12 @@ function StatCard({
 
 function MyMonthGrid({ row, ano }: { row: QuotaCatequistaResumoRow; ano: string }) {
   const currentMonth = new Date().getFullYear() === parseInt(ano, 10)
-    ? String(new Date().getMonth() + 1).padStart(2, '0')
+    ? MESES_FULL[new Date().getMonth()]
     : null;
 
   return (
     <div className="grid grid-cols-6 sm:grid-cols-12 gap-2">
-      {MONTHS.map((m, i) => {
+      {MESES_FULL.map((m, i) => {
         const entry = row.meses[m];
         const isCurrent = m === currentMonth;
         return (
@@ -159,7 +158,7 @@ function TeamRow({ row, maxTotal, isMe }: { row: QuotaCatequistaResumoRow; maxTo
       {expanded && (
         <div className="px-4 pb-4 border-t border-cream-100">
           <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5 mt-3">
-            {MONTHS.map((m, i) => {
+            {MESES_FULL.map((m, i) => {
               const entry = row.meses[m];
               return (
                 <div key={m} className={`rounded-lg p-1.5 text-center text-[10px] font-medium ${

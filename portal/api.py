@@ -1172,7 +1172,7 @@ def get_quotas_grid(ano):
     for c in catequistas:
         meses = {}
         total = 0.0
-        for mes in [f"{i:02d}" for i in range(1, 13)]:
+        for mes in ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]:
             entry = quota_map.get((c.name, mes))
             if entry:
                 meses[mes] = entry
