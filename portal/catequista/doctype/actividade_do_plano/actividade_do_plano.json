@@ -1,0 +1,128 @@
+{
+ "autoname": "autoincrement",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "actividade",
+  "tipologia",
+  "estado",
+  "column_break_1",
+  "ano_lectivo",
+  "data",
+  "data_original",
+  "section_responsavel",
+  "orador",
+  "local",
+  "orcamento",
+  "section_notas",
+  "notas_execucao"
+ ],
+ "fields": [
+  {
+   "fieldname": "actividade",
+   "fieldtype": "Data",
+   "label": "Actividade",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tipologia",
+   "fieldtype": "Link",
+   "label": "Tipologia",
+   "options": "Tipologia Actividade",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "estado",
+   "fieldtype": "Select",
+   "label": "Estado",
+   "options": "Pendente\nRealizada\nCancelada\nAdiada",
+   "default": "Pendente",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ano_lectivo",
+   "fieldtype": "Link",
+   "label": "Ano Lectivo",
+   "options": "Ano Lectivo",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "data",
+   "fieldtype": "Date",
+   "label": "Data",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "data_original",
+   "fieldtype": "Date",
+   "label": "Data Original",
+   "read_only": 1,
+   "description": "Data original antes de qualquer alteração (preenchida automaticamente)"
+  },
+  {
+   "fieldname": "section_responsavel",
+   "fieldtype": "Section Break",
+   "label": "Responsável e Local"
+  },
+  {
+   "fieldname": "orador",
+   "fieldtype": "Data",
+   "label": "Orador / Responsável"
+  },
+  {
+   "fieldname": "local",
+   "fieldtype": "Small Text",
+   "label": "Local"
+  },
+  {
+   "fieldname": "orcamento",
+   "fieldtype": "Currency",
+   "label": "Orçamento"
+  },
+  {
+   "fieldname": "section_notas",
+   "fieldtype": "Section Break",
+   "label": "Notas de Execução"
+  },
+  {
+   "fieldname": "notas_execucao",
+   "fieldtype": "Small Text",
+   "label": "Notas de Execução",
+   "description": "Como correu a actividade, observações após realização"
+  }
+ ],
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Actividade do Plano",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Coordenador Catequese",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ],
+ "sort_field": "data",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}
