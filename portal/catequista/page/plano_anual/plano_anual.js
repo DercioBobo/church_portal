@@ -420,12 +420,9 @@ function createPlanoAnualApp() {
   <!-- ── Copy Year Modal ─────────────────────────────────────────────── -->
   <div class="pa-modal" :class="{ open: copyModal.open }">
 
-    <!-- Loading -->
     <div v-if="copyModal.loading" class="pa-loading" style="min-height:110px;padding:20px">
       <div class="pa-spinner"></div> A verificar…
     </div>
-
-    <!-- Error -->
     <template v-else-if="copyModal.error">
       <div class="pa-modal-header">
         <div class="pa-modal-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
@@ -438,8 +435,6 @@ function createPlanoAnualApp() {
         <button class="pa-btn pa-btn-secondary" @click="closeCopyYearModal">Fechar</button>
       </div>
     </template>
-
-    <!-- Preview -->
     <template v-else-if="copyModal.preview">
       <div class="pa-modal-header">
         <div class="pa-modal-icon">
@@ -695,7 +690,7 @@ function createPlanoAnualApp() {
       <select
         v-model="bulkEstadoTarget"
         class="pa-bulk-select"
-        @change="if (bulkEstadoTarget) bulkMarkEstado(bulkEstadoTarget)"
+        @change="onBulkEstadoChange"
         :disabled="bulkActWorking"
         title="Marcar seleccionadas como…"
       >
@@ -1114,6 +1109,9 @@ function createPlanoAnualApp() {
         bulkMoveTarget.value  = '';
         bulkEstadoTarget.value = '';
       }
+      function onBulkEstadoChange() {
+        if (bulkEstadoTarget.value) bulkMarkEstado(bulkEstadoTarget.value);
+      }
       function handleCardClick(act) {
         if (hasSelection.value) { toggleSelect(act.name); }
         else                     { openEdit(act); }
@@ -1462,7 +1460,7 @@ function createPlanoAnualApp() {
         allMonthsForYear, bulkEstadoTarget, bulkMoveTarget, bulkDelConfirm, bulkActWorking,
         isMonthFullySelected, isMonthPartiallySelected,
         toggleSelect, toggleSelectAll, toggleSelectMonth, clearSelection, handleCardClick,
-        bulkMarkEstado, doBulkDelete, doBulkMoveMonth,
+        onBulkEstadoChange, bulkMarkEstado, doBulkDelete, doBulkMoveMonth,
       };
     },
   });
