@@ -12,8 +12,9 @@
  "fields": [
   {
    "fieldname": "fase",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "label": "Fase",
+   "options": "Fase",
    "reqd": 1,
    "in_list_view": 1,
    "search_index": 1
