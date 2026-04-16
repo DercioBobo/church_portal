@@ -138,6 +138,18 @@ function createPlanoAnualApp() {
       </button>
     </div>
 
+    <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="expandAll" data-no-print title="Expandir todos os meses">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 20 12 15 17 20"/><polyline points="7 4 12 9 17 4"/></svg>
+    </button>
+    <button class="pa-btn pa-btn-secondary pa-btn-sm" @click="exportExcel" :disabled="exporting" data-no-print :title="'Exportar para Excel' + (hasFilters ? ' (com filtros activos)' : '')">
+      <div v-if="exporting" class="pa-spinner" style="width:12px;height:12px"></div>
+      <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="18"/><line x1="15" y1="15" x2="12" y2="18"/></svg>
+      Excel
+    </button>
+    <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="openCopyYearModal" data-no-print title="Copiar actividades do ano lectivo anterior">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copiar ano
+    </button>
     <button class="pa-btn pa-btn-secondary pa-btn-sm" @click="printView" data-no-print>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       Imprimir
@@ -238,19 +250,28 @@ function createPlanoAnualApp() {
 
     <!-- ── Card view ───────────────────────────────────────────────── -->
     <template v-else-if="viewMode === 'card'">
-      <div v-for="group in filteredGroups" :key="group.key" class="pa-month-group">
-        <div class="pa-month-header">
+      <div
+        v-for="group in filteredGroups" :key="group.key"
+        class="pa-month-group"
+        :class="{ 'is-current-month': isCurrentMonth(group.key), 'is-collapsed': isCollapsed(group.key) }"
+      >
+        <div class="pa-month-header" @click="toggleCollapse(group.key)" style="cursor:pointer" :title="isCollapsed(group.key) ? 'Expandir mês' : 'Recolher mês'">
+          <input type="checkbox" class="pa-month-check" :checked="isMonthFullySelected(group.key)" @click.stop="toggleSelectMonth(group.key)" @change.stop data-no-print>
+          <!-- Collapse chevron -->
+          <svg class="pa-month-chevron" :class="{ collapsed: isCollapsed(group.key) }" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           <span class="pa-month-label">{{ group.label }}</span>
+          <span v-if="isCurrentMonth(group.key)" class="pa-month-now-badge">Agora</span>
           <span class="pa-month-count">{{ group.items.length }} actividade{{ group.items.length !== 1 ? 's' : '' }}</span>
           <div class="pa-month-line"></div>
-          <button class="pa-month-add" @click="openNewActivity(group.key)" data-no-print>
+          <button class="pa-month-add" @click.stop="openNewActivity(group.key)" data-no-print>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Adicionar
           </button>
         </div>
 
         <div
-          class="pa-cards"
+          v-show="!isCollapsed(group.key)"
+          class="pa-cards pa-month-body"
           :class="{ 'drag-over': dragOverGroup === group.key }"
           @dragover.prevent="onDragOver(group.key)"
           @dragleave="onDragLeave(group.key)"
@@ -259,15 +280,16 @@ function createPlanoAnualApp() {
           <div
             v-for="act in group.items" :key="act.name"
             class="pa-card"
-            :class="{ overdue: isOverdue(act), dragging: dragItem === act.name, 'drag-target': dragTarget === act.name }"
+            :class="{ overdue: isOverdue(act), dragging: dragItem === act.name, 'drag-target': dragTarget === act.name, selected: selected.has(act.name) }"
             :style="cardStyle(act)"
             draggable="true"
             @dragstart="onDragStart(act, $event)"
             @dragend="onDragEnd"
             @dragover.prevent="dragTarget = act.name"
-            @click="openEdit(act)"
+            @click="handleCardClick(act)"
           >
             <div class="pa-card-header">
+              <input type="checkbox" class="pa-card-check" :checked="selected.has(act.name)" @click.stop="toggleSelect(act.name)" @change.stop data-no-print>
               <span class="pa-card-drag-handle" title="Arrastar" @click.stop>⠿</span>
               <span class="pa-card-title">{{ act.actividade }}</span>
               <span class="pa-card-status" :class="statusClass(act.estado)"
@@ -292,11 +314,16 @@ function createPlanoAnualApp() {
                 {{ formatCurrency(act.orcamento) }}
               </span>
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;align-items:center">
               <span v-if="act.tipologia" class="pa-card-tipologia" :style="tipologiaChipStyle(act)">
                 {{ act.tipologia_icone ? act.tipologia_icone + ' ' : '' }}{{ act.tipologia }}
               </span>
               <span v-if="isOverdue(act)" class="pa-overdue-tag">⚠ Vencida</span>
+              <span
+                v-if="act.notas_execucao"
+                class="pa-notes-indicator"
+                :title="act.notas_execucao"
+              >📝 <span class="pa-notes-indicator-text">{{ truncate(act.notas_execucao, 60) }}</span></span>
             </div>
           </div>
           <div v-if="group.items.length === 0" class="pa-empty">Sem actividades — clique em Adicionar</div>
@@ -311,6 +338,13 @@ function createPlanoAnualApp() {
         <table class="pa-list-table">
           <thead>
             <tr>
+              <th style="width:32px" data-no-print>
+                <input type="checkbox" class="pa-table-check"
+                  :ref="el => { if (el) el.indeterminate = isSomeSelected && !isAllSelected; }"
+                  :checked="isAllSelected"
+                  @change="toggleSelectAll"
+                >
+              </th>
               <th style="width:36px">#</th>
               <th>Actividade</th>
               <th>Tipologia</th>
@@ -323,19 +357,31 @@ function createPlanoAnualApp() {
           </thead>
           <tbody>
             <template v-for="group in filteredGroups" :key="group.key">
-              <tr class="pa-list-month-row">
-                <td :colspan="8">
+              <tr
+                class="pa-list-month-row"
+                :class="{ 'is-current-month': isCurrentMonth(group.key) }"
+                @click="toggleCollapse(group.key)"
+                style="cursor:pointer"
+                :title="isCollapsed(group.key) ? 'Expandir mês' : 'Recolher mês'"
+              >
+                <td :colspan="9">
+                  <svg class="pa-month-chevron" :class="{ collapsed: isCollapsed(group.key) }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:6px;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
                   <span class="pa-list-month-label">{{ group.label }}</span>
+                  <span v-if="isCurrentMonth(group.key)" class="pa-month-now-badge" style="margin-left:6px">Agora</span>
                   <span class="pa-list-month-meta">{{ group.items.length }} actividade{{ group.items.length !== 1 ? 's' : '' }}</span>
-                  <button class="pa-month-add pa-list-month-add" @click="openNewActivity(group.key)" data-no-print>
+                  <button class="pa-month-add pa-list-month-add" @click.stop="openNewActivity(group.key)" data-no-print>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Adicionar
                   </button>
                 </td>
               </tr>
               <tr v-for="(act, i) in group.items" :key="act.name"
-                :class="{ 'pa-row-overdue': isOverdue(act) }"
-                @click="openEdit(act)">
+                v-show="!isCollapsed(group.key)"
+                :class="{ 'pa-row-overdue': isOverdue(act), 'pa-row-selected': selected.has(act.name) }"
+                @click="handleCardClick(act)">
+                <td data-no-print @click.stop style="text-align:center;padding:0 8px">
+                  <input type="checkbox" class="pa-table-check" :checked="selected.has(act.name)" @change.stop="toggleSelect(act.name)">
+                </td>
                 <td class="pa-list-num">{{ i + 1 }}</td>
                 <td>
                   <span class="pa-list-act-name">{{ act.actividade }}</span>
@@ -368,8 +414,87 @@ function createPlanoAnualApp() {
     </template>
   </div>
 
-  <!-- Overlay -->
-  <div class="pa-overlay" :class="{ open: panelOpen }" @click="closePanel"></div>
+  <!-- Overlay (shared between slide-over panel and modal) -->
+  <div class="pa-overlay" :class="{ open: panelOpen || copyModal.open }" @click="panelOpen ? closePanel() : closeCopyYearModal()"></div>
+
+  <!-- ── Copy Year Modal ─────────────────────────────────────────────── -->
+  <div class="pa-modal" :class="{ open: copyModal.open }">
+
+    <!-- Loading -->
+    <div v-if="copyModal.loading" class="pa-loading" style="min-height:110px;padding:20px">
+      <div class="pa-spinner"></div> A verificar…
+    </div>
+
+    <!-- Error -->
+    <template v-else-if="copyModal.error">
+      <div class="pa-modal-header">
+        <div class="pa-modal-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <h3>Copiar Ano Anterior</h3>
+      </div>
+      <div class="pa-modal-body">
+        <p style="color:#dc2626;font-size:0.88rem;margin:0">{{ copyModal.error }}</p>
+      </div>
+      <div class="pa-modal-footer">
+        <button class="pa-btn pa-btn-secondary" @click="closeCopyYearModal">Fechar</button>
+      </div>
+    </template>
+
+    <!-- Preview -->
+    <template v-else-if="copyModal.preview">
+      <div class="pa-modal-header">
+        <div class="pa-modal-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </div>
+        <h3>Copiar Ano Anterior</h3>
+        <button class="pa-panel-close" @click="closeCopyYearModal" :disabled="copyModal.copying">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="pa-modal-body">
+        <!-- Year flow -->
+        <div class="pa-copy-flow">
+          <span class="pa-copy-year-pill">{{ copyModal.preview.prev_year }}</span>
+          <svg class="pa-copy-arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          <span class="pa-copy-year-pill target">{{ selectedAno }}</span>
+        </div>
+
+        <!-- Count -->
+        <div class="pa-copy-count-box">
+          <span class="pa-copy-big">{{ copyModal.preview.source_count }}</span>
+          <span class="pa-copy-sub">actividade{{ copyModal.preview.source_count !== 1 ? 's' : '' }} {{ copyModal.preview.source_count !== 1 ? 'serão copiadas' : 'será copiada' }}</span>
+        </div>
+
+        <!-- Existing activities warning -->
+        <div v-if="copyModal.preview.target_count > 0" class="pa-copy-warning-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>{{ selectedAno }} já tem <strong>{{ copyModal.preview.target_count }}</strong> actividade{{ copyModal.preview.target_count !== 1 ? 's' : '' }}. As cópias serão adicionadas sem substituir as existentes.</span>
+        </div>
+
+        <!-- What happens -->
+        <ul class="pa-copy-rules">
+          <li>Estado reposto para <strong>Pendente</strong></li>
+          <li>Datas avançadas <strong>1 ano</strong> (29 Fev → 28 Fev nos anos sem bissexto)</li>
+          <li>Notas de execução <strong>não copiadas</strong></li>
+          <li>Tipologias, responsáveis e locais <strong>mantidos</strong></li>
+        </ul>
+      </div>
+
+      <div class="pa-modal-footer">
+        <button class="pa-btn pa-btn-secondary" @click="closeCopyYearModal" :disabled="copyModal.copying">Cancelar</button>
+        <button
+          class="pa-btn pa-btn-primary"
+          @click="confirmCopyYear"
+          :disabled="copyModal.copying || copyModal.preview.source_count === 0"
+        >
+          <div v-if="copyModal.copying" class="pa-spinner" style="width:13px;height:13px;border-top-color:#fff;border-color:rgba(255,255,255,0.3)"></div>
+          <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          {{ copyModal.copying ? 'A copiar…' : 'Copiar actividades' }}
+        </button>
+      </div>
+    </template>
+
+  </div>
 
   <!-- Panel -->
   <div class="pa-panel" :class="{ open: panelOpen }">
@@ -398,11 +523,83 @@ function createPlanoAnualApp() {
       </div>
       <div class="pa-field-row">
         <div class="pa-field">
-          <label>Tipologia</label>
-          <select v-model="form.tipologia">
+          <label style="display:flex;align-items:center;justify-content:space-between">
+            Tipologia
+            <button
+              type="button"
+              class="pa-tip-quick-toggle"
+              :class="{ active: showTipForm }"
+              @click="toggleTipForm"
+              :title="showTipForm ? 'Fechar' : 'Nova tipologia'"
+            >
+              <svg v-if="!showTipForm" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {{ showTipForm ? 'Fechar' : 'Nova' }}
+            </button>
+          </label>
+          <select v-model="form.tipologia" v-if="!showTipForm">
             <option value="">— Sem tipologia —</option>
             <option v-for="t in tipologias" :key="t.name" :value="t.name">{{ t.icone ? t.icone+' ' : '' }}{{ t.name }}</option>
           </select>
+
+          <!-- Quick-create inline form -->
+          <div v-if="showTipForm" class="pa-tip-quick-form">
+            <div class="pa-tip-quick-row">
+              <input
+                v-model="newTip.nome"
+                type="text"
+                placeholder="Nome da tipologia"
+                ref="newTipInput"
+                class="pa-tip-quick-name"
+                @keydown.enter="saveTipologia"
+                @keydown.escape="cancelTipForm"
+              >
+              <input
+                v-model="newTip.icone"
+                type="text"
+                placeholder="🎉"
+                class="pa-tip-quick-icone"
+                title="Emoji (opcional)"
+                maxlength="4"
+              >
+            </div>
+
+            <!-- Colour swatches + custom picker -->
+            <div class="pa-tip-quick-colours">
+              <button
+                v-for="c in TIP_PALETTE"
+                :key="c"
+                type="button"
+                class="pa-tip-swatch"
+                :class="{ selected: newTip.cor === c }"
+                :style="{ background: c }"
+                @click="newTip.cor = c"
+                :title="c"
+              ></button>
+              <!-- Custom colour picker -->
+              <label class="pa-tip-swatch pa-tip-swatch-custom" :style="newTip.cor && !TIP_PALETTE.includes(newTip.cor) ? { background: newTip.cor, outline: '2px solid ' + newTip.cor, outlineOffset: '2px' } : {}" title="Cor personalizada">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+                <input type="color" v-model="newTip.cor" style="position:absolute;opacity:0;width:0;height:0">
+              </label>
+            </div>
+
+            <!-- Preview -->
+            <div v-if="newTip.nome || newTip.cor" class="pa-tip-quick-preview">
+              <span
+                class="pa-card-tipologia"
+                :style="newTip.cor ? \`--tipologia-bg:\${hexToRgba(newTip.cor,0.14)};--tipologia-text:\${newTip.cor}\` : ''"
+              >{{ newTip.icone || '' }} {{ newTip.nome || 'Pré-visualização' }}</span>
+            </div>
+
+            <div class="pa-tip-quick-actions">
+              <button type="button" class="pa-btn pa-btn-primary pa-btn-sm" @click="saveTipologia" :disabled="savingTip || !newTip.nome.trim()">
+                <div v-if="savingTip" class="pa-spinner" style="width:11px;height:11px;border-top-color:#fff;border-color:rgba(255,255,255,0.3)"></div>
+                <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                {{ savingTip ? 'A criar…' : 'Criar tipologia' }}
+              </button>
+              <button type="button" class="pa-btn pa-btn-ghost pa-btn-sm" @click="cancelTipForm">Cancelar</button>
+            </div>
+          </div>
         </div>
         <div class="pa-field">
           <label>Ano Lectivo</label>
@@ -434,6 +631,17 @@ function createPlanoAnualApp() {
         <div class="pa-field-hint" style="color:#d97706">📌 Data original: <strong>{{ formatDate(editingAct.data_original) }}</strong></div>
       </div>
       <template v-if="form.name">
+        <div class="pa-section-divider"></div>
+
+        <!-- Duplicate -->
+        <div class="pa-dupe-row">
+          <button class="pa-btn pa-btn-ghost pa-btn-dupe" @click="duplicateActivity" :disabled="duplicating">
+            <div v-if="duplicating" class="pa-spinner" style="width:13px;height:13px"></div>
+            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            {{ duplicating ? 'A duplicar…' : 'Duplicar actividade' }}
+          </button>
+        </div>
+
         <div class="pa-section-divider"></div>
         <div v-if="!confirmDelete" style="display:flex;justify-content:center">
           <button class="pa-btn pa-btn-danger" @click="confirmDelete = true">
@@ -467,6 +675,70 @@ function createPlanoAnualApp() {
         <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         {{ saving ? 'A guardar…' : (form.name ? 'Guardar alterações' : 'Criar actividade') }}
       </button>
+    </div>
+  </div>
+
+  <!-- ── Bulk action bar ──────────────────────────────────────────── -->
+  <div class="pa-bulk-bar" :class="{ visible: hasSelection }" data-no-print>
+    <div class="pa-bulk-left">
+      <button class="pa-bulk-close" @click="clearSelection" title="Cancelar selecção">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <span class="pa-bulk-count-num">{{ selectionCount }}</span>
+      <span class="pa-bulk-count-label">seleccionada{{ selectionCount !== 1 ? 's' : '' }}</span>
+    </div>
+
+    <div class="pa-bulk-sep"></div>
+
+    <div class="pa-bulk-actions">
+      <!-- Mark as estado -->
+      <select
+        v-model="bulkEstadoTarget"
+        class="pa-bulk-select"
+        @change="if (bulkEstadoTarget) bulkMarkEstado(bulkEstadoTarget)"
+        :disabled="bulkActWorking"
+        title="Marcar seleccionadas como…"
+      >
+        <option value="">Marcar como…</option>
+        <option v-for="s in ALL_ESTADOS" :key="s" :value="s">{{ s }}</option>
+      </select>
+
+      <div class="pa-bulk-sep"></div>
+
+      <!-- Move to month -->
+      <select v-model="bulkMoveTarget" class="pa-bulk-select" :disabled="bulkActWorking" title="Mover para mês…">
+        <option value="">Mover para mês…</option>
+        <option v-for="mk in allMonthsForYear" :key="mk.key" :value="mk.key">{{ mk.label }}</option>
+      </select>
+      <button
+        v-if="bulkMoveTarget"
+        class="pa-btn pa-btn-secondary pa-btn-sm"
+        @click="doBulkMoveMonth"
+        :disabled="bulkActWorking"
+        style="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.25);color:#fff"
+      >
+        <div v-if="bulkActWorking" class="pa-spinner" style="width:11px;height:11px"></div>
+        <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        Mover
+      </button>
+
+      <div class="pa-bulk-sep"></div>
+
+      <!-- Delete -->
+      <template v-if="!bulkDelConfirm">
+        <button class="pa-btn pa-btn-danger pa-btn-sm" @click="bulkDelConfirm = true" :disabled="bulkActWorking">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Eliminar
+        </button>
+      </template>
+      <template v-else>
+        <span class="pa-bulk-del-label">Eliminar {{ selectionCount }}?</span>
+        <button class="pa-btn pa-btn-danger-solid pa-btn-sm" @click="doBulkDelete" :disabled="bulkActWorking">
+          <div v-if="bulkActWorking" class="pa-spinner" style="width:11px;height:11px;border-top-color:#fff;border-color:rgba(255,255,255,0.3)"></div>
+          Confirmar
+        </button>
+        <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="bulkDelConfirm = false" :disabled="bulkActWorking" style="color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.2)">Cancelar</button>
+      </template>
     </div>
   </div>
 
@@ -510,6 +782,72 @@ function createPlanoAnualApp() {
       const dragOverGroup = ref(null);
       const dragTarget    = ref(null);
       let _dragAct        = null;
+
+      // Collapse / current month
+      const TODAY_KEY   = frappe.datetime.get_today().substring(0, 7); // YYYY-MM
+      const collapsedMonths = ref(new Set());
+
+      function isCurrentMonth(key) { return key === TODAY_KEY; }
+      function isPastMonth(key)    { return key !== '__nodate__' && key < TODAY_KEY; }
+      function isCollapsed(key)    { return collapsedMonths.value.has(key); }
+
+      function toggleCollapse(key) {
+        const s = new Set(collapsedMonths.value);
+        if (s.has(key)) s.delete(key); else s.add(key);
+        collapsedMonths.value = s;
+      }
+
+      function autoCollapsePast() {
+        const s = new Set(collapsedMonths.value);
+        filteredGroups.value.forEach(g => { if (isPastMonth(g.key)) s.add(g.key); });
+        collapsedMonths.value = s;
+      }
+
+      function expandAll() {
+        // If any are collapsed → expand all; otherwise collapse past months again
+        if (collapsedMonths.value.size > 0) {
+          collapsedMonths.value = new Set();
+        } else {
+          autoCollapsePast();
+        }
+      }
+
+      // Tipologia quick-create
+      const TIP_PALETTE = ['#6366f1','#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16'];
+      const showTipForm  = ref(false);
+      const savingTip    = ref(false);
+      const newTipInput  = ref(null);
+      const newTip       = reactive({ nome: '', cor: '#6366f1', icone: '' });
+
+      function toggleTipForm() {
+        showTipForm.value = !showTipForm.value;
+        if (showTipForm.value) {
+          newTip.nome = ''; newTip.cor = '#6366f1'; newTip.icone = '';
+          nextTick(() => newTipInput.value && newTipInput.value.focus());
+        }
+      }
+      function cancelTipForm() { showTipForm.value = false; }
+
+      async function saveTipologia() {
+        if (!newTip.nome.trim()) return;
+        savingTip.value = true;
+        try {
+          const created = await api('create_tipologia', {
+            nome:  newTip.nome.trim(),
+            cor:   newTip.cor  || '',
+            icone: newTip.icone.trim(),
+          });
+          // Add to local list and auto-select
+          tipologias.value.push({ name: created.name, cor: created.cor, icone: created.icone });
+          form.tipologia = created.name;
+          toast('Tipologia "' + created.name + '" criada', 'success');
+          showTipForm.value = false;
+        } catch (e) {
+          toast(e.message || 'Erro ao criar tipologia', 'error');
+        } finally {
+          savingTip.value = false;
+        }
+      }
 
       // ── Derived ───────────────────────────────────────────────────────────
       const tipologiaMap = computed(() => {
@@ -616,8 +954,10 @@ function createPlanoAnualApp() {
       async function loadActividades() {
         if (!selectedAno.value) return;
         loading.value = true;
+        clearSelection();
         try {
           actividades.value = await api('get_actividades', { ano_lectivo: selectedAno.value }) || [];
+          nextTick(autoCollapsePast);
         } catch (e) {
           toast('Erro ao carregar actividades', 'error');
         } finally {
@@ -692,6 +1032,247 @@ function createPlanoAnualApp() {
         }
       }
 
+      const duplicating = ref(false);
+
+      // ── Multi-select / bulk ───────────────────────────────────────────────
+      const selected         = ref(new Set());
+      const bulkEstadoTarget = ref('');
+      const bulkMoveTarget   = ref('');
+      const bulkDelConfirm   = ref(false);
+      const bulkActWorking   = ref(false);
+
+      const selectionCount = computed(() => selected.value.size);
+      const hasSelection   = computed(() => selected.value.size > 0);
+      const isAllSelected  = computed(() =>
+        filteredActividades.value.length > 0 &&
+        filteredActividades.value.every(a => selected.value.has(a.name))
+      );
+      const isSomeSelected = computed(() =>
+        filteredActividades.value.some(a => selected.value.has(a.name))
+      );
+
+      // All months in the academic year (for bulk-move target)
+      const allMonthsForYear = computed(() => {
+        const yr = selectedAno.value || '';
+        let startKey, endKey;
+        if (/^\d{4}-\d{4}$/.test(yr)) {
+          const [sy, ey] = yr.split('-');
+          startKey = `${sy}-09`; endKey = `${ey}-08`;
+        } else if (/^\d{4}$/.test(yr)) {
+          startKey = `${yr}-01`; endKey = `${yr}-12`;
+        } else {
+          return availableMonths.value;
+        }
+        const months = [];
+        let cur = startKey;
+        while (cur <= endKey) {
+          months.push({ key: cur, label: monthLabel(cur) });
+          const [y, m] = cur.split('-').map(Number);
+          const nm = m === 12 ? 1 : m + 1;
+          const ny = m === 12 ? y + 1 : y;
+          cur = `${ny}-${String(nm).padStart(2, '0')}`;
+        }
+        return months;
+      });
+
+      function isMonthFullySelected(key) {
+        const group = filteredGroups.value.find(g => g.key === key);
+        if (!group || group.items.length === 0) return false;
+        return group.items.every(a => selected.value.has(a.name));
+      }
+      function isMonthPartiallySelected(key) {
+        const group = filteredGroups.value.find(g => g.key === key);
+        if (!group) return false;
+        return group.items.some(a => selected.value.has(a.name));
+      }
+
+      function toggleSelect(name) {
+        const s = new Set(selected.value);
+        if (s.has(name)) s.delete(name); else s.add(name);
+        selected.value = s;
+      }
+      function toggleSelectAll() {
+        if (isAllSelected.value) {
+          selected.value = new Set();
+        } else {
+          selected.value = new Set(filteredActividades.value.map(a => a.name));
+        }
+      }
+      function toggleSelectMonth(key) {
+        const group = filteredGroups.value.find(g => g.key === key);
+        if (!group) return;
+        const names = group.items.map(a => a.name);
+        const allSel = names.every(n => selected.value.has(n));
+        const s = new Set(selected.value);
+        if (allSel) { names.forEach(n => s.delete(n)); }
+        else         { names.forEach(n => s.add(n)); }
+        selected.value = s;
+      }
+      function clearSelection() {
+        selected.value = new Set();
+        bulkDelConfirm.value  = false;
+        bulkMoveTarget.value  = '';
+        bulkEstadoTarget.value = '';
+      }
+      function handleCardClick(act) {
+        if (hasSelection.value) { toggleSelect(act.name); }
+        else                     { openEdit(act); }
+      }
+
+      async function bulkMarkEstado(estado) {
+        if (!selected.value.size || !estado) return;
+        bulkActWorking.value = true;
+        const names = Array.from(selected.value);
+        const orig  = {};
+        names.forEach(n => {
+          const a = actividades.value.find(x => x.name === n);
+          if (a) { orig[n] = a.estado; a.estado = estado; }
+        });
+        try {
+          await api('bulk_update_estado', { names_json: JSON.stringify(names), estado });
+          toast(`${names.length} actividade${names.length !== 1 ? 's' : ''} marcada${names.length !== 1 ? 's' : ''} como "${estado}"`, 'success');
+          clearSelection();
+        } catch (e) {
+          names.forEach(n => { const a = actividades.value.find(x => x.name === n); if (a && orig[n]) a.estado = orig[n]; });
+          toast('Erro ao actualizar: ' + e.message, 'error');
+        } finally {
+          bulkActWorking.value = false;
+        }
+      }
+
+      async function doBulkDelete() {
+        if (!selected.value.size) return;
+        bulkActWorking.value = true;
+        const names = Array.from(selected.value);
+        try {
+          await api('bulk_delete', { names_json: JSON.stringify(names) });
+          actividades.value = actividades.value.filter(a => !names.includes(a.name));
+          toast(`${names.length} actividade${names.length !== 1 ? 's' : ''} eliminada${names.length !== 1 ? 's' : ''}`, 'info');
+          clearSelection();
+        } catch (e) {
+          toast('Erro ao eliminar: ' + e.message, 'error');
+        } finally {
+          bulkActWorking.value = false;
+        }
+      }
+
+      async function doBulkMoveMonth() {
+        if (!selected.value.size || !bulkMoveTarget.value) return;
+        bulkActWorking.value = true;
+        const names  = Array.from(selected.value);
+        const target = bulkMoveTarget.value;
+        const [ny, nm] = target.split('-').map(Number);
+        const lastDay = new Date(ny, nm, 0).getDate();
+        const orig = {};
+        names.forEach(n => {
+          const a = actividades.value.find(x => x.name === n);
+          if (!a) return;
+          orig[n] = a.data;
+          if (a.data) {
+            const day = Math.min(parseInt(a.data.split('-')[2], 10), lastDay);
+            a.data = `${target}-${String(day).padStart(2, '0')}`;
+          } else {
+            a.data = `${target}-01`;
+          }
+        });
+        try {
+          const result = await api('bulk_move_month', { names_json: JSON.stringify(names), new_month: target });
+          // Sync server-authoritative dates and data_original
+          if (result && result.rows) {
+            result.rows.forEach(r => {
+              const a = actividades.value.find(x => x.name === r.name);
+              if (a) {
+                a.data = r.data;
+                if (r.data_original) a.data_original = r.data_original;
+              }
+            });
+          }
+          toast(`${names.length} actividade${names.length !== 1 ? 's' : ''} movida${names.length !== 1 ? 's' : ''} para ${monthLabel(target)}`, 'success');
+          clearSelection();
+        } catch (e) {
+          names.forEach(n => { const a = actividades.value.find(x => x.name === n); if (a) a.data = orig[n]; });
+          toast('Erro ao mover: ' + e.message, 'error');
+        } finally {
+          bulkActWorking.value = false;
+        }
+      }
+
+      // ── Copy from previous year ───────────────────────────────────────────
+      const copyModal = reactive({
+        open:    false,
+        loading: false,
+        copying: false,
+        preview: null,   // { prev_year, source_count, target_count }
+        error:   '',
+      });
+
+      async function openCopyYearModal() {
+        if (panelOpen.value) closePanel();
+        copyModal.open    = true;
+        copyModal.loading = true;
+        copyModal.preview = null;
+        copyModal.error   = '';
+        try {
+          copyModal.preview = await api('get_copy_preview', { target_ano_lectivo: selectedAno.value });
+        } catch (e) {
+          copyModal.error = e.message || 'Não existe ano lectivo anterior para copiar.';
+        } finally {
+          copyModal.loading = false;
+        }
+      }
+
+      function closeCopyYearModal() {
+        if (copyModal.copying) return;
+        copyModal.open = false;
+      }
+
+      async function confirmCopyYear() {
+        if (!copyModal.preview || copyModal.copying) return;
+        copyModal.copying = true;
+        try {
+          const result = await api('copy_from_previous_year', { target_ano_lectivo: selectedAno.value });
+          if (result.rows && result.rows.length) {
+            result.rows.forEach(r => actividades.value.push(r));
+            nextTick(autoCollapsePast);
+          }
+          const n = result.copied;
+          toast(`${n} actividade${n !== 1 ? 's' : ''} copiada${n !== 1 ? 's' : ''} de ${result.prev_year}`, 'success');
+          closeCopyYearModal();
+        } catch (e) {
+          toast('Erro ao copiar: ' + e.message, 'error');
+        } finally {
+          copyModal.copying = false;
+        }
+      }
+
+      async function duplicateActivity() {
+        if (!editingAct.value) return;
+        duplicating.value = true;
+        try {
+          const src = editingAct.value;
+          const payload = {
+            actividade:    src.actividade,
+            tipologia:     src.tipologia     || null,
+            estado:        'Pendente',          // always reset
+            ano_lectivo:   src.ano_lectivo,
+            data:          src.data            || null,
+            orador:        src.orador          || null,
+            local:         src.local           || null,
+            orcamento:     src.orcamento       || null,
+            notas_execucao: null,               // execution notes don't carry over
+          };
+          const created = await api('create_actividade', { data_json: JSON.stringify(payload) });
+          actividades.value.push(created);
+          toast('Actividade duplicada', 'success');
+          // Switch panel to editing the new copy
+          openEdit(created);
+        } catch (e) {
+          toast('Erro ao duplicar: ' + e.message, 'error');
+        } finally {
+          duplicating.value = false;
+        }
+      }
+
       async function cycleStatus(act) {
         const next = STATUS_NEXT[act.estado] || 'Pendente';
         const prev = act.estado;
@@ -711,29 +1292,115 @@ function createPlanoAnualApp() {
 
       // ── Drag ─────────────────────────────────────────────────────────────
       function onDragStart(act, evt) {
-        _dragAct = act; dragItem.value = act.name;
+        _dragAct = act;
+        dragItem.value = act.name;
         evt.dataTransfer.effectAllowed = 'move';
         evt.dataTransfer.setData('text/plain', act.name);
       }
-      function onDragEnd() { dragItem.value = null; dragOverGroup.value = null; dragTarget.value = null; _dragAct = null; }
+      function onDragEnd() {
+        dragItem.value = null;
+        dragOverGroup.value = null;
+        dragTarget.value = null;
+        _dragAct = null;
+      }
       function onDragOver(k) { dragOverGroup.value = k; }
       function onDragLeave(k) { if (dragOverGroup.value === k) dragOverGroup.value = null; }
+
       async function onDrop(groupKey) {
         dragOverGroup.value = null;
         if (!_dragAct) return;
-        const act = _dragAct;
-        const newDate = groupKey === '__nodate__' ? null
+
+        const act      = _dragAct;
+        const tgtCard  = dragTarget.value;   // capture before clearing
+        dragTarget.value = null;
+
+        const srcKey      = monthKey(act.data || '');
+        const isSameMonth = srcKey === groupKey;
+
+        if (isSameMonth) {
+          // ── Intra-month reorder ──────────────────────────────────────────
+          if (tgtCard && tgtCard !== act.name) {
+            await _reorderWithinMonth(groupKey, act.name, tgtCard);
+          }
+          return;
+        }
+
+        // ── Inter-month move (change date) ───────────────────────────────
+        const newDate = groupKey === '__nodate__'
+          ? null
           : (act.data && monthKey(act.data) === groupKey ? act.data : groupKey + '-01');
-        if (monthKey(act.data || '') === groupKey && act.data === newDate) return;
         const oldDate = act.data;
-        act.data = newDate;
+        act.data = newDate;  // optimistic
         try {
           await api('update_actividade', { name: act.name, data_json: JSON.stringify({ ...act, data: newDate }) });
-          toast('Actividade movida', 'info');
-        } catch (e) { act.data = oldDate; toast('Erro ao mover', 'error'); }
+          toast('Actividade movida para ' + monthLabel(groupKey), 'info');
+        } catch (e) {
+          act.data = oldDate;
+          toast('Erro ao mover', 'error');
+        }
+      }
+
+      async function _reorderWithinMonth(groupKey, srcName, tgtName) {
+        // Find positions in the master array
+        const mainSrcIdx = actividades.value.findIndex(a => a.name === srcName);
+        const mainTgtIdx = actividades.value.findIndex(a => a.name === tgtName);
+        if (mainSrcIdx < 0 || mainTgtIdx < 0 || mainSrcIdx === mainTgtIdx) return;
+
+        // Save for potential rollback
+        const original = [...actividades.value];
+
+        // Optimistic: splice the item to its new position
+        const arr = [...actividades.value];
+        const [moved] = arr.splice(mainSrcIdx, 1);
+        arr.splice(mainTgtIdx, 0, moved);
+        actividades.value = arr;
+
+        // Derive the new ordered name list for this month from the updated computed
+        const updatedGroup  = filteredGroups.value.find(g => g.key === groupKey);
+        const orderedNames  = updatedGroup ? updatedGroup.items.map(a => a.name) : [];
+
+        try {
+          await api('reorder_actividades', {
+            ano_lectivo:   selectedAno.value,
+            ordered_names: JSON.stringify(orderedNames),
+          });
+        } catch (e) {
+          actividades.value = original;   // rollback
+          toast('Erro ao reordenar', 'error');
+        }
       }
 
       function printView() { window.print(); }
+
+      const exporting = ref(false);
+
+      async function exportExcel() {
+        if (exporting.value) return;
+        exporting.value = true;
+        try {
+          const params = new URLSearchParams({
+            ano_lectivo:    selectedAno.value,
+            estado:         filterStatus.value  || '',
+            tipologias_json: JSON.stringify(filterTipologias.value),
+            month:          filterMonth.value   || '',
+            csrf_token:     frappe.csrf_token,
+          });
+          const url = `/api/method/portal.catequista.page.plano_anual.plano_anual.export_actividades?${params}`;
+          // Trigger download via hidden link (avoids popup blockers)
+          const a = document.createElement('a');
+          a.href = url;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          toast('A descarregar Excel…', 'success');
+        } catch (e) {
+          toast('Erro ao exportar: ' + e.message, 'error');
+        } finally {
+          // Give the browser a moment to start the download before re-enabling
+          setTimeout(() => { exporting.value = false; }, 2000);
+        }
+      }
 
       // ── Styling ───────────────────────────────────────────────────────────
       function tipologiaColor(act) {
@@ -778,12 +1445,24 @@ function createPlanoAnualApp() {
         stats, availableMonths, hasFilters, filteredGroups, filteredTipDd,
         tipologiaMap,
         loadActividades, openNewActivity, openEdit, closePanel,
-        saveActivity, deleteActivity, cycleStatus, removeTipFilter,
+        saveActivity, deleteActivity, duplicating, duplicateActivity,
+        cycleStatus, removeTipFilter,
         onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
-        printView,
+        printView, exporting, exportExcel,
         cardStyle, tipologiaChipStyle, tipologiaColor,
         statusClass, statusChipClass,
         formatDate, formatCurrency, truncate, isOverdue, hexToRgba,
+        TODAY_KEY, collapsedMonths, isCurrentMonth, isPastMonth, isCollapsed, toggleCollapse, expandAll,
+        TIP_PALETTE, showTipForm, savingTip, newTip, newTipInput,
+        toggleTipForm, cancelTipForm, saveTipologia,
+        // Copy year modal
+        copyModal, openCopyYearModal, closeCopyYearModal, confirmCopyYear,
+        // Multi-select / bulk
+        selected, selectionCount, hasSelection, isAllSelected, isSomeSelected,
+        allMonthsForYear, bulkEstadoTarget, bulkMoveTarget, bulkDelConfirm, bulkActWorking,
+        isMonthFullySelected, isMonthPartiallySelected,
+        toggleSelect, toggleSelectAll, toggleSelectMonth, clearSelection, handleCardClick,
+        bulkMarkEstado, doBulkDelete, doBulkMoveMonth,
       };
     },
   });
