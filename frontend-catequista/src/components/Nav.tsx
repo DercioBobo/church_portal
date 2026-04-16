@@ -1,14 +1,16 @@
 'use client';
 
-import { LogOut, User, ChevronDown } from 'lucide-react';
+import { LogOut, User, ChevronDown, Cake } from 'lucide-react';
 import { useState } from 'react';
 import { logout } from '@/lib/api';
 
 interface NavProps {
   catequistaNome?: string;
+  birthdayCount?: number;
+  onAniversariantes?: () => void;
 }
 
-export default function Nav({ catequistaNome }: NavProps) {
+export default function Nav({ catequistaNome, birthdayCount = 0, onAniversariantes }: NavProps) {
   const short = process.env.NEXT_PUBLIC_PARISH_SHORT || 'PNSA';
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -40,55 +42,87 @@ export default function Nav({ catequistaNome }: NavProps) {
             <NavLink href="/catequista/" label="Início" />
             <NavLink href="/catequista/quotas/" label="Quotas" />
             <NavLink href="/catequista/perfil/" label="Perfil" />
+            {onAniversariantes && (
+              <button
+                onClick={onAniversariantes}
+                className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <Cake className="w-4 h-4" />
+                Aniversariantes
+                {birthdayCount > 0 && (
+                  <span className="ml-0.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-amber-400 text-navy-900 text-[9px] font-bold inline-flex items-center justify-center leading-none">
+                    {birthdayCount > 9 ? '9+' : birthdayCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
 
-          {/* User menu */}
-          {catequistaNome && (
-            <div className="relative">
+          <div className="flex items-center gap-1">
+            {/* Mobile: birthday icon button */}
+            {onAniversariantes && (
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10 transition-all"
+                onClick={onAniversariantes}
+                className="relative md:hidden p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Aniversariantes"
               >
-                <div className="w-7 h-7 rounded-full bg-gold-500/30 flex items-center justify-center shrink-0">
-                  <User className="w-3.5 h-3.5 text-gold-300" />
-                </div>
-                <span className="hidden sm:block font-medium max-w-[140px] truncate">
-                  {catequistaNome.split(' ')[0]}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 opacity-60 hidden sm:block" />
+                <Cake className="w-5 h-5" />
+                {birthdayCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-amber-400 text-navy-900 text-[8px] font-bold flex items-center justify-center leading-none">
+                    {birthdayCount > 9 ? '9+' : birthdayCount}
+                  </span>
+                )}
               </button>
+            )}
 
-              {menuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-warm-md border border-cream-200 py-1 z-50 animate-fade-in">
-                    <div className="px-4 py-2.5 border-b border-cream-200">
-                      <p className="text-xs text-slate-400 font-medium">Sessão activa</p>
-                      <p className="text-sm font-semibold text-navy-900 truncate">{catequistaNome}</p>
-                    </div>
-                    <a
-                      href="/catequista/perfil/"
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-cream-50 hover:text-navy-900 transition-colors"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <User className="w-4 h-4 text-slate-400" />
-                      Perfil e senha
-                    </a>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Terminar sessão
-                    </button>
+            {/* User menu */}
+            {catequistaNome && (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  <div className="w-7 h-7 rounded-full bg-gold-500/30 flex items-center justify-center shrink-0">
+                    <User className="w-3.5 h-3.5 text-gold-300" />
                   </div>
-                </>
-              )}
-            </div>
-          )}
+                  <span className="hidden sm:block font-medium max-w-[140px] truncate">
+                    {catequistaNome.split(' ')[0]}
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 opacity-60 hidden sm:block" />
+                </button>
+
+                {menuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-warm-md border border-cream-200 py-1 z-50 animate-fade-in">
+                      <div className="px-4 py-2.5 border-b border-cream-200">
+                        <p className="text-xs text-slate-400 font-medium">Sessão activa</p>
+                        <p className="text-sm font-semibold text-navy-900 truncate">{catequistaNome}</p>
+                      </div>
+                      <a
+                        href="/catequista/perfil/"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-cream-50 hover:text-navy-900 transition-colors"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <User className="w-4 h-4 text-slate-400" />
+                        Perfil e senha
+                      </a>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Terminar sessão
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Mobile: logout only if no user menu visible */}
           {!catequistaNome && (

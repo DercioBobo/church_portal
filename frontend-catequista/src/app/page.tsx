@@ -43,6 +43,24 @@ function isBirthdayToday(dob: string | null): boolean {
   return born.getMonth() === today.getMonth() && born.getDate() === today.getDate();
 }
 
+function daysUntilBirthday(dob: string): number {
+  const born = new Date(dob);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const next = new Date(today.getFullYear(), born.getMonth(), born.getDate());
+  if (next < today) next.setFullYear(today.getFullYear() + 1);
+  return Math.round((next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function nextBirthdayDate(dob: string): string {
+  const born = new Date(dob);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const next = new Date(today.getFullYear(), born.getMonth(), born.getDate());
+  if (next < today) next.setFullYear(today.getFullYear() + 1);
+  return next.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
+}
+
 function formatDate(val: string | null): string {
   if (!val) return '—';
   try {
@@ -164,7 +182,7 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
 
         {turma.catequista_adj && (
           <p className="mt-2 text-xs text-slate-400">
-            Catequista adj.: <span className="text-slate-600">{turma.catequista_adj}</span>
+            Catequista: <span className="text-slate-600">{turma.catequista_adj}</span>
           </p>
         )}
       </div>
@@ -193,8 +211,16 @@ function renderCellValue(cat: CatecumenoCompleto, field: FieldConfigItem): React
     const bdaySoon = !bday && isBirthdaySoon(cat.data_de_nascimento);
     return (
       <div className="flex items-center gap-1.5 min-w-0">
-        {bday && <span title="Aniversário hoje!"><Cake className="w-3.5 h-3.5 text-amber-500 shrink-0" /></span>}
-        {bdaySoon && <span title="Aniversário esta semana"><Cake className="w-3.5 h-3.5 text-amber-300 shrink-0" /></span>}
+        {bday && (
+          <span title={`Aniversário hoje! · ${nextBirthdayDate(cat.data_de_nascimento!)}`}>
+            <Cake className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          </span>
+        )}
+        {bdaySoon && (
+          <span title={`Em ${daysUntilBirthday(cat.data_de_nascimento!)} dias · ${nextBirthdayDate(cat.data_de_nascimento!)}`}>
+            <Cake className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+          </span>
+        )}
         <span className="text-sm font-medium text-navy-900 truncate">{String(val ?? '')}</span>
       </div>
     );
@@ -584,8 +610,6 @@ function CatecumenosTable({ catecumenos, fieldConfig, onSelect }: TableProps) {
     );
   });
 
-  const birthdays = catecumenos.filter(c => isBirthdaySoon(c.data_de_nascimento));
-
   // Build dynamic grid template for desktop header + rows
   const gridTemplate = [
     ...tableColumns.map(f => COL_WIDTHS[f.column_width] ?? '1fr'),
@@ -594,21 +618,6 @@ function CatecumenosTable({ catecumenos, fieldConfig, onSelect }: TableProps) {
 
   return (
     <div className="animate-fade-up-1">
-      {/* Birthday banner */}
-      {birthdays.length > 0 && (
-        <div className="mb-4 flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-          <Cake className="w-4 h-4 text-amber-500 shrink-0" />
-          <p className="text-sm text-amber-800">
-            <strong>
-              {birthdays.filter(c => isBirthdayToday(c.data_de_nascimento)).length > 0 && 'Hoje: '}
-              {birthdays.map(c => c.name.split(' ')[0]).join(', ')}
-            </strong>
-            {' '}
-            {birthdays.length === 1 ? 'faz' : 'fazem'} anos esta semana.
-          </p>
-        </div>
-      )}
-
       {/* Search */}
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -818,6 +827,170 @@ function AvisoModal({
   );
 }
 
+// ── Birthday Panel ────────────────────────────────────────────────────────────
+
+interface BirthdayEntry {
+  name: string;
+  dob: string;
+  age: number | null;
+  turmaName: string;
+  daysUntil: number;
+}
+
+function birthdayDaysLabel(days: number): string {
+  if (days === 0) return 'Hoje!';
+  if (days === 1) return 'Amanhã';
+  return `Em ${days} dias`;
+}
+
+function BirthdayRow({ entry, highlight }: { entry: BirthdayEntry; highlight?: boolean }) {
+  const isToday = entry.daysUntil === 0;
+  const turningAge = entry.age !== null
+    ? (isToday ? entry.age : entry.age + 1)
+    : null;
+
+  return (
+    <div className={`flex items-center gap-3 px-3.5 py-3 rounded-xl border ${
+      isToday
+        ? 'bg-amber-50 border-amber-200'
+        : highlight
+          ? 'bg-cream-50 border-cream-200'
+          : 'bg-white border-cream-200'
+    }`}>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+        isToday ? 'bg-amber-200' : 'bg-cream-200'
+      }`}>
+        <Cake className={`w-4 h-4 ${isToday ? 'text-amber-600' : 'text-slate-400'}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-navy-900 truncate">{entry.name}</p>
+        <p className="text-xs text-slate-400 truncate">{entry.turmaName}</p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className={`text-xs font-semibold ${isToday ? 'text-amber-600' : 'text-slate-600'}`}>
+          {birthdayDaysLabel(entry.daysUntil)}
+        </p>
+        <p className="text-xs text-slate-400">
+          {nextBirthdayDate(entry.dob)}{turningAge !== null ? ` · ${turningAge} anos` : ''}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BirthdayPanel({
+  open,
+  onClose,
+  turmas,
+}: {
+  open: boolean;
+  onClose: () => void;
+  turmas: TurmaComCatecumenos[];
+}) {
+  const { thisWeek, thisMonth } = useMemo(() => {
+    const week: BirthdayEntry[] = [];
+    const month: BirthdayEntry[] = [];
+    turmas.forEach(turma => {
+      turma.catecumenos.forEach(cat => {
+        if (!cat.data_de_nascimento) return;
+        const days = daysUntilBirthday(cat.data_de_nascimento);
+        const entry: BirthdayEntry = {
+          name: cat.name,
+          dob: cat.data_de_nascimento,
+          age: calcAge(cat.data_de_nascimento, cat.idade),
+          turmaName: turma.name,
+          daysUntil: days,
+        };
+        if (days <= 7) week.push(entry);
+        else if (days <= 30) month.push(entry);
+      });
+    });
+    week.sort((a, b) => a.daysUntil - b.daysUntil);
+    month.sort((a, b) => a.daysUntil - b.daysUntil);
+    return { thisWeek: week, thisMonth: month };
+  }, [turmas]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  return (
+    <>
+      <div
+        className={`fixed inset-0 bg-navy-900/40 z-40 transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
+      <div
+        className={[
+          'fixed z-50 bg-white shadow-2xl flex flex-col',
+          'transition-transform duration-300 ease-in-out',
+          'inset-x-0 bottom-0 h-[85dvh] rounded-t-2xl overflow-hidden',
+          'md:top-0 md:bottom-0 md:right-0 md:left-auto md:h-auto md:rounded-none md:overflow-visible',
+          'md:w-[380px]',
+          open
+            ? 'translate-y-0 md:translate-y-0 md:translate-x-0'
+            : 'translate-y-full md:translate-y-0 md:translate-x-full',
+        ].join(' ')}
+      >
+        {/* Drag handle (mobile only) */}
+        <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-cream-300" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-cream-200 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <Cake className="w-5 h-5 text-amber-500" />
+            <h3 className="font-display font-bold text-navy-900 text-base">Aniversariantes</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 min-h-0 px-5 py-5 space-y-6">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+              Esta Semana
+            </p>
+            {thisWeek.length === 0 ? (
+              <p className="text-sm text-slate-400 italic">Nenhum aniversário esta semana.</p>
+            ) : (
+              <div className="space-y-2">
+                {thisWeek.map(entry => (
+                  <BirthdayRow key={entry.name + entry.dob} entry={entry} highlight />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+              Este Mês
+            </p>
+            {thisMonth.length === 0 ? (
+              <p className="text-sm text-slate-400 italic">Nenhum outro aniversário este mês.</p>
+            ) : (
+              <div className="space-y-2">
+                {thisMonth.map(entry => (
+                  <BirthdayRow key={entry.name + entry.dob} entry={entry} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -828,7 +1001,13 @@ export default function DashboardPage() {
   const [dataError, setDataError] = useState('');
   const [panel, setPanel] = useState<{ cat: CatecumenoCompleto; turma: TurmaComCatecumenos; turmaIdx: number } | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [birthdayPanelOpen, setBirthdayPanelOpen] = useState(false);
   const [avisos, setAvisos] = useState<AvisoAtivo[]>([]);
+
+  const weekBirthdayCount = useMemo(
+    () => turmas.flatMap(t => t.catecumenos).filter(c => isBirthdaySoon(c.data_de_nascimento)).length,
+    [turmas],
+  );
 
   useEffect(() => {
     if (!auth) return;
@@ -892,7 +1071,11 @@ export default function DashboardPage() {
         />
       )}
 
-      <Nav catequistaNome={auth?.catequista} />
+      <Nav
+        catequistaNome={auth?.catequista}
+        birthdayCount={weekBirthdayCount}
+        onAniversariantes={() => setBirthdayPanelOpen(true)}
+      />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         {/* Page header */}
@@ -962,6 +1145,13 @@ export default function DashboardPage() {
           </div>
         ))}
       </main>
+
+      {/* Birthday panel */}
+      <BirthdayPanel
+        open={birthdayPanelOpen}
+        onClose={() => setBirthdayPanelOpen(false)}
+        turmas={turmas}
+      />
 
       {/* Side panel */}
       <SidePanel
