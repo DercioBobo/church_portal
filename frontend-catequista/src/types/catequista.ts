@@ -59,3 +59,24 @@ export interface FieldConfigItem {
   source: 'catecumeno' | 'turma_catecumenos' | 'turma';
   col_span: '1' | '2';
 }
+
+// ── Quotas ────────────────────────────────────────────────────────────────────
+
+export interface QuotaMesResumo {
+  valor: number;
+  data_pagamento: string | null;
+}
+
+export interface QuotaCatequistaResumoRow {
+  catequista: string;
+  meses: Record<string, QuotaMesResumo>; // key: "01".."12"
+  total: number;
+  meses_pagos: number;
+}
+
+export interface QuotasResumo {
+  catequistas: QuotaCatequistaResumoRow[];
+  ano: string;
+  total_geral: number;
+  total_catequistas: number;
+}

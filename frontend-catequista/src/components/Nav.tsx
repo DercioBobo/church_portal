@@ -38,6 +38,7 @@ export default function Nav({ catequistaNome }: NavProps) {
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-1 flex-1">
             <NavLink href="/catequista/" label="Início" />
+            <NavLink href="/catequista/quotas/" label="Quotas" />
             <NavLink href="/catequista/perfil/" label="Perfil" />
           </div>
 

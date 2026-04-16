@@ -97,6 +97,35 @@ export interface PreparacaoSacramento extends PreparacaoSacramentoLista {
   candidatos: CandidatoSacramento[];
 }
 
+// ── Quotas ────────────────────────────────────────────────────────────────────
+
+export interface QuotaMes {
+  name: string;
+  valor: number;
+  data_pagamento: string | null;
+  notas: string;
+}
+
+export interface QuotaCatequistaRow {
+  catequista: string;
+  meses: Record<string, QuotaMes>; // key: "01".."12"
+  total: number;
+}
+
+export interface QuotasResumo {
+  catequistas: QuotaCatequistaResumoRow[];
+  ano: string;
+  total_geral: number;
+  total_catequistas: number;
+}
+
+export interface QuotaCatequistaResumoRow {
+  catequista: string;
+  meses: Record<string, { valor: number; data_pagamento: string | null }>;
+  total: number;
+  meses_pagos: number;
+}
+
 export interface ResultadoPesquisa {
   catecumenos: Catecumeno[];
   catequistas: {

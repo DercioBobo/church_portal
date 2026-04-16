@@ -1,4 +1,4 @@
-import type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, AvisoAtivo } from '@/types/catequista';
+import type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, AvisoAtivo, QuotasResumo } from '@/types/catequista';
 
 const BASE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL || '';
 const APP = 'portal.api';
@@ -156,7 +156,10 @@ export const api = {
 
   marcarAvisoVisto: (aviso_name: string): Promise<{ success: boolean }> =>
     frappePOST<{ success: boolean }>('marcar_aviso_visto', { aviso_name }),
+
+  getQuotasResumo: (ano?: string): Promise<QuotasResumo> =>
+    frappeFetch<QuotasResumo>('get_quotas_resumo', ano ? { ano } : undefined),
 };
 
 // Re-export types for convenience
-export type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, AvisoAtivo };
+export type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, AvisoAtivo, QuotasResumo };

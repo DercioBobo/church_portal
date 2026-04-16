@@ -1,0 +1,93 @@
+{
+ "autoname": "format:{catequista}-{ano}-{mes}",
+ "creation": "2025-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "catequista",
+  "column_break_1",
+  "ano",
+  "mes",
+  "section_pagamento",
+  "valor",
+  "data_pagamento",
+  "notas"
+ ],
+ "fields": [
+  {
+   "fieldname": "catequista",
+   "fieldtype": "Link",
+   "label": "Catequista",
+   "options": "Catequista",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ano",
+   "fieldtype": "Data",
+   "label": "Ano",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "mes",
+   "fieldtype": "Select",
+   "label": "Mês",
+   "options": "01\n02\n03\n04\n05\n06\n07\n08\n09\n10\n11\n12",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_pagamento",
+   "fieldtype": "Section Break",
+   "label": "Pagamento"
+  },
+  {
+   "fieldname": "valor",
+   "fieldtype": "Currency",
+   "label": "Valor",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "data_pagamento",
+   "fieldtype": "Date",
+   "label": "Data de Pagamento",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "notas",
+   "fieldtype": "Small Text",
+   "label": "Notas"
+  }
+ ],
+ "links": [],
+ "modified": "2025-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Quota Catequista",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Catequista",
+   "read": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

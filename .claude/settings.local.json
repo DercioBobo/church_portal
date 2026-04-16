@@ -11,7 +11,9 @@
       "Bash(find . -type f \\\\\\( -name \"*.py\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.json\" \\\\\\) ! -path \"./frontend/.next/*\" ! -path \"./node_modules/*\" ! -path \"./.git/*\" -exec wc -l {} +)",
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(bash apps/portal/build-catequista.sh)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(./node_modules/.bin/next build *)",
+      "Bash(npm install *)"
     ]
   }
 }

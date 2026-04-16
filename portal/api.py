@@ -1015,3 +1015,171 @@ def marcar_aviso_visto(aviso_name):
 
     frappe.db.commit()
     return {"success": True}
+
+
+# ── Quotas ─────────────────────────────────────────────────────────────────────
+
+_MESES = {
+    "01": "Janeiro", "02": "Fevereiro", "03": "Março", "04": "Abril",
+    "05": "Maio",    "06": "Junho",     "07": "Julho",  "08": "Agosto",
+    "09": "Setembro","10": "Outubro",   "11": "Novembro","12": "Dezembro",
+}
+
+
+def _assert_system_manager():
+    """Verifica que o utilizador autenticado tem perfil de System Manager."""
+    user = frappe.session.user
+    if user == "Guest":
+        frappe.throw(_("Não autenticado"), frappe.AuthenticationError)
+    if "System Manager" not in frappe.get_roles(user):
+        frappe.throw(_("Sem permissão. Apenas gestores podem editar quotas."), frappe.PermissionError)
+
+
+@frappe.whitelist()
+def get_quotas_grid(ano):
+    """
+    Admin — devolve grelha de quotas: todos os catequistas × 12 meses para o ano dado.
+    Requer perfil System Manager.
+    """
+    _assert_system_manager()
+
+    catequistas = frappe.db.sql(
+        "SELECT name FROM `tabCatequista` ORDER BY name ASC", as_dict=True
+    )
+
+    quotas = frappe.db.sql("""
+        SELECT name, catequista, mes, valor, data_pagamento, notas
+        FROM `tabQuota Catequista`
+        WHERE ano = %s
+        ORDER BY catequista ASC, mes ASC
+    """, (ano,), as_dict=True)
+
+    quota_map = {}
+    for q in quotas:
+        quota_map[(q.catequista, q.mes)] = {
+            "name":           q.name,
+            "valor":          float(q.valor or 0),
+            "data_pagamento": q.data_pagamento,
+            "notas":          q.notas or "",
+        }
+
+    result = []
+    for c in catequistas:
+        meses = {}
+        total = 0.0
+        for mes in [f"{i:02d}" for i in range(1, 13)]:
+            entry = quota_map.get((c.name, mes))
+            if entry:
+                meses[mes] = entry
+                total += entry["valor"]
+        result.append({"catequista": c.name, "meses": meses, "total": total})
+
+    return result
+
+
+@frappe.whitelist()
+def upsert_quota(catequista, ano, mes, valor, data_pagamento="", notas=""):
+    """
+    Admin — cria ou actualiza um registo de quota.
+    Requer perfil System Manager.
+    """
+    _assert_system_manager()
+
+    try:
+        valor_f = float(valor or 0)
+    except (ValueError, TypeError):
+        frappe.throw(_("Valor inválido"))
+
+    if valor_f <= 0:
+        frappe.throw(_("O valor deve ser maior que zero"))
+
+    existing = frappe.db.get_value(
+        "Quota Catequista",
+        {"catequista": catequista, "ano": ano, "mes": mes},
+        "name",
+    )
+
+    if existing:
+        doc = frappe.get_doc("Quota Catequista", existing)
+        doc.valor          = valor_f
+        doc.data_pagamento = data_pagamento or None
+        doc.notas          = notas or ""
+        doc.save(ignore_permissions=True)
+    else:
+        doc = frappe.new_doc("Quota Catequista")
+        doc.catequista     = catequista
+        doc.ano            = ano
+        doc.mes            = mes
+        doc.valor          = valor_f
+        doc.data_pagamento = data_pagamento or None
+        doc.notas          = notas or ""
+        doc.insert(ignore_permissions=True)
+
+    frappe.db.commit()
+    return {"success": True, "name": doc.name}
+
+
+@frappe.whitelist()
+def delete_quota(quota_name):
+    """
+    Admin — elimina um registo de quota.
+    Requer perfil System Manager.
+    """
+    _assert_system_manager()
+
+    if not frappe.db.exists("Quota Catequista", quota_name):
+        frappe.throw(_("Quota não encontrada"))
+
+    frappe.delete_doc("Quota Catequista", quota_name, ignore_permissions=True)
+    frappe.db.commit()
+    return {"success": True}
+
+
+@frappe.whitelist()
+def get_quotas_resumo(ano=""):
+    """
+    Portal Catequista — devolve resumo de quotas de todos os catequistas.
+    Requer sessão de catequista.
+    """
+    _assert_catequista()
+
+    if not ano:
+        ano = str(frappe.utils.now_datetime().year)
+
+    catequistas = frappe.db.sql(
+        "SELECT name FROM `tabCatequista` ORDER BY name ASC", as_dict=True
+    )
+
+    quotas = frappe.db.sql("""
+        SELECT catequista, mes, valor, data_pagamento
+        FROM `tabQuota Catequista`
+        WHERE ano = %s
+        ORDER BY catequista ASC, mes ASC
+    """, (ano,), as_dict=True)
+
+    quota_map = {}
+    for q in quotas:
+        quota_map.setdefault(q.catequista, {})[q.mes] = {
+            "valor":          float(q.valor or 0),
+            "data_pagamento": q.data_pagamento,
+        }
+
+    total_geral = 0.0
+    result = []
+    for c in catequistas:
+        meses  = quota_map.get(c.name, {})
+        total  = sum(m["valor"] for m in meses.values())
+        total_geral += total
+        result.append({
+            "catequista":  c.name,
+            "meses":       meses,
+            "total":       total,
+            "meses_pagos": len(meses),
+        })
+
+    return {
+        "catequistas":       result,
+        "ano":               ano,
+        "total_geral":       total_geral,
+        "total_catequistas": len(catequistas),
+    }
