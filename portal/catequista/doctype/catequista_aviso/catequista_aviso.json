@@ -12,7 +12,17 @@
   "section_exibicao",
   "modo_exibicao",
   "nr_exibicoes",
-  "data_fim"
+  "data_fim",
+  "section_destinatarios",
+  "tipo_destinatario",
+  "fase_destino",
+  "turma_destino",
+  "destinatarios",
+  "section_anexo",
+  "anexo",
+  "anexo_label",
+  "section_stats",
+  "stats_html"
  ],
  "fields": [
   {
@@ -24,7 +34,7 @@
   },
   {
    "fieldname": "mensagem",
-   "fieldtype": "Text",
+   "fieldtype": "Text Editor",
    "label": "Mensagem",
    "reqd": 1
   },
@@ -72,7 +82,75 @@
    "fieldname": "data_fim",
    "fieldtype": "Date",
    "label": "Data de Fim",
-   "description": "Aviso não é exibido após esta data (opcional)"
+   "description": "Aviso não é exibido após esta data. Para modo 'Cada login', se deixado em branco, o sistema aplica automaticamente um limite de 30 dias a partir da criação."
+  },
+  {
+   "fieldname": "section_destinatarios",
+   "fieldtype": "Section Break",
+   "label": "Destinatários"
+  },
+  {
+   "fieldname": "tipo_destinatario",
+   "fieldtype": "Select",
+   "label": "Enviar Para",
+   "options": "Todos\nPor Fase\nPor Turma\nIndividuais",
+   "default": "Todos",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "fase_destino",
+   "fieldtype": "Select",
+   "label": "Fase",
+   "options": "\n1ª Fase\n2ª Fase\n3ª Fase\nPré-Catecumenato\nCatecumenato",
+   "depends_on": "eval:doc.tipo_destinatario=='Por Fase'",
+   "mandatory_depends_on": "eval:doc.tipo_destinatario=='Por Fase'"
+  },
+  {
+   "fieldname": "turma_destino",
+   "fieldtype": "Link",
+   "label": "Turma",
+   "options": "Turma",
+   "depends_on": "eval:doc.tipo_destinatario=='Por Turma'",
+   "mandatory_depends_on": "eval:doc.tipo_destinatario=='Por Turma'"
+  },
+  {
+   "fieldname": "destinatarios",
+   "fieldtype": "Table",
+   "label": "Catequistas",
+   "options": "Catequista Aviso Destinatario",
+   "depends_on": "eval:doc.tipo_destinatario=='Individuais'",
+   "description": "Adicione os catequistas que devem receber este aviso"
+  },
+  {
+   "fieldname": "section_anexo",
+   "fieldtype": "Section Break",
+   "label": "Anexo"
+  },
+  {
+   "fieldname": "anexo",
+   "fieldtype": "Attach",
+   "label": "Ficheiro ou URL",
+   "description": "Faça upload de um PDF ou cole um link externo (Google Drive, OneDrive, etc.)"
+  },
+  {
+   "fieldname": "anexo_label",
+   "fieldtype": "Data",
+   "label": "Texto do Botão",
+   "default": "Descarregar Circular",
+   "description": "Texto que aparece no botão de download para o catequista",
+   "depends_on": "eval:doc.anexo"
+  },
+  {
+   "fieldname": "section_stats",
+   "fieldtype": "Section Break",
+   "label": "Estatísticas de Leitura",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "stats_html",
+   "fieldtype": "HTML",
+   "label": "Estatísticas"
   }
  ],
  "links": [],

@@ -43,6 +43,8 @@ export interface AvisoAtivo {
   mensagem: string;
   prioridade: 'Normal' | 'Urgente';
   modo_exibicao: 'Uma vez' | 'Cada login' | 'N vezes';
+  anexo?: string | null;
+  anexo_label?: string | null;
 }
 
 export interface FieldConfigItem {

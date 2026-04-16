@@ -58,3 +58,20 @@
   from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Rich-text content rendered from Frappe Text Editor (Quill) ── */
+.aviso-richtext p            { margin-bottom: 0.55em; }
+.aviso-richtext p:last-child { margin-bottom: 0; }
+.aviso-richtext ul           { list-style-type: disc;     padding-left: 1.4em; margin-bottom: 0.55em; }
+.aviso-richtext ol           { list-style-type: decimal;  padding-left: 1.4em; margin-bottom: 0.55em; }
+.aviso-richtext li           { margin-bottom: 0.2em; }
+.aviso-richtext strong       { font-weight: 700; }
+.aviso-richtext em           { font-style: italic; }
+.aviso-richtext u            { text-decoration: underline; text-underline-offset: 2px; }
+.aviso-richtext a            { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
+.aviso-richtext a:hover      { color: #1d4ed8; }
+.aviso-richtext h1           { font-size: 1.15em; font-weight: 700; margin-bottom: 0.35em; }
+.aviso-richtext h2           { font-size: 1.05em; font-weight: 700; margin-bottom: 0.3em; }
+.aviso-richtext h3           { font-size: 1em;    font-weight: 700; margin-bottom: 0.25em; }
+.aviso-richtext blockquote   { border-left: 3px solid #e2e8f0; padding-left: 0.85em;
+                                color: #64748b; margin: 0.5em 0; }

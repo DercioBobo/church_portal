@@ -13,7 +13,8 @@
       "Bash(bash apps/portal/build-catequista.sh)",
       "Bash(xargs grep:*)",
       "Bash(./node_modules/.bin/next build *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('portal/api.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ]
   }
 }

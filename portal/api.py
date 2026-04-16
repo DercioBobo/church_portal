@@ -934,8 +934,18 @@ def get_avisos_ativos():
 
     today = date.today().isoformat()
 
+    # Pre-fetch catequista's active turmas (needed for fase/turma targeting)
+    cat_turmas = frappe.db.sql("""
+        SELECT name, fase FROM `tabTurma`
+        WHERE (catequista = %s OR catequista_adj = %s) AND status = 'Activo'
+    """, (catequista_name, catequista_name), as_dict=True)
+    cat_fases       = {t.fase for t in cat_turmas}
+    cat_turma_names = {t.name for t in cat_turmas}
+
     avisos = frappe.db.sql("""
-        SELECT name, titulo, mensagem, prioridade, modo_exibicao, nr_exibicoes
+        SELECT name, titulo, mensagem, prioridade, modo_exibicao, nr_exibicoes,
+               tipo_destinatario, fase_destino, turma_destino,
+               anexo, anexo_label, creation, data_fim
         FROM `tabCatequista Aviso`
         WHERE ativo = 1
           AND (data_fim IS NULL OR data_fim >= %s)
@@ -946,6 +956,26 @@ def get_avisos_ativos():
 
     resultado = []
     for aviso in avisos:
+        # ── Targeting filter ──────────────────────────────────────────────────
+        tipo = aviso.get("tipo_destinatario") or "Todos"
+
+        if tipo == "Por Fase":
+            if aviso.fase_destino not in cat_fases:
+                continue
+
+        elif tipo == "Por Turma":
+            if aviso.turma_destino not in cat_turma_names:
+                continue
+
+        elif tipo == "Individuais":
+            is_target = frappe.db.exists(
+                "Catequista Aviso Destinatario",
+                {"parent": aviso.name, "catequista": catequista_name},
+            )
+            if not is_target:
+                continue
+
+        # ── View-count filter ─────────────────────────────────────────────────
         log = frappe.db.get_value(
             "Catequista Aviso Log",
             {"aviso": aviso.name, "catequista": catequista_name},
@@ -959,14 +989,26 @@ def get_avisos_ativos():
             continue
         if modo == "N vezes" and views >= cint(aviso.nr_exibicoes or 1):
             continue
-        # "Cada login" — frontend controla via sessionStorage; sempre enviamos
+
+        # "Cada login" — apply hard cap when data_fim is not set
+        if modo == "Cada login" and not aviso.get("data_fim"):
+            creation_date = (
+                aviso.creation.date()
+                if hasattr(aviso.creation, "date")
+                else date.fromisoformat(str(aviso.creation)[:10])
+            )
+            if date.today() > creation_date + timedelta(days=30):
+                continue
+        # Else "Cada login" — frontend filters per-session via sessionStorage
 
         resultado.append({
-            "name": aviso.name,
-            "titulo": aviso.titulo,
-            "mensagem": aviso.mensagem,
-            "prioridade": aviso.prioridade,
+            "name":          aviso.name,
+            "titulo":        aviso.titulo,
+            "mensagem":      aviso.mensagem,
+            "prioridade":    aviso.prioridade,
             "modo_exibicao": modo,
+            "anexo":         aviso.get("anexo") or None,
+            "anexo_label":   aviso.get("anexo_label") or None,
         })
 
     return resultado
@@ -1015,6 +1057,69 @@ def marcar_aviso_visto(aviso_name):
 
     frappe.db.commit()
     return {"success": True}
+
+
+@frappe.whitelist()
+def get_aviso_stats(aviso_name):
+    """
+    Devolve, para um dado aviso, quem já viu e quem ainda não viu.
+    Usado pelo painel de estatísticas no formulário de Catequista Aviso.
+    """
+    aviso = frappe.get_doc("Catequista Aviso", aviso_name)
+
+    # ── Quem já viu ──────────────────────────────────────────────────────────
+    leram = frappe.db.sql("""
+        SELECT catequista, visualizacoes, ultima_visualizacao
+        FROM `tabCatequista Aviso Log`
+        WHERE aviso = %s
+        ORDER BY ultima_visualizacao DESC
+    """, aviso_name, as_dict=True)
+
+    leram_set = {row.catequista for row in leram}
+
+    # ── Audiência alvo ───────────────────────────────────────────────────────
+    tipo = aviso.tipo_destinatario or "Todos"
+
+    if tipo == "Todos":
+        rows = frappe.db.sql(
+            "SELECT name FROM `tabCatequista` WHERE status = 'Activo' ORDER BY name",
+            as_dict=True,
+        )
+        audiencia = {r.name for r in rows}
+
+    elif tipo == "Por Fase":
+        rows = frappe.db.sql(
+            "SELECT catequista, catequista_adj FROM `tabTurma` WHERE fase = %s AND status = 'Activo'",
+            aviso.fase_destino,
+            as_dict=True,
+        )
+        audiencia = set()
+        for t in rows:
+            if t.catequista:     audiencia.add(t.catequista)
+            if t.catequista_adj: audiencia.add(t.catequista_adj)
+
+    elif tipo == "Por Turma":
+        t = frappe.db.get_value(
+            "Turma", aviso.turma_destino, ["catequista", "catequista_adj"], as_dict=True
+        )
+        audiencia = set()
+        if t:
+            if t.catequista:     audiencia.add(t.catequista)
+            if t.catequista_adj: audiencia.add(t.catequista_adj)
+
+    elif tipo == "Individuais":
+        audiencia = {row.catequista for row in aviso.get("destinatarios", [])}
+
+    else:
+        audiencia = set()
+
+    nao_leram = sorted(audiencia - leram_set)
+
+    return {
+        "leram":           [dict(r) for r in leram],
+        "nao_leram":       nao_leram,
+        "total_audiencia": len(audiencia),
+    }
 
 
 # ── Quotas ─────────────────────────────────────────────────────────────────────

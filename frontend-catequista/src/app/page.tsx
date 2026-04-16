@@ -719,23 +719,74 @@ function CatecumenosTable({ catecumenos, fieldConfig, onSelect }: TableProps) {
 
 // ── Aviso Modal ───────────────────────────────────────────────────────────────
 
-const AVISO_SESSION_KEY = 'avisos_vistos_sessao';
+// ── "Cada login" deduplication via cookie (shared across tabs, 30-min TTL) ────
+// sessionStorage would be per-tab; a cookie survives across tabs and a quick
+// page reload while expiring naturally after inactivity.
+
+const AVISO_SESSION_COOKIE = 'aviso_sessao';
+const AVISO_SESSION_TTL_MIN = 30;
+
+function readCookie(name: string): string {
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : '';
+}
+
+function writeCookie(name: string, value: string, minutes: number): void {
+  const expires = new Date(Date.now() + minutes * 60 * 1000).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/catequista/; SameSite=Lax`;
+}
 
 function getSessionViews(): Set<string> {
   try {
-    const raw = sessionStorage.getItem(AVISO_SESSION_KEY);
+    const raw = readCookie(AVISO_SESSION_COOKIE);
     return new Set(raw ? JSON.parse(raw) : []);
-  } catch {
-    return new Set();
-  }
+  } catch { return new Set(); }
 }
 
-function addSessionView(name: string) {
+function addSessionView(name: string): void {
   try {
     const views = getSessionViews();
     views.add(name);
-    sessionStorage.setItem(AVISO_SESSION_KEY, JSON.stringify(Array.from(views)));
+    // Writing refreshes the TTL — clock resets from the last dismissal
+    writeCookie(AVISO_SESSION_COOKIE, JSON.stringify(Array.from(views)), AVISO_SESSION_TTL_MIN);
   } catch { /* ignore */ }
+}
+
+// ── Aviso view-log retry queue (persists across page reloads) ─────────────────
+
+const AVISO_RETRY_KEY = 'aviso_visto_retry';
+
+function getPendingRetries(): string[] {
+  try { return JSON.parse(localStorage.getItem(AVISO_RETRY_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function enqueueRetry(avisoName: string): void {
+  try {
+    const q = getPendingRetries();
+    if (!q.includes(avisoName))
+      localStorage.setItem(AVISO_RETRY_KEY, JSON.stringify([...q, avisoName]));
+  } catch { /* storage unavailable */ }
+}
+
+function dequeueRetry(avisoName: string): void {
+  try {
+    localStorage.setItem(
+      AVISO_RETRY_KEY,
+      JSON.stringify(getPendingRetries().filter(n => n !== avisoName)),
+    );
+  } catch { /* ignore */ }
+}
+
+async function drainAvisoRetryQueue(): Promise<void> {
+  const pending = getPendingRetries();
+  if (!pending.length) return;
+  for (const name of pending) {
+    try {
+      await api.marcarAvisoVisto(name);
+      dequeueRetry(name);
+    } catch { /* still offline — leave for next drain */ }
+  }
 }
 
 function AvisoModal({
@@ -764,15 +815,21 @@ function AvisoModal({
 
   async function handleCompreendi() {
     if (dismissing) return;
-    setDismissing(true);
+
+    // Capture before state updates re-render
+    const avisoName = aviso.name;
+    const modo      = aviso.modo_exibicao;
+
+    // Advance immediately — user intent is confirmed regardless of network
+    if (modo === 'Cada login') addSessionView(avisoName);
+    onDismissed(aviso);
+    setIdx(i => i + 1);
+
+    // Log server-side in the background; retry later if offline
     try {
-      await api.marcarAvisoVisto(aviso.name);
-      if (aviso.modo_exibicao === 'Cada login') addSessionView(aviso.name);
-      onDismissed(aviso);
-      setIdx(i => i + 1);
-    } catch { /* still advance even if logging fails */ }
-    finally {
-      setDismissing(false);
+      await api.marcarAvisoVisto(avisoName);
+    } catch {
+      enqueueRetry(avisoName);
     }
   }
 
@@ -804,12 +861,29 @@ function AvisoModal({
           <h2 className={`font-display font-bold text-lg mb-3 ${isUrgente ? 'text-rose-900' : 'text-navy-900'}`}>
             {aviso.titulo}
           </h2>
-          <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
-            {aviso.mensagem}
-          </p>
+          <div
+            className="text-sm text-slate-600 leading-relaxed aviso-richtext"
+            dangerouslySetInnerHTML={{ __html: aviso.mensagem }}
+          />
         </div>
 
-        <div className="px-6 pb-6">
+        <div className="px-6 pb-6 space-y-3">
+          {aviso.anexo && (
+            <a
+              href={aviso.anexo.startsWith('http') ? aviso.anexo : FRAPPE_URL + aviso.anexo}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl
+                border text-sm font-semibold transition-colors
+                ${isUrgente
+                  ? 'border-rose-200 text-rose-700 hover:bg-rose-50'
+                  : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+            >
+              <FileDown className="w-4 h-4 shrink-0" />
+              {aviso.anexo_label || 'Descarregar Circular'}
+            </a>
+          )}
           <button
             onClick={handleCompreendi}
             disabled={dismissing}
@@ -1008,6 +1082,15 @@ export default function DashboardPage() {
     () => turmas.flatMap(t => t.catecumenos).filter(c => isBirthdaySoon(c.data_de_nascimento)).length,
     [turmas],
   );
+
+  // Drain any pending aviso-view retries once authenticated, and on tab refocus
+  useEffect(() => {
+    if (!auth) return;
+    drainAvisoRetryQueue();
+    const onVisible = () => { if (document.visibilityState === 'visible') drainAvisoRetryQueue(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [auth]);
 
   useEffect(() => {
     if (!auth) return;
