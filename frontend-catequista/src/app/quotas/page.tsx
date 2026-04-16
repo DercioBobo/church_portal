@@ -252,34 +252,24 @@ export default function QuotasPage() {
           <div className="space-y-6">
 
             {/* ── Stat cards ──────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <StatCard
                 label="Os meus pagamentos"
                 value={meusTotal > 0 ? fmt(meusTotal) : '—'}
-                sub={`${meusMesesPagos} mese${meusMesesPagos === 1 ? '' : 's'} pago${meusMesesPagos === 1 ? '' : 's'}`}
                 icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
                 accent="bg-emerald-50"
               />
               <StatCard
                 label="Meses pagos"
                 value={`${meusMesesPagos} / 12`}
-                sub={meusMesesPagos >= 12 ? 'Em dia!' : `${12 - meusMesesPagos} por pagar`}
                 icon={<Calendar className="w-5 h-5 text-gold-600" />}
                 accent="bg-gold-50"
               />
               <StatCard
                 label="Total do grupo"
                 value={fmt(data.total_geral)}
-                sub={`${data.total_catequistas} catequistas`}
                 icon={<Users className="w-5 h-5 text-navy-600" />}
                 accent="bg-navy-50"
-              />
-              <StatCard
-                label="Catequistas em dia"
-                value={String(data.catequistas.filter(r => r.meses_pagos > 0).length)}
-                sub={`de ${data.total_catequistas} no total`}
-                icon={<CheckCircle2 className="w-5 h-5 text-blue-600" />}
-                accent="bg-blue-50"
               />
             </div>
 
