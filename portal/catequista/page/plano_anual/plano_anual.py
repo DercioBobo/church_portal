@@ -156,7 +156,7 @@ def delete_actividade(name):
 @frappe.whitelist()
 def update_estado(name, estado):
     _assert_coordenador()
-    allowed = {"Pendente", "Realizada", "Cancelada", "Adiada"}
+    allowed = {"Pendente", "Em Progresso", "Realizada", "Cancelada", "Adiada"}
     if estado not in allowed:
         frappe.throw(_("Estado inválido"))
     frappe.db.set_value("Actividade do Plano", name, "estado", estado)

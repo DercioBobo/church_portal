@@ -37,7 +37,7 @@
    "fieldname": "estado",
    "fieldtype": "Select",
    "label": "Estado",
-   "options": "Pendente\nRealizada\nCancelada\nAdiada",
+   "options": "Pendente\nEm Progresso\nRealizada\nCancelada\nAdiada",
    "default": "Pendente",
    "reqd": 1,
    "in_list_view": 1
