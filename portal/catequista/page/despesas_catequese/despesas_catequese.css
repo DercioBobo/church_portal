@@ -18,12 +18,26 @@
   top: 0;
   z-index: 50;
 }
+.de-toolbar {
+  flex-wrap: nowrap; /* button row never wraps */
+}
 .de-toolbar h1 {
   font-size: 1.1rem;
   font-weight: 700;
   color: #1a1a2e;
   margin: 0;
   white-space: nowrap;
+}
+
+/* ── Filter bar ──────────────────────────────────────────────────────────── */
+.de-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  flex-wrap: wrap;
 }
 
 /* ── Select ──────────────────────────────────────────────────────────────── */
@@ -623,11 +637,13 @@
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .de-toolbar        { padding: 10px 14px; }
+  .de-filter-bar     { padding: 8px 14px; }
   .de-summary-grid   { padding: 12px 14px; grid-template-columns: 1fr 1fr; }
   .de-breakdown      { padding: 6px 14px 12px; }
+  .de-fundo-section  { margin: 0 14px 12px; }
   .de-table-wrap     { margin: 0 14px 20px; }
   .de-panel          { width: 100vw; }
-  .de-search-input   { width: 160px; }
-  .de-search-input:focus { width: 200px; }
+  .de-search-input   { width: 140px; }
+  .de-search-input:focus { width: 180px; }
   .de-field-row      { grid-template-columns: 1fr; }
 }

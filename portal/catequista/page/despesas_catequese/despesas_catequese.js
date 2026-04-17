@@ -103,8 +103,6 @@ function createDespesasApp() {
     <select v-model="selectedAno" @change="loadAll" class="de-select" title="Ano lectivo">
       <option v-for="a in anos" :key="a" :value="a">{{ a }}</option>
     </select>
-
-    <!-- Tab toggle -->
     <div class="de-tabs">
       <button class="de-tab-btn" :class="{ active: activeTab === 'despesas' }" @click="activeTab = 'despesas'">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg>
@@ -115,8 +113,15 @@ function createDespesasApp() {
         Receitas
       </button>
     </div>
+    <div style="flex:1"></div>
+    <button class="de-btn de-btn-primary de-btn-sm" @click="activeTab === 'despesas' ? openNew() : openNewReceita()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      {{ activeTab === 'despesas' ? 'Nova despesa' : 'Nova receita' }}
+    </button>
+  </div>
 
-    <!-- Filters: despesas -->
+  <!-- ── Filter bar ──────────────────────────────────────────────────── -->
+  <div class="de-filter-bar">
     <template v-if="activeTab === 'despesas'">
       <select v-model="filterFonte" class="de-select" title="Filtrar por fonte">
         <option value="">Todas as fontes</option>
@@ -127,24 +132,17 @@ function createDespesasApp() {
         <option v-for="c in CATEGORIAS" :key="c" :value="c">{{ c }}</option>
       </select>
     </template>
-    <!-- Filters: receitas -->
     <template v-else>
       <select v-model="filterReceitaFonte" class="de-select" title="Filtrar por fonte">
         <option value="">Todas as fontes</option>
         <option v-for="f in RECEITA_FONTES" :key="f" :value="f">{{ f }}</option>
       </select>
     </template>
-
     <div class="de-search-wrap">
       <svg class="de-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input class="de-search-input" v-model="search" placeholder="Pesquisar…" @keydown.escape="clearSearch">
       <button v-if="search" class="de-search-clear" @click="clearSearch">✕</button>
     </div>
-    <div style="flex:1"></div>
-    <button class="de-btn de-btn-primary de-btn-sm" @click="activeTab === 'despesas' ? openNew() : openNewReceita()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      {{ activeTab === 'despesas' ? 'Nova despesa' : 'Nova receita' }}
-    </button>
   </div>
 
   <!-- ── Loading ──────────────────────────────────────────────────────── -->
