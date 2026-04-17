@@ -1,5 +1,5 @@
 {
- "autoname": "autoincrement",
+ "autoname": "ACT.-.YY.-.##",
  "creation": "2024-01-01 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -121,6 +121,8 @@
    "delete": 1
   }
  ],
+ "search_fields": "actividade",
+ "title_field": "actividade",
  "sort_field": "data",
  "sort_order": "ASC",
  "states": [],

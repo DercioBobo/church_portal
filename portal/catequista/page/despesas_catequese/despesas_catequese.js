@@ -48,7 +48,7 @@ function fonteColor(fonte) { return FONTE_COLOR[fonte] || '#6b7280'; }
 function api(method, args) {
   return new Promise((resolve, reject) => {
     frappe.call({
-      method: `portal.catequista.page.despesas.despesas.${method}`,
+      method: `portal.catequista.page.despesas_catequese.despesas_catequese.${method}`,
       args,
       callback: (r) => { if (r.exc) reject(new Error(r.exc)); else resolve(r.message); },
       error: reject,
