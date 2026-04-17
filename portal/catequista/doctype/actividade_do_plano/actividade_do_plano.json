@@ -99,6 +99,7 @@
    "description": "Como correu a actividade, observações após realização"
   }
  ],
+ "allow_import": 1,
  "links": [],
  "modified": "2024-01-01 00:00:00.000000",
  "modified_by": "Administrator",
