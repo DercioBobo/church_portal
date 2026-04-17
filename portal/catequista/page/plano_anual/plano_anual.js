@@ -142,22 +142,39 @@ function createPlanoAnualApp() {
       </button>
     </div>
 
-    <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="expandAll" data-no-print title="Expandir todos os meses">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 20 12 15 17 20"/><polyline points="7 4 12 9 17 4"/></svg>
+    <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="expandAll" data-no-print
+      :title="collapsedMonths.size > 0 ? 'Expandir todos os meses' : 'Recolher todos os meses'">
+      <!-- Expand icon — shown when anything is collapsed -->
+      <svg v-if="collapsedMonths.size > 0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 15 12 20 17 15"/><polyline points="7 9 12 4 17 9"/></svg>
+      <!-- Collapse icon — shown when all are expanded -->
+      <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 20 12 15 17 20"/><polyline points="7 4 12 9 17 4"/></svg>
     </button>
-    <button class="pa-btn pa-btn-secondary pa-btn-sm" @click="exportExcel" :disabled="exporting" data-no-print :title="'Exportar para Excel' + (hasFilters ? ' (com filtros activos)' : '')">
-      <div v-if="exporting" class="pa-spinner" style="width:12px;height:12px"></div>
-      <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="18"/><line x1="15" y1="15" x2="12" y2="18"/></svg>
-      Excel
-    </button>
-    <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="openCopyYearModal" data-no-print title="Copiar actividades do ano lectivo anterior">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      Copiar ano
-    </button>
-    <button class="pa-btn pa-btn-secondary pa-btn-sm" @click="printView" data-no-print>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-      Imprimir
-    </button>
+
+    <!-- ── Actions dropdown ─────────────────────────────────────── -->
+    <div class="pa-actions-dd" ref="actionsEl" data-no-print>
+      <button class="pa-btn pa-btn-secondary pa-btn-sm" @click.stop="actionsOpen = !actionsOpen" :class="{ active: actionsOpen }">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
+        Mais
+        <svg class="pa-actions-caret" :class="{ open: actionsOpen }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div v-if="actionsOpen" class="pa-actions-panel">
+        <button class="pa-actions-item" @click="exportExcel(); actionsOpen = false" :disabled="exporting">
+          <div v-if="exporting" class="pa-spinner" style="width:13px;height:13px;flex-shrink:0"></div>
+          <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="18"/><line x1="15" y1="15" x2="12" y2="18"/></svg>
+          Exportar Excel
+          <span v-if="hasFilters" class="pa-actions-badge">filtrado</span>
+        </button>
+        <button class="pa-actions-item" @click="openCopyYearModal(); actionsOpen = false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copiar ano anterior
+        </button>
+        <div class="pa-actions-sep"></div>
+        <button class="pa-actions-item" @click="printView(); actionsOpen = false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir
+        </button>
+      </div>
+    </div>
 
     <button class="pa-btn pa-btn-primary pa-btn-sm" @click="openNewActivity(null)" data-no-print>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -909,6 +926,10 @@ function createPlanoAnualApp() {
       const tipDropEl    = ref(null);
       const tipSearchInput = ref(null);
 
+      // Actions dropdown
+      const actionsOpen = ref(false);
+      const actionsEl   = ref(null);
+
       // Drag
       const dragItem      = ref(null);
       const dragOverGroup = ref(null);
@@ -936,11 +957,10 @@ function createPlanoAnualApp() {
       }
 
       function expandAll() {
-        // If any are collapsed → expand all; otherwise collapse past months again
         if (collapsedMonths.value.size > 0) {
-          collapsedMonths.value = new Set();
+          collapsedMonths.value = new Set();                                      // expand all
         } else {
-          autoCollapsePast();
+          collapsedMonths.value = new Set(filteredGroups.value.map(g => g.key)); // collapse all
         }
       }
 
@@ -1088,6 +1108,9 @@ function createPlanoAnualApp() {
         if (tipDdOpen.value && tipDropEl.value && !tipDropEl.value.contains(e.target)) {
           tipDdOpen.value = false;
           tipSearch.value = '';
+        }
+        if (actionsOpen.value && actionsEl.value && !actionsEl.value.contains(e.target)) {
+          actionsOpen.value = false;
         }
       }
       onMounted(() => document.addEventListener('mousedown', _onDocClick));
@@ -1678,6 +1701,7 @@ function createPlanoAnualApp() {
         inputActividade, dragItem, dragOverGroup, dragTarget,
         filterStatus, filterTipologias, filterMonth,
         tipDdOpen, tipSearch, tipDropEl, tipSearchInput,
+        actionsOpen, actionsEl,
         stats, availableMonths, hasFilters, filteredGroups, filteredTipDd,
         tipologiaMap, calendarData,
         loadActividades, openNewActivity, openEdit, closePanel,

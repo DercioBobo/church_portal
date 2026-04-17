@@ -121,6 +121,68 @@
 .pa-btn-danger-solid { background:#dc2626; color:#fff; border-color:#dc2626; }
 .pa-btn-danger-solid:hover:not(:disabled) { background:#b91c1c; border-color:#b91c1c; }
 
+/* ── Actions dropdown ────────────────────────────────────────────────────── */
+.pa-actions-dd {
+  position: relative;
+}
+.pa-btn.active {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+.pa-actions-caret {
+  color: #9ca3af;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.pa-actions-caret.open { transform: rotate(180deg); }
+
+.pa-actions-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 188px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 60;
+  overflow: hidden;
+  padding: 4px 0;
+}
+.pa-actions-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.84rem;
+  color: #374151;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.12s;
+}
+.pa-actions-item:hover:not(:disabled) { background: #f9fafb; }
+.pa-actions-item:disabled { opacity: 0.5; cursor: not-allowed; }
+.pa-actions-item svg { flex-shrink: 0; color: #6b7280; }
+.pa-actions-badge {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: #fef3c7;
+  color: #d97706;
+  white-space: nowrap;
+}
+.pa-actions-sep {
+  height: 1px;
+  background: #f1f3f5;
+  margin: 3px 0;
+}
+
 /* ── View toggle ─────────────────────────────────────────────────────────── */
 .pa-view-toggle {
   display: flex;
