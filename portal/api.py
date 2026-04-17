@@ -1140,6 +1140,21 @@ def _assert_system_manager():
         frappe.throw(_("Sem permissão. Apenas gestores podem editar quotas."), frappe.PermissionError)
 
 
+_MESES_PT = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+]
+_MES_NORMALIZE = {
+    **{f"{i:02d}": name for i, name in enumerate(_MESES_PT, 1)},
+    **{str(i): name for i, name in enumerate(_MESES_PT, 1)},
+    **{name: name for name in _MESES_PT},
+}
+
+def _norm_mes(mes):
+    """Normalize a mes value to Portuguese name regardless of how it was stored."""
+    return _MES_NORMALIZE.get(str(mes).strip(), mes)
+
+
 @frappe.whitelist()
 def get_quotas_grid(ano):
     """
@@ -1161,7 +1176,7 @@ def get_quotas_grid(ano):
 
     quota_map = {}
     for q in quotas:
-        quota_map[(q.catequista, q.mes)] = {
+        quota_map[(q.catequista, _norm_mes(q.mes))] = {
             "name":           q.name,
             "valor":          float(q.valor or 0),
             "data_pagamento": q.data_pagamento,
@@ -1264,7 +1279,7 @@ def get_quotas_resumo(ano=""):
 
     quota_map = {}
     for q in quotas:
-        quota_map.setdefault(q.catequista, {})[q.mes] = {
+        quota_map.setdefault(q.catequista, {})[_norm_mes(q.mes)] = {
             "valor":          float(q.valor or 0),
             "data_pagamento": q.data_pagamento,
         }

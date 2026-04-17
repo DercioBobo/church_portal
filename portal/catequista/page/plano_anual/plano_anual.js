@@ -263,7 +263,7 @@ function createPlanoAnualApp() {
           <span v-if="isCurrentMonth(group.key)" class="pa-month-now-badge">Agora</span>
           <span class="pa-month-count">{{ group.items.length }} actividade{{ group.items.length !== 1 ? 's' : '' }}</span>
           <div class="pa-month-line"></div>
-          <button class="pa-month-add" @click.stop="openNewActivity(group.key)" data-no-print>
+          <button class="pa-month-add" @click.stop="openQuickAdd(group.key)" data-no-print>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Adicionar
           </button>
@@ -326,7 +326,39 @@ function createPlanoAnualApp() {
               >📝 <span class="pa-notes-indicator-text">{{ truncate(act.notas_execucao, 60) }}</span></span>
             </div>
           </div>
-          <div v-if="group.items.length === 0" class="pa-empty">Sem actividades — clique em Adicionar</div>
+          <div v-if="group.items.length === 0 && quickAdd.groupKey !== group.key" class="pa-empty">Sem actividades — clique em Adicionar</div>
+          <div v-if="quickAdd.groupKey === group.key" class="pa-quick-add-card" @click.stop data-no-print>
+            <input
+              class="pa-quick-add-name"
+              type="text"
+              v-model="quickAdd.name"
+              placeholder="Nome da actividade…"
+              @keydown.enter="saveQuickAdd"
+              @keydown.escape="cancelQuickAdd"
+              :disabled="quickAddSaving"
+              autocomplete="off"
+            >
+            <input
+              class="pa-quick-add-date"
+              type="date"
+              v-model="quickAdd.date"
+              @keydown.enter="saveQuickAdd"
+              @keydown.escape="cancelQuickAdd"
+              :disabled="quickAddSaving"
+            >
+            <span class="pa-quick-add-hint">↵ guardar &nbsp;Esc fechar</span>
+            <button class="pa-btn pa-btn-primary pa-btn-sm" @click="saveQuickAdd" :disabled="quickAddSaving || !quickAdd.name.trim()" title="Guardar (Enter)">
+              <div v-if="quickAddSaving" class="pa-spinner" style="width:11px;height:11px;border-top-color:#fff;border-color:rgba(255,255,255,0.3)"></div>
+              <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button class="pa-btn pa-btn-ghost pa-btn-sm pa-quick-add-full" @click="openNewActivity(quickAdd.groupKey); cancelQuickAdd()" :disabled="quickAddSaving" title="Abrir formulário completo">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><polyline points="16 4 20 4 20 8"/><line x1="10" y1="14" x2="20" y2="4"/></svg>
+              Formulário
+            </button>
+            <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="cancelQuickAdd" :disabled="quickAddSaving" title="Cancelar (Esc)" style="padding:0 7px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </template>
@@ -369,7 +401,7 @@ function createPlanoAnualApp() {
                   <span class="pa-list-month-label">{{ group.label }}</span>
                   <span v-if="isCurrentMonth(group.key)" class="pa-month-now-badge" style="margin-left:6px">Agora</span>
                   <span class="pa-list-month-meta">{{ group.items.length }} actividade{{ group.items.length !== 1 ? 's' : '' }}</span>
-                  <button class="pa-month-add pa-list-month-add" @click.stop="openNewActivity(group.key)" data-no-print>
+                  <button class="pa-month-add pa-list-month-add" @click.stop="openQuickAdd(group.key)" data-no-print>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Adicionar
                   </button>
@@ -404,6 +436,48 @@ function createPlanoAnualApp() {
                 <td>
                   <span class="pa-card-status" :class="statusClass(act.estado)"
                     @click.stop="cycleStatus(act)" title="Avançar estado">{{ act.estado }}</span>
+                </td>
+              </tr>
+              <tr v-if="quickAdd.groupKey === group.key" v-show="!isCollapsed(group.key)" class="pa-quick-add-row" data-no-print>
+                <td colspan="2"></td>
+                <td style="padding:5px 8px">
+                  <input
+                    class="pa-quick-add-name pa-quick-add-name-list"
+                    type="text"
+                    v-model="quickAdd.name"
+                    placeholder="Nome da actividade…"
+                    @keydown.enter="saveQuickAdd"
+                    @keydown.escape="cancelQuickAdd"
+                    :disabled="quickAddSaving"
+                    autocomplete="off"
+                  >
+                </td>
+                <td></td>
+                <td style="padding:5px 8px">
+                  <input
+                    class="pa-quick-add-date"
+                    type="date"
+                    v-model="quickAdd.date"
+                    @keydown.enter="saveQuickAdd"
+                    @keydown.escape="cancelQuickAdd"
+                    :disabled="quickAddSaving"
+                    style="width:100%"
+                  >
+                </td>
+                <td colspan="4" style="padding:5px 8px">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <button class="pa-btn pa-btn-primary pa-btn-sm" @click="saveQuickAdd" :disabled="quickAddSaving || !quickAdd.name.trim()">
+                      <div v-if="quickAddSaving" class="pa-spinner" style="width:11px;height:11px;border-top-color:#fff;border-color:rgba(255,255,255,0.3)"></div>
+                      <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                      Guardar
+                    </button>
+                    <button class="pa-btn pa-btn-ghost pa-btn-sm pa-quick-add-full" @click="openNewActivity(quickAdd.groupKey); cancelQuickAdd()" :disabled="quickAddSaving">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><polyline points="16 4 20 4 20 8"/><line x1="10" y1="14" x2="20" y2="4"/></svg>
+                      Formulário
+                    </button>
+                    <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="cancelQuickAdd" :disabled="quickAddSaving">Cancelar</button>
+                    <span class="pa-quick-add-hint">↵ guardar &nbsp;Esc fechar</span>
+                  </div>
                 </td>
               </tr>
             </template>
@@ -950,6 +1024,7 @@ function createPlanoAnualApp() {
         if (!selectedAno.value) return;
         loading.value = true;
         clearSelection();
+        cancelQuickAdd();
         try {
           actividades.value = await api('get_actividades', { ano_lectivo: selectedAno.value }) || [];
           nextTick(autoCollapsePast);
@@ -1028,6 +1103,56 @@ function createPlanoAnualApp() {
       }
 
       const duplicating = ref(false);
+
+      // ── Quick inline add ─────────────────────────────────────────────────
+      const quickAdd        = reactive({ groupKey: null, name: '', date: '' });
+      const quickAddSaving  = ref(false);
+
+      function openQuickAdd(groupKey) {
+        quickAdd.groupKey = groupKey;
+        quickAdd.name     = '';
+        quickAdd.date     = groupKey && groupKey !== '__nodate__' ? groupKey + '-01' : '';
+        nextTick(() => {
+          const el = document.querySelector('.pa-quick-add-name');
+          if (el) el.focus();
+        });
+      }
+      function cancelQuickAdd() {
+        quickAdd.groupKey = null;
+        quickAdd.name     = '';
+        quickAdd.date     = '';
+      }
+      async function saveQuickAdd() {
+        const name = quickAdd.name.trim();
+        if (!name || quickAddSaving.value) return;
+        quickAddSaving.value = true;
+        try {
+          const payload = {
+            actividade:     name,
+            estado:         'Pendente',
+            ano_lectivo:    selectedAno.value,
+            data:           quickAdd.date || null,
+            tipologia:      null,
+            orador:         null,
+            local:          null,
+            orcamento:      null,
+            notas_execucao: null,
+          };
+          const saved = await api('create_actividade', { data_json: JSON.stringify(payload) });
+          actividades.value.push(saved);
+          toast('Actividade adicionada', 'success');
+          // Stay open for rapid entry — clear name, keep date
+          quickAdd.name = '';
+          nextTick(() => {
+            const el = document.querySelector('.pa-quick-add-name');
+            if (el) el.focus();
+          });
+        } catch (e) {
+          toast('Erro ao criar: ' + e.message, 'error');
+        } finally {
+          quickAddSaving.value = false;
+        }
+      }
 
       // ── Multi-select / bulk ───────────────────────────────────────────────
       const selected         = ref(new Set());
@@ -1453,6 +1578,8 @@ function createPlanoAnualApp() {
         TODAY_KEY, collapsedMonths, isCurrentMonth, isPastMonth, isCollapsed, toggleCollapse, expandAll,
         TIP_PALETTE, showTipForm, savingTip, newTip, newTipInput,
         toggleTipForm, cancelTipForm, saveTipologia,
+        // Quick inline add
+        quickAdd, quickAddSaving, openQuickAdd, cancelQuickAdd, saveQuickAdd,
         // Copy year modal
         copyModal, openCopyYearModal, closeCopyYearModal, confirmCopyYear,
         // Multi-select / bulk

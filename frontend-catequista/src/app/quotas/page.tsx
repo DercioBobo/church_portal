@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { TrendingUp, Users, Calendar, CheckCircle2, XCircle } from 'lucide-react';
+import { TrendingUp, Users, Calendar, Check } from 'lucide-react';
 import Nav from '@/components/Nav';
 import { FullPageLoading } from '@/components/Loading';
 import { useAuthGuard } from '@/lib/useAuthGuard';
@@ -75,13 +75,13 @@ function MyMonthGrid({ row, ano }: { row: QuotaCatequistaResumoRow; ano: string 
             </p>
             {entry ? (
               <>
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto mb-0.5" />
+                <Check className="w-4 h-4 text-emerald-500 mx-auto mb-0.5" strokeWidth={3} />
                 <p className="text-[10px] font-bold text-emerald-700 leading-none">
                   {entry.valor.toLocaleString('pt-MZ')}
                 </p>
               </>
             ) : (
-              <XCircle className={`w-4 h-4 mx-auto ${isCurrent ? 'text-gold-400' : 'text-slate-200'}`} />
+              <span className={`text-sm font-light ${isCurrent ? 'text-gold-400' : 'text-slate-200'}`}>—</span>
             )}
           </div>
         );
@@ -167,7 +167,14 @@ function TeamRow({ row, maxTotal, isMe }: { row: QuotaCatequistaResumoRow; maxTo
                     : 'bg-cream-50 text-slate-300 border border-cream-100'
                 }`}>
                   <div className="font-semibold">{MESES_SHORT[i]}</div>
-                  <div>{entry ? entry.valor.toLocaleString('pt-MZ') : '—'}</div>
+                  {entry ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-500 mx-auto my-0.5" strokeWidth={3} />
+                      <div>{entry.valor.toLocaleString('pt-MZ')}</div>
+                    </>
+                  ) : (
+                    <div>—</div>
+                  )}
                 </div>
               );
             })}
