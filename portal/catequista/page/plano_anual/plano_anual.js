@@ -90,7 +90,7 @@ const EMPTY_FORM = () => ({
 // App
 // ─────────────────────────────────────────────────────────────────────────────
 function createPlanoAnualApp() {
-  const { createApp, ref, computed, reactive, nextTick, onMounted, onUnmounted } = Vue;
+  const { createApp, ref, computed, reactive, nextTick, watch, onMounted, onUnmounted } = Vue;
 
   return createApp({
     template: `
@@ -1216,7 +1216,6 @@ function createPlanoAnualApp() {
       onUnmounted(() => document.removeEventListener('mousedown', _onDocClick));
 
       // Auto-focus search when dropdown opens
-      const { watch } = Vue;
       watch(tipDdOpen, (val) => {
         if (val) nextTick(() => tipSearchInput.value && tipSearchInput.value.focus());
         else tipSearch.value = '';
