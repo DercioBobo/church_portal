@@ -171,42 +171,38 @@ def get_resumo_financeiro(ano_lectivo):
     )
     total_quotas = float(row[0].total or 0)
 
-    # Other income (Receita Catequese)
+    # Other income (Receita Catequese) — total and per-fonte
     row2 = frappe.db.sql(
         "SELECT COALESCE(SUM(valor), 0) AS total FROM `tabReceita Catequese` WHERE ano_lectivo = %s",
         (ano_lectivo,), as_dict=True,
     )
     total_outras_receitas = float(row2[0].total or 0)
 
-    # Income grouped by fonte
     rec_fonte_rows = frappe.db.sql("""
         SELECT COALESCE(NULLIF(fonte, ''), 'Outro') AS fonte,
                COALESCE(SUM(valor), 0) AS total
         FROM `tabReceita Catequese`
         WHERE ano_lectivo = %s
         GROUP BY fonte
-        ORDER BY total DESC
     """, (ano_lectivo,), as_dict=True)
-    por_fonte_receitas = {r.fonte: float(r.total or 0) for r in rec_fonte_rows}
+    receita_by_fonte = {r.fonte: float(r.total or 0) for r in rec_fonte_rows}
+    receita_by_fonte['Quotas'] = total_quotas  # quotas are tracked separately
 
-    total_fundos = total_quotas + total_outras_receitas
-
-    # Expenses grouped by fonte
-    fonte_rows = frappe.db.sql("""
-        SELECT fonte, COALESCE(SUM(valor), 0) AS total
+    # Expenses — total, per-fonte and per-categoria
+    desp_fonte_rows = frappe.db.sql("""
+        SELECT COALESCE(NULLIF(fonte, ''), 'Outro') AS fonte,
+               COALESCE(SUM(valor), 0) AS total
         FROM `tabDespesa Catequese`
         WHERE ano_lectivo = %s
         GROUP BY fonte
     """, (ano_lectivo,), as_dict=True)
-
-    por_fonte_despesas = {}
+    despesa_by_fonte = {}
     total_despesas = 0.0
-    for r in fonte_rows:
+    for r in desp_fonte_rows:
         v = float(r.total or 0)
-        por_fonte_despesas[r.fonte] = v
+        despesa_by_fonte[r.fonte] = v
         total_despesas += v
 
-    # Expenses grouped by categoria
     cat_rows = frappe.db.sql("""
         SELECT COALESCE(NULLIF(categoria, ''), 'Sem categoria') AS categoria,
                COALESCE(SUM(valor), 0) AS total
@@ -217,15 +213,29 @@ def get_resumo_financeiro(ano_lectivo):
     """, (ano_lectivo,), as_dict=True)
     por_categoria = {r.categoria: float(r.total or 0) for r in cat_rows}
 
+    # Per-fund breakdown — only fontes with any activity
+    all_fontes = set(list(receita_by_fonte.keys()) + list(despesa_by_fonte.keys()))
+    FONTES_ORDER = ['Quotas', 'Fichas', 'Inscrição', 'Donativo', 'Subsídio Paroquial', 'Outro']
+    ordered = [f for f in FONTES_ORDER if f in all_fontes] + \
+              sorted([f for f in all_fontes if f not in FONTES_ORDER])
+    por_fundo = []
+    for fonte in ordered:
+        entrada = receita_by_fonte.get(fonte, 0.0)
+        saida   = despesa_by_fonte.get(fonte, 0.0)
+        if entrada > 0 or saida > 0:
+            por_fundo.append({
+                "fonte":   fonte,
+                "entrada": entrada,
+                "saida":   saida,
+                "liquido": entrada - saida,
+            })
+
     return {
         "total_quotas":          total_quotas,
         "total_outras_receitas": total_outras_receitas,
-        "por_fonte_receitas":    por_fonte_receitas,
-        "total_fundos":          total_fundos,
         "total_despesas":        total_despesas,
-        "saldo":                 total_fundos - total_despesas,
-        "por_fonte_despesas":    por_fonte_despesas,
         "por_categoria":         por_categoria,
+        "por_fundo":             por_fundo,
     }
 
 

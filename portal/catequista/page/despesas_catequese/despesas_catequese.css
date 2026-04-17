@@ -523,6 +523,71 @@
 .de-toast.error   { background: #dc2626; }
 .de-toast.info    { background: #4f46e5; }
 
+/* ── Por Fundo section ───────────────────────────────────────────────────── */
+.de-fundo-section {
+  margin: 0 24px 14px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.de-fundo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  width: 100%;
+  background: #f8f9fc;
+  border: none;
+  border-bottom: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #374151;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s;
+  letter-spacing: 0.01em;
+}
+.de-fundo-toggle:hover { background: #f1f5f9; }
+.de-fundo-count {
+  font-weight: 400;
+  color: #9ca3af;
+  font-size: 0.76rem;
+  margin-left: 2px;
+}
+.de-fundo-table-wrap { overflow-x: auto; }
+.de-fundo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+.de-fundo-table th {
+  background: #f8f9fc;
+  color: #6b7280;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 7px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+.de-fundo-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid #f1f3f5;
+  vertical-align: middle;
+}
+.de-fundo-table tbody tr:last-child td { border-bottom: none; }
+.de-fundo-table tbody tr:hover td { background: #f9fafb; }
+.de-fundo-num {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.de-fundo-entrada { color: #059669; }
+.de-fundo-saida   { color: #dc2626; }
+
 /* ── Tabs ────────────────────────────────────────────────────────────────── */
 .de-tabs {
   display: flex;

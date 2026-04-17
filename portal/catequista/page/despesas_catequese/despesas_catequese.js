@@ -187,15 +187,36 @@ function createDespesasApp() {
           <p class="de-stat-sub">gastos totais</p>
         </div>
       </div>
-      <div class="de-stat-card" :class="(resumo.saldo || 0) >= 0 ? 'de-stat-card-pos' : 'de-stat-card-neg'">
-        <div class="de-stat-icon" :class="(resumo.saldo || 0) >= 0 ? 'de-stat-icon-green' : 'de-stat-icon-red'">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        </div>
-        <div>
-          <p class="de-stat-label">Saldo disponível</p>
-          <p class="de-stat-value" :class="(resumo.saldo || 0) >= 0 ? 'de-val-pos' : 'de-val-neg'">{{ fmt(resumo.saldo || 0) }}</p>
-          <p class="de-stat-sub">fundos − despesas</p>
-        </div>
+    </div>
+
+    <!-- ── Por Fundo breakdown ───────────────────────────────────────── -->
+    <div v-if="resumo.por_fundo && resumo.por_fundo.length" class="de-fundo-section">
+      <button class="de-fundo-toggle" @click="porFundoOpen = !porFundoOpen">
+        <svg :style="porFundoOpen ? 'transform:rotate(0deg)' : 'transform:rotate(-90deg)'" style="transition:transform 0.2s;flex-shrink:0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        Por Fundo
+        <span class="de-fundo-count">{{ resumo.por_fundo.length }} fundo{{ resumo.por_fundo.length !== 1 ? 's' : '' }}</span>
+      </button>
+      <div v-if="porFundoOpen" class="de-fundo-table-wrap">
+        <table class="de-fundo-table">
+          <thead>
+            <tr>
+              <th>Fundo</th>
+              <th style="text-align:right">Entrada</th>
+              <th style="text-align:right">Saída</th>
+              <th style="text-align:right">Líquido</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="f in resumo.por_fundo" :key="f.fonte">
+              <td><span class="de-fonte-tag" :style="fonteTagStyle(f.fonte)">{{ f.fonte }}</span></td>
+              <td class="de-fundo-num de-fundo-entrada">{{ f.entrada > 0 ? fmt(f.entrada) : '—' }}</td>
+              <td class="de-fundo-num de-fundo-saida">{{ f.saida > 0 ? fmt(f.saida) : '—' }}</td>
+              <td class="de-fundo-num" :class="f.liquido >= 0 ? 'de-val-pos' : 'de-val-neg'">
+                {{ (f.liquido > 0 ? '+' : '') + fmt(f.liquido) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -494,6 +515,7 @@ function createDespesasApp() {
       const filterCategoria       = ref('');
       const filterReceitaFonte    = ref('');
       const activeTab             = ref('despesas');
+      const porFundoOpen          = ref(true);
       const inputDescricao        = ref(null);
       const inputReceitaDescricao = ref(null);
 
@@ -792,7 +814,7 @@ function createDespesasApp() {
         despesas, receitas, resumo, actividadesOpts,
         panelOpen, panelMode, panelTitle, saveLabel,
         form, receitaForm, confirmDelete, receitaConfirmDelete, toasts,
-        search, filterFonte, filterCategoria, filterReceitaFonte, activeTab,
+        search, filterFonte, filterCategoria, filterReceitaFonte, activeTab, porFundoOpen,
         inputDescricao, inputReceitaDescricao,
         hasFilters, filteredDespesas, filteredTotal, filteredReceitas, receitaTotal,
         receitasDetalhes,
