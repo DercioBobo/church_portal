@@ -487,7 +487,10 @@ function createDespesasApp() {
 
   <!-- ── Toasts ────────────────────────────────────────────────────────── -->
   <div class="de-toast-container">
-    <div v-for="t in toasts" :key="t.id" class="de-toast" :class="t.type">{{ t.msg }}</div>
+    <div v-for="t in toasts" :key="t.id" class="de-toast" :class="t.type">
+      <span>{{ t.msg }}</span>
+      <button v-if="t.undo" class="de-toast-undo" @click="t.undo()">Desfazer</button>
+    </div>
   </div>
 
 </div>`,
@@ -589,10 +592,27 @@ function createDespesasApp() {
 
       // ── Toast ─────────────────────────────────────────────────────────
       let _toastId = 0;
-      function toast(msg, type = 'info') {
+      function toast(msg, type = 'info', opts = {}) {
         const id = ++_toastId;
-        toasts.value.push({ id, msg, type });
-        setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, 3200);
+        const duration = opts.undo ? 5000 : 3200;
+        const entry = { id, msg, type, undo: null };
+        if (opts.undo) {
+          let alive = true;
+          const timer = setTimeout(() => {
+            alive = false;
+            toasts.value = toasts.value.filter(t => t.id !== id);
+          }, duration);
+          entry.undo = () => {
+            if (!alive) return;
+            alive = false;
+            clearTimeout(timer);
+            toasts.value = toasts.value.filter(t => t.id !== id);
+            opts.undo();
+          };
+        } else {
+          setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, duration);
+        }
+        toasts.value.push(entry);
       }
 
       // ── Despesa panel ─────────────────────────────────────────────────
@@ -699,20 +719,43 @@ function createDespesasApp() {
         }
       }
 
-      async function deleteNow() {
+      function deleteNow() {
         if (!form.name) return;
-        saving.value = true;
-        try {
-          await api('delete_despesa', { name: form.name });
-          despesas.value = despesas.value.filter(d => d.name !== form.name);
-          await loadResumo();
-          toast('Despesa eliminada', 'info');
-          closePanel();
-        } catch (e) {
-          toast('Erro ao eliminar: ' + e.message, 'error');
-        } finally {
-          saving.value = false;
-        }
+        const name = form.name;
+        const snapshot = despesas.value.find(d => d.name === name);
+        const idx = despesas.value.findIndex(d => d.name === name);
+
+        // Optimistic remove + close immediately
+        despesas.value = despesas.value.filter(d => d.name !== name);
+        closePanel();
+
+        let undone = false;
+        let apiTimer = null;
+
+        toast('Despesa eliminada', 'info', {
+          undo: () => {
+            undone = true;
+            clearTimeout(apiTimer);
+            if (snapshot) {
+              const pos = idx >= 0 ? Math.min(idx, despesas.value.length) : 0;
+              despesas.value.splice(pos, 0, snapshot);
+            }
+          },
+        });
+
+        apiTimer = setTimeout(async () => {
+          if (undone) return;
+          try {
+            await api('delete_despesa', { name });
+            loadResumo();
+          } catch (e) {
+            if (snapshot) {
+              const pos = idx >= 0 ? Math.min(idx, despesas.value.length) : 0;
+              despesas.value.splice(pos, 0, snapshot);
+            }
+            toast('Erro ao eliminar: ' + e.message, 'error');
+          }
+        }, 5000);
       }
 
       // ── Receita save / delete ─────────────────────────────────────────
@@ -742,20 +785,43 @@ function createDespesasApp() {
         }
       }
 
-      async function deleteReceita() {
+      function deleteReceita() {
         if (!receitaForm.name) return;
-        saving.value = true;
-        try {
-          await api('delete_receita', { name: receitaForm.name });
-          receitas.value = receitas.value.filter(r => r.name !== receitaForm.name);
-          await loadResumo();
-          toast('Receita eliminada', 'info');
-          closePanel();
-        } catch (e) {
-          toast('Erro ao eliminar: ' + e.message, 'error');
-        } finally {
-          saving.value = false;
-        }
+        const name = receitaForm.name;
+        const snapshot = receitas.value.find(r => r.name === name);
+        const idx = receitas.value.findIndex(r => r.name === name);
+
+        // Optimistic remove + close immediately
+        receitas.value = receitas.value.filter(r => r.name !== name);
+        closePanel();
+
+        let undone = false;
+        let apiTimer = null;
+
+        toast('Receita eliminada', 'info', {
+          undo: () => {
+            undone = true;
+            clearTimeout(apiTimer);
+            if (snapshot) {
+              const pos = idx >= 0 ? Math.min(idx, receitas.value.length) : 0;
+              receitas.value.splice(pos, 0, snapshot);
+            }
+          },
+        });
+
+        apiTimer = setTimeout(async () => {
+          if (undone) return;
+          try {
+            await api('delete_receita', { name });
+            loadResumo();
+          } catch (e) {
+            if (snapshot) {
+              const pos = idx >= 0 ? Math.min(idx, receitas.value.length) : 0;
+              receitas.value.splice(pos, 0, snapshot);
+            }
+            toast('Erro ao eliminar: ' + e.message, 'error');
+          }
+        }, 5000);
       }
 
       // ── Data loading ──────────────────────────────────────────────────

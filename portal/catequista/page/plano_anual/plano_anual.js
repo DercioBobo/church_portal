@@ -973,7 +973,10 @@ function createPlanoAnualApp() {
 
   <!-- Toasts -->
   <div class="pa-toast-container">
-    <div v-for="t in toasts" :key="t.id" class="pa-toast" :class="t.type">{{ t.msg }}</div>
+    <div v-for="t in toasts" :key="t.id" class="pa-toast" :class="t.type">
+      <span>{{ t.msg }}</span>
+      <button v-if="t.undo" class="pa-toast-undo" @click="t.undo()">Desfazer</button>
+    </div>
   </div>
 
 </div>`,
@@ -1356,17 +1359,32 @@ function createPlanoAnualApp() {
 
       async function deleteActivity() {
         if (!form.name) return;
-        saving.value = true;
-        try {
-          await api('delete_actividade', { name: form.name });
-          actividades.value = actividades.value.filter(a => a.name !== form.name);
-          toast('Eliminado', 'info');
-          closePanel();
-        } catch (e) {
-          toast('Erro ao eliminar: ' + e.message, 'error');
-        } finally {
-          saving.value = false;
-        }
+        const name    = form.name;
+        const deleted = actividades.value.find(a => a.name === name);
+        if (!deleted) return;
+
+        // Optimistic remove + close immediately
+        actividades.value = actividades.value.filter(a => a.name !== name);
+        closePanel();
+
+        let undone = false;
+        const timer = setTimeout(async () => {
+          if (undone) return;
+          try {
+            await api('delete_actividade', { name });
+          } catch (e) {
+            actividades.value.push(deleted);
+            toast('Erro ao eliminar: ' + e.message, 'error');
+          }
+        }, 5000);
+
+        toast('Actividade eliminada', 'info', {
+          undo: () => {
+            undone = true;
+            clearTimeout(timer);
+            actividades.value.push(deleted);
+          },
+        });
       }
 
       const duplicating = ref(false);
@@ -1533,17 +1551,33 @@ function createPlanoAnualApp() {
       async function doBulkDelete() {
         if (!selected.value.size) return;
         bulkActWorking.value = true;
-        const names = Array.from(selected.value);
-        try {
-          await api('bulk_delete', { names_json: JSON.stringify(names) });
-          actividades.value = actividades.value.filter(a => !names.includes(a.name));
-          toast(`${names.length} actividade${names.length !== 1 ? 's' : ''} eliminada${names.length !== 1 ? 's' : ''}`, 'info');
-          clearSelection();
-        } catch (e) {
-          toast('Erro ao eliminar: ' + e.message, 'error');
-        } finally {
-          bulkActWorking.value = false;
-        }
+        const names   = Array.from(selected.value);
+        const deleted = names.map(n => actividades.value.find(a => a.name === n)).filter(Boolean);
+
+        // Optimistic remove
+        actividades.value = actividades.value.filter(a => !names.includes(a.name));
+        clearSelection();
+        bulkActWorking.value = false;
+
+        let undone = false;
+        const timer = setTimeout(async () => {
+          if (undone) return;
+          try {
+            await api('bulk_delete', { names_json: JSON.stringify(names) });
+          } catch (e) {
+            deleted.forEach(a => actividades.value.push(a));
+            toast('Erro ao eliminar: ' + e.message, 'error');
+          }
+        }, 5000);
+
+        const n = names.length;
+        toast(`${n} actividade${n !== 1 ? 's' : ''} eliminada${n !== 1 ? 's' : ''}`, 'info', {
+          undo: () => {
+            undone = true;
+            clearTimeout(timer);
+            deleted.forEach(a => actividades.value.push(a));
+          },
+        });
       }
 
       async function doBulkMoveMonth() {
@@ -1671,13 +1705,25 @@ function createPlanoAnualApp() {
         act.estado = next;
         flashingRow.value = act.name;
         setTimeout(() => { if (flashingRow.value === act.name) flashingRow.value = null; }, 620);
-        try {
-          await api('update_estado', { name: act.name, estado: next });
-          toast('Estado: ' + next, 'success');
-        } catch (e) {
-          act.estado = prev;
-          toast('Erro ao alterar estado', 'error');
-        }
+
+        let undone = false;
+        const timer = setTimeout(async () => {
+          if (undone) return;
+          try {
+            await api('update_estado', { name: act.name, estado: next });
+          } catch (e) {
+            act.estado = prev;
+            toast('Erro ao alterar estado', 'error');
+          }
+        }, 5000);
+
+        toast('Estado: ' + next, 'success', {
+          undo: () => {
+            undone = true;
+            clearTimeout(timer);
+            act.estado = prev;
+          },
+        });
       }
 
       function removeTipFilter(name) {
@@ -1845,10 +1891,27 @@ function createPlanoAnualApp() {
 
       // ── Toast ─────────────────────────────────────────────────────────────
       let _toastId = 0;
-      function toast(msg, type = 'info') {
-        const id = ++_toastId;
-        toasts.value.push({ id, msg, type });
-        setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, 3200);
+      function toast(msg, type = 'info', opts = {}) {
+        const id       = ++_toastId;
+        const duration = opts.undo ? 5000 : 3200;
+        const entry    = { id, msg, type, undo: null };
+        if (opts.undo) {
+          let alive = true;
+          const timer = setTimeout(() => {
+            alive = false;
+            toasts.value = toasts.value.filter(t => t.id !== id);
+          }, duration);
+          entry.undo = () => {
+            if (!alive) return;
+            alive = false;
+            clearTimeout(timer);
+            toasts.value = toasts.value.filter(t => t.id !== id);
+            opts.undo();
+          };
+        } else {
+          setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, duration);
+        }
+        toasts.value.push(entry);
       }
 
       init();
