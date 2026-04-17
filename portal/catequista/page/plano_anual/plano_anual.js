@@ -115,11 +115,11 @@ function createPlanoAnualApp() {
       <input
         class="pa-search-input"
         type="text"
-        v-model="search"
+        v-model="searchRaw"
         placeholder="Pesquisar actividade…"
-        @keydown.escape="search = ''"
+        @keydown.escape="clearSearch()"
       >
-      <button v-if="search" class="pa-search-clear" @click="search = ''" title="Limpar">
+      <button v-if="searchRaw" class="pa-search-clear" @click="clearSearch()" title="Limpar">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
@@ -301,7 +301,7 @@ function createPlanoAnualApp() {
           <div
             v-for="act in group.items" :key="act.name"
             class="pa-card"
-            :class="{ overdue: isOverdue(act), dragging: dragItem === act.name, 'drag-target': dragTarget === act.name, selected: selected.has(act.name) }"
+            :class="{ overdue: isOverdue(act), dragging: dragItem === act.name, 'drag-target': dragTarget === act.name, selected: selected.has(act.name), 'pa-card-just-moved': justMovedCard === act.name }"
             :style="cardStyle(act)"
             draggable="true"
             @dragstart="onDragStart(act, $event)"
@@ -430,7 +430,7 @@ function createPlanoAnualApp() {
               </tr>
               <tr v-for="(act, i) in group.items" :key="act.name"
                 v-show="!isCollapsed(group.key)"
-                :class="{ 'pa-row-overdue': isOverdue(act), 'pa-row-selected': selected.has(act.name) }"
+                :class="{ 'pa-row-overdue': isOverdue(act), 'pa-row-selected': selected.has(act.name), 'pa-row-flashing': flashingRow === act.name }"
                 @click="handleCardClick(act)">
                 <td data-no-print @click.stop style="text-align:center;padding:0 8px">
                   <input type="checkbox" class="pa-table-check" :checked="selected.has(act.name)" @change.stop="toggleSelect(act.name)">
@@ -510,7 +510,32 @@ function createPlanoAnualApp() {
 
     <!-- ── Calendar grid view ─────────────────────────────────────── -->
     <template v-else>
-      <div class="pa-cal-grid">
+
+      <!-- Sub-toolbar: annual/monthly toggle + month navigation -->
+      <div class="pa-cal-bar">
+        <div class="pa-cal-sub-toggle">
+          <button class="pa-cal-sub-btn" :class="{ active: calViewMode === 'annual' }" @click="calViewMode = 'annual'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Anual
+          </button>
+          <button class="pa-cal-sub-btn" :class="{ active: calViewMode === 'monthly' }" @click="calViewMode = 'monthly'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Mensal
+          </button>
+        </div>
+        <template v-if="calViewMode === 'monthly' && calCurrentMonthData">
+          <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="calPrevMonth" :disabled="calMonthIndex === 0" title="Mês anterior">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="pa-cal-nav-label">{{ calCurrentMonthData.label }}</span>
+          <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="calNextMonth" :disabled="calMonthIndex >= calendarData.length - 1" title="Mês seguinte">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </template>
+      </div>
+
+      <!-- ── Annual: responsive grid of all months ────────────────── -->
+      <div v-if="calViewMode === 'annual'" class="pa-cal-grid">
         <div
           v-for="month in calendarData" :key="month.key"
           class="pa-cal-month"
@@ -556,8 +581,62 @@ function createPlanoAnualApp() {
                   <span class="pa-cal-act-dot" :style="{ background: tipologiaColor(act) }"></span>
                   {{ truncate(act.actividade, 20) }}
                 </div>
-                <div v-if="cell.acts.length > 3" class="pa-cal-act-more" @click.stop>
-                  +{{ cell.acts.length - 3 }} mais
+                <div v-if="cell.acts.length > 3" class="pa-cal-act-more" @click.stop>+{{ cell.acts.length - 3 }} mais</div>
+              </div>
+              <div v-if="cell && cell.acts.length > 1" class="pa-cal-conflict-badge" title="Múltiplas actividades neste dia">!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Monthly: single enlarged month ───────────────────────── -->
+      <div v-else-if="calCurrentMonthData" class="pa-cal-monthly-wrap">
+        <div class="pa-cal-month pa-cal-month-lg" :class="{ 'pa-cal-month-current': isCurrentMonth(calCurrentMonthData.key) }">
+          <div class="pa-cal-month-hdr">
+            <span class="pa-cal-month-name" style="font-size:1rem;font-weight:800">{{ calCurrentMonthData.label }}</span>
+            <span v-if="isCurrentMonth(calCurrentMonthData.key)" class="pa-month-now-badge">Agora</span>
+            <div style="flex:1"></div>
+            <span v-if="calCurrentMonthData.actCount" class="pa-cal-month-count">
+              {{ calCurrentMonthData.actCount }} actividade{{ calCurrentMonthData.actCount !== 1 ? 's' : '' }}
+            </span>
+            <button class="pa-month-add" @click="openQuickAdd(calCurrentMonthData.key)" data-no-print>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Adicionar
+            </button>
+          </div>
+          <div class="pa-cal-dow-row pa-cal-dow-row-lg">
+            <span v-for="dw in ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo']" :key="dw" class="pa-cal-dow">{{ dw }}</span>
+          </div>
+          <div v-for="(week, wi) in calCurrentMonthData.weeks" :key="wi" class="pa-cal-week pa-cal-week-lg">
+            <div
+              v-for="(cell, di) in week" :key="di"
+              class="pa-cal-cell pa-cal-cell-lg"
+              :class="{
+                'pa-cal-empty':    !cell,
+                'pa-cal-today':    cell && cell.isToday,
+                'pa-cal-weekend':  cell && cell.isWeekend,
+                'pa-cal-has-acts': cell && cell.acts.length > 0,
+                'pa-cal-conflict': cell && cell.acts.length > 1,
+              }"
+              @click="cell && !cell.acts.length && openNewActivityOnDay(cell.dateStr)"
+              :title="cell && !cell.acts.length ? 'Adicionar actividade em ' + formatDate(cell.dateStr) : ''"
+            >
+              <div v-if="cell" class="pa-cal-day-num pa-cal-day-num-lg">{{ cell.day }}</div>
+              <div v-if="cell && cell.acts.length" class="pa-cal-acts">
+                <div
+                  v-for="act in cell.acts" :key="act.name"
+                  class="pa-cal-act-chip pa-cal-act-chip-lg"
+                  :style="calActStyle(act)"
+                  :class="{ 'pa-cal-act-overdue': isOverdue(act) }"
+                  @click.stop="openEdit(act)"
+                  :title="act.actividade + ' — ' + act.estado + (act.orador ? ' (' + act.orador + ')' : '')"
+                >
+                  <span class="pa-cal-act-dot" :style="{ background: tipologiaColor(act) }"></span>
+                  <span class="pa-cal-act-chip-body">
+                    <span class="pa-cal-act-chip-name">{{ truncate(act.actividade, 36) }}</span>
+                    <span v-if="act.orador" class="pa-cal-act-chip-sub">{{ act.orador }}</span>
+                  </span>
+                  <span class="pa-card-status" :class="statusClass(act.estado)" style="flex-shrink:0;font-size:0.6rem;padding:1px 6px;margin-left:auto">{{ act.estado }}</span>
                 </div>
               </div>
               <div v-if="cell && cell.acts.length > 1" class="pa-cal-conflict-badge" title="Múltiplas actividades neste dia">!</div>
@@ -565,6 +644,7 @@ function createPlanoAnualApp() {
           </div>
         </div>
       </div>
+
     </template>
   </div>
 
@@ -906,7 +986,9 @@ function createPlanoAnualApp() {
       const tipologias   = ref([]);
       const anos         = ref([]);
       const selectedAno  = ref('');
-      const search       = ref('');
+      const searchRaw    = ref('');   // bound to input (v-model)
+      const search       = ref('');   // debounced — used by filteredActividades
+      let   _searchTimer = null;
       const viewMode     = ref('card');
       const panelOpen    = ref(false);
       const form         = reactive(EMPTY_FORM());
@@ -1024,7 +1106,7 @@ function createPlanoAnualApp() {
       });
 
       const hasFilters = computed(() =>
-        filterStatus.value || filterTipologias.value.length || filterMonth.value || search.value.trim()
+        filterStatus.value || filterTipologias.value.length || filterMonth.value || searchRaw.value.trim()
       );
 
       const filteredTipDd = computed(() => {
@@ -1103,6 +1185,23 @@ function createPlanoAnualApp() {
         });
       });
 
+      // Calendar sub-view: annual | monthly
+      const calViewMode   = ref('annual');
+      const calMonthIndex = ref(0);
+
+      const calCurrentMonthData = computed(() => calendarData.value[calMonthIndex.value] || null);
+
+      function calPrevMonth() { if (calMonthIndex.value > 0) calMonthIndex.value--; }
+      function calNextMonth() { if (calMonthIndex.value < calendarData.value.length - 1) calMonthIndex.value++; }
+
+      // When switching to monthly view, jump to the current month (or first)
+      watch(() => calViewMode.value, (val) => {
+        if (val === 'monthly') {
+          const idx = calendarData.value.findIndex(m => m.key === TODAY_KEY);
+          calMonthIndex.value = idx >= 0 ? idx : 0;
+        }
+      });
+
       // ── Click-outside for tipologia dropdown ──────────────────────────────
       function _onDocClick(e) {
         if (tipDdOpen.value && tipDropEl.value && !tipDropEl.value.contains(e.target)) {
@@ -1122,6 +1221,18 @@ function createPlanoAnualApp() {
         if (val) nextTick(() => tipSearchInput.value && tipSearchInput.value.focus());
         else tipSearch.value = '';
       });
+
+      // Debounce raw search input → search (used by filteredActividades)
+      watch(searchRaw, (val) => {
+        clearTimeout(_searchTimer);
+        _searchTimer = setTimeout(() => { search.value = val; }, 150);
+      });
+
+      function clearSearch() {
+        clearTimeout(_searchTimer);
+        searchRaw.value = '';
+        search.value    = '';
+      }
 
       // ── Data ──────────────────────────────────────────────────────────────
       async function init() {
@@ -1159,6 +1270,11 @@ function createPlanoAnualApp() {
       }
 
       // ── Panel ─────────────────────────────────────────────────────────────
+      function _resetPanelScroll() {
+        const body = document.querySelector('.pa-panel-body');
+        if (body) body.scrollTop = 0;
+      }
+
       function openNewActivity(groupKey) {
         Object.assign(form, EMPTY_FORM());
         form.ano_lectivo = selectedAno.value;
@@ -1166,7 +1282,7 @@ function createPlanoAnualApp() {
         editingAct.value = null;
         confirmDelete.value = false;
         panelOpen.value = true;
-        nextTick(() => inputActividade.value && inputActividade.value.focus());
+        nextTick(() => { _resetPanelScroll(); inputActividade.value && inputActividade.value.focus(); });
       }
 
       function openEdit(act) {
@@ -1181,7 +1297,7 @@ function createPlanoAnualApp() {
         editingAct.value = act;
         confirmDelete.value = false;
         panelOpen.value = true;
-        nextTick(() => inputActividade.value && inputActividade.value.focus());
+        nextTick(() => { _resetPanelScroll(); inputActividade.value && inputActividade.value.focus(); });
       }
 
       function closePanel() { panelOpen.value = false; confirmDelete.value = false; }
@@ -1519,10 +1635,14 @@ function createPlanoAnualApp() {
         }
       }
 
+      const flashingRow = ref(null);
+
       async function cycleStatus(act) {
         const next = STATUS_NEXT[act.estado] || 'Pendente';
         const prev = act.estado;
         act.estado = next;
+        flashingRow.value = act.name;
+        setTimeout(() => { if (flashingRow.value === act.name) flashingRow.value = null; }, 620);
         try {
           await api('update_estado', { name: act.name, estado: next });
           toast('Estado: ' + next, 'success');
@@ -1537,6 +1657,15 @@ function createPlanoAnualApp() {
       }
 
       // ── Drag ─────────────────────────────────────────────────────────────
+      const justMovedCard = ref(null);
+      let   _justMovedTimer = null;
+
+      function markJustMoved(name) {
+        clearTimeout(_justMovedTimer);
+        justMovedCard.value = name;
+        _justMovedTimer = setTimeout(() => { justMovedCard.value = null; }, 450);
+      }
+
       function onDragStart(act, evt) {
         _dragAct = act;
         dragItem.value = act.name;
@@ -1577,11 +1706,13 @@ function createPlanoAnualApp() {
           : (act.data && monthKey(act.data) === groupKey ? act.data : groupKey + '-01');
         const oldDate = act.data;
         act.data = newDate;  // optimistic
+        markJustMoved(act.name);
         try {
           await api('update_actividade', { name: act.name, data_json: JSON.stringify({ ...act, data: newDate }) });
           toast('Actividade movida para ' + monthLabel(groupKey), 'info');
         } catch (e) {
           act.data = oldDate;
+          justMovedCard.value = null;
           toast('Erro ao mover', 'error');
         }
       }
@@ -1697,17 +1828,18 @@ function createPlanoAnualApp() {
       return {
         ALL_ESTADOS,
         loading, saving, actividades, tipologias, anos, selectedAno,
-        search, viewMode, panelOpen, form, editingAct, confirmDelete, toasts,
+        searchRaw, viewMode, panelOpen, form, editingAct, confirmDelete, toasts,
         inputActividade, dragItem, dragOverGroup, dragTarget,
         filterStatus, filterTipologias, filterMonth,
         tipDdOpen, tipSearch, tipDropEl, tipSearchInput,
         actionsOpen, actionsEl,
         stats, availableMonths, hasFilters, filteredGroups, filteredTipDd,
-        tipologiaMap, calendarData,
+        tipologiaMap, calendarData, calViewMode, calMonthIndex, calCurrentMonthData, calPrevMonth, calNextMonth,
         loadActividades, openNewActivity, openEdit, closePanel,
         saveActivity, deleteActivity, duplicating, duplicateActivity,
-        cycleStatus, removeTipFilter,
-        onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
+        cycleStatus, flashingRow, removeTipFilter,
+        onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, justMovedCard,
+        clearSearch,
         printView, exporting, exportExcel,
         cardStyle, tipologiaChipStyle, tipologiaColor, calActStyle,
         openNewActivityOnDay,
