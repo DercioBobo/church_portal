@@ -1,0 +1,119 @@
+{
+ "autoname": "autoincrement",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "descricao",
+  "fonte",
+  "column_break_1",
+  "ano_lectivo",
+  "data",
+  "section_valor",
+  "valor",
+  "categoria",
+  "section_detalhe",
+  "actividade",
+  "notas"
+ ],
+ "fields": [
+  {
+   "fieldname": "descricao",
+   "fieldtype": "Data",
+   "label": "Descrição",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "fonte",
+   "fieldtype": "Select",
+   "label": "Fonte",
+   "options": "Quotas\nDonativo\nSubsídio Paroquial\nOutro",
+   "default": "Quotas",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ano_lectivo",
+   "fieldtype": "Link",
+   "label": "Ano Lectivo",
+   "options": "Ano Lectivo",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "data",
+   "fieldtype": "Date",
+   "label": "Data",
+   "default": "Today",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_valor",
+   "fieldtype": "Section Break",
+   "label": "Valor e Categoria"
+  },
+  {
+   "fieldname": "valor",
+   "fieldtype": "Currency",
+   "label": "Valor",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "categoria",
+   "fieldtype": "Select",
+   "label": "Categoria",
+   "options": "\nMaterial Didáctico\nTransportes\nActividades\nAlimentação\nComunicação\nOutro",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_detalhe",
+   "fieldtype": "Section Break",
+   "label": "Detalhe"
+  },
+  {
+   "fieldname": "actividade",
+   "fieldtype": "Link",
+   "label": "Actividade do Plano",
+   "options": "Actividade do Plano"
+  },
+  {
+   "fieldname": "notas",
+   "fieldtype": "Small Text",
+   "label": "Notas",
+   "description": "Número de recibo, fornecedor, observações"
+  }
+ ],
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Despesa Catequese",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Coordenador Catequese",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ],
+ "sort_field": "data",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

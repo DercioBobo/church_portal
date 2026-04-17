@@ -61,6 +61,7 @@
    "fieldname": "data_pagamento",
    "fieldtype": "Date",
    "label": "Data de Pagamento",
+   "default": "Today",
    "in_list_view": 1
   },
   {

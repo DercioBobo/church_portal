@@ -1,0 +1,542 @@
+/* global frappe, Vue */
+// Despesas da Catequese — Vue 3 CDN, no build step
+
+frappe.pages['despesas-catequese'].on_page_load = function (wrapper) {
+  frappe.ui.make_app_page({
+    parent: wrapper,
+    title: __('Despesas da Catequese'),
+    single_column: true,
+  });
+
+  function _mountApp() {
+    const mount = document.createElement('div');
+    wrapper.querySelector('.page-content').appendChild(mount);
+    createDespesasApp().mount(mount);
+  }
+
+  if (window.Vue) {
+    _mountApp();
+  } else {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js';
+    script.onload = _mountApp;
+    script.onerror = function () {
+      const s2 = document.createElement('script');
+      s2.src = 'https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js';
+      s2.onload = _mountApp;
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(script);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+const FONTES     = ['Quotas', 'Donativo', 'Subsídio Paroquial', 'Outro'];
+const CATEGORIAS = ['Material Didáctico', 'Transportes', 'Actividades', 'Alimentação', 'Comunicação', 'Outro'];
+
+const FONTE_COLOR = {
+  'Quotas':             '#6366f1',
+  'Donativo':           '#10b981',
+  'Subsídio Paroquial': '#f59e0b',
+  'Outro':              '#6b7280',
+};
+
+function fonteColor(fonte) { return FONTE_COLOR[fonte] || '#6b7280'; }
+
+function api(method, args) {
+  return new Promise((resolve, reject) => {
+    frappe.call({
+      method: `portal.catequista.page.despesas.despesas.${method}`,
+      args,
+      callback: (r) => { if (r.exc) reject(new Error(r.exc)); else resolve(r.message); },
+      error: reject,
+    });
+  });
+}
+
+const EMPTY_FORM = () => ({
+  name: null, descricao: '', fonte: 'Quotas', ano_lectivo: '',
+  data: '', valor: '', categoria: '', actividade: '', notas: '',
+});
+
+function fmt(v) {
+  return parseFloat(v || 0).toLocaleString('pt-MZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' MT';
+}
+function formatDate(d) {
+  if (!d) return '—';
+  const [y, m, day] = String(d).split('-');
+  return `${day}/${m}/${y}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// App
+// ─────────────────────────────────────────────────────────────────────────────
+function createDespesasApp() {
+  const { createApp, ref, computed, reactive, nextTick } = Vue;
+
+  return createApp({
+    template: `
+<div id="despesas-app">
+
+  <!-- ── Toolbar ─────────────────────────────────────────────────────── -->
+  <div class="de-toolbar">
+    <h1>💰 Despesas da Catequese</h1>
+    <select v-model="selectedAno" @change="loadAll" class="de-select" title="Ano lectivo">
+      <option v-for="a in anos" :key="a" :value="a">{{ a }}</option>
+    </select>
+    <select v-model="filterFonte" class="de-select" title="Filtrar por fonte">
+      <option value="">Todas as fontes</option>
+      <option v-for="f in FONTES" :key="f" :value="f">{{ f }}</option>
+    </select>
+    <select v-model="filterCategoria" class="de-select" title="Filtrar por categoria">
+      <option value="">Todas as categorias</option>
+      <option v-for="c in CATEGORIAS" :key="c" :value="c">{{ c }}</option>
+    </select>
+    <div class="de-search-wrap">
+      <svg class="de-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="de-search-input" v-model="search" placeholder="Pesquisar…" @keydown.escape="clearSearch">
+      <button v-if="search" class="de-search-clear" @click="clearSearch">✕</button>
+    </div>
+    <div style="flex:1"></div>
+    <button class="de-btn de-btn-primary de-btn-sm" @click="openNew">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nova despesa
+    </button>
+  </div>
+
+  <!-- ── Loading ──────────────────────────────────────────────────────── -->
+  <div v-if="loading" class="de-loading">
+    <div class="de-spinner"></div> A carregar…
+  </div>
+
+  <template v-else>
+
+    <!-- ── Summary cards ──────────────────────────────────────────────── -->
+    <div class="de-summary-grid">
+      <div class="de-stat-card">
+        <div class="de-stat-icon de-stat-icon-blue">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M22 10H2"/></svg>
+        </div>
+        <div>
+          <p class="de-stat-label">Quotas arrecadadas</p>
+          <p class="de-stat-value">{{ fmt(resumo.total_quotas || 0) }}</p>
+          <p class="de-stat-sub">fundo disponível</p>
+        </div>
+      </div>
+      <div class="de-stat-card">
+        <div class="de-stat-icon de-stat-icon-red">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+        <div>
+          <p class="de-stat-label">Gasto das quotas</p>
+          <p class="de-stat-value">{{ fmt(resumo.gasto_quotas || 0) }}</p>
+          <p class="de-stat-sub">debitado ao fundo</p>
+        </div>
+      </div>
+      <div class="de-stat-card" :class="(resumo.saldo || 0) >= 0 ? 'de-stat-card-pos' : 'de-stat-card-neg'">
+        <div class="de-stat-icon" :class="(resumo.saldo || 0) >= 0 ? 'de-stat-icon-green' : 'de-stat-icon-red'">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div>
+          <p class="de-stat-label">Saldo disponível</p>
+          <p class="de-stat-value" :class="(resumo.saldo || 0) >= 0 ? 'de-val-pos' : 'de-val-neg'">{{ fmt(resumo.saldo || 0) }}</p>
+          <p class="de-stat-sub">quotas − despesas</p>
+        </div>
+      </div>
+      <div class="de-stat-card">
+        <div class="de-stat-icon de-stat-icon-amber">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <div>
+          <p class="de-stat-label">Outras receitas</p>
+          <p class="de-stat-value">{{ fmt(outrasReceitas) }}</p>
+          <p v-if="outrasDetalhes" class="de-stat-sub">{{ outrasDetalhes }}</p>
+          <p v-else class="de-stat-sub">sem donativos/subsídios</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Category breakdown ─────────────────────────────────────────── -->
+    <div v-if="Object.keys(resumo.por_categoria || {}).length" class="de-breakdown">
+      <span class="de-breakdown-label">Por categoria:</span>
+      <span
+        v-for="(val, cat) in resumo.por_categoria" :key="cat"
+        class="de-cat-pill"
+      >{{ cat }}: {{ fmt(val) }}</span>
+    </div>
+
+    <!-- ── Empty state ────────────────────────────────────────────────── -->
+    <div v-if="filteredDespesas.length === 0" class="de-empty">
+      <div style="font-size:2.6rem;margin-bottom:12px">🧾</div>
+      <div style="font-weight:600;color:#374151;margin-bottom:6px">Nenhuma despesa encontrada</div>
+      <div style="color:#9ca3af;font-size:0.85rem">
+        {{ hasFilters ? 'Tente outros filtros' : 'Clique em "Nova despesa" para registar a primeira' }}
+      </div>
+    </div>
+
+    <!-- ── Expense table ──────────────────────────────────────────────── -->
+    <div v-else class="de-table-wrap">
+      <table class="de-table">
+        <thead>
+          <tr>
+            <th style="width:96px">Data</th>
+            <th>Descrição</th>
+            <th style="width:155px">Categoria</th>
+            <th style="width:145px">Fonte</th>
+            <th style="width:170px">Actividade</th>
+            <th style="width:120px;text-align:right">Valor</th>
+            <th style="width:48px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="d in filteredDespesas" :key="d.name" class="de-row" @click="openEdit(d)">
+            <td class="de-date">{{ formatDate(d.data) }}</td>
+            <td class="de-desc">{{ d.descricao }}</td>
+            <td>
+              <span v-if="d.categoria" class="de-cat-tag">{{ d.categoria }}</span>
+              <span v-else class="de-empty-val">—</span>
+            </td>
+            <td>
+              <span class="de-fonte-tag" :style="fonteTagStyle(d.fonte)">{{ d.fonte }}</span>
+            </td>
+            <td class="de-act-cell">{{ d.actividade || '—' }}</td>
+            <td class="de-valor">{{ fmt(d.valor) }}</td>
+            <td @click.stop>
+              <button class="de-del-btn" @click="confirmAndDelete(d)" title="Eliminar">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              </button>
+            </td>
+          </tr>
+          <tr class="de-total-row">
+            <td colspan="5" class="de-total-label">
+              {{ filteredDespesas.length }} despesa{{ filteredDespesas.length !== 1 ? 's' : '' }}
+              <span v-if="hasFilters" style="color:#a3a3a3"> (filtradas)</span>
+            </td>
+            <td class="de-total-valor">{{ fmt(filteredTotal) }}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </template>
+
+  <!-- ── Overlay ──────────────────────────────────────────────────────── -->
+  <div class="de-overlay" :class="{ open: panelOpen }" @click="closePanel"></div>
+
+  <!-- ── Side panel ───────────────────────────────────────────────────── -->
+  <div class="de-panel" :class="{ open: panelOpen }">
+    <div class="de-panel-header">
+      <h2>{{ form.name ? 'Editar Despesa' : 'Nova Despesa' }}</h2>
+      <button class="de-panel-close" @click="closePanel">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="de-panel-body">
+      <div class="de-field">
+        <label>Descrição <span class="de-req">*</span></label>
+        <input v-model="form.descricao" type="text" placeholder="O que foi pago / comprado" ref="inputDescricao">
+      </div>
+
+      <div class="de-field-row">
+        <div class="de-field">
+          <label>Valor <span class="de-req">*</span></label>
+          <input v-model="form.valor" type="number" step="0.01" min="0" placeholder="0.00">
+        </div>
+        <div class="de-field">
+          <label>Data <span class="de-req">*</span></label>
+          <input v-model="form.data" type="date">
+        </div>
+      </div>
+
+      <div class="de-field-row">
+        <div class="de-field">
+          <label>Fonte <span class="de-req">*</span></label>
+          <select v-model="form.fonte">
+            <option v-for="f in FONTES" :key="f" :value="f">{{ f }}</option>
+          </select>
+        </div>
+        <div class="de-field">
+          <label>Categoria</label>
+          <select v-model="form.categoria">
+            <option value="">— Sem categoria —</option>
+            <option v-for="c in CATEGORIAS" :key="c" :value="c">{{ c }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="de-field">
+        <label>Actividade do Plano</label>
+        <input
+          v-model="form.actividade"
+          type="text"
+          list="de-actividades-list"
+          placeholder="Actividade relacionada (opcional)"
+          autocomplete="off"
+        >
+        <datalist id="de-actividades-list">
+          <option v-for="a in actividadesOpts" :key="a.name" :value="a.name">{{ a.actividade }}</option>
+        </datalist>
+      </div>
+
+      <div class="de-field">
+        <label>Ano Lectivo</label>
+        <select v-model="form.ano_lectivo">
+          <option v-for="a in anos" :key="a" :value="a">{{ a }}</option>
+        </select>
+      </div>
+
+      <div class="de-field">
+        <label>Notas</label>
+        <textarea v-model="form.notas" rows="3" placeholder="Nº de recibo, fornecedor, observações…"></textarea>
+      </div>
+
+      <template v-if="form.name">
+        <div class="de-section-divider"></div>
+        <div v-if="!confirmDelete" style="display:flex;justify-content:center">
+          <button class="de-btn de-btn-danger" @click="startDelete">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            Eliminar despesa
+          </button>
+        </div>
+        <div v-else class="de-delete-zone">
+          <p class="de-delete-title">Confirmar eliminação?</p>
+          <p class="de-delete-desc">Esta acção é permanente e não pode ser desfeita.</p>
+          <div class="de-delete-actions">
+            <button class="de-btn de-btn-danger" @click="deleteNow" :disabled="saving">Sim, eliminar</button>
+            <button class="de-btn de-btn-secondary" @click="cancelDelete">Cancelar</button>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <div class="de-panel-footer">
+      <button class="de-btn de-btn-secondary" @click="closePanel">Cancelar</button>
+      <button class="de-btn de-btn-primary" @click="saveDespesa" :disabled="saving">
+        <div v-if="saving" class="de-spinner" style="width:13px;height:13px;border-top-color:#fff;border-color:rgba(255,255,255,0.3)"></div>
+        <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        {{ saving ? 'A guardar…' : (form.name ? 'Guardar alterações' : 'Criar despesa') }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toasts ────────────────────────────────────────────────────────── -->
+  <div class="de-toast-container">
+    <div v-for="t in toasts" :key="t.id" class="de-toast" :class="t.type">{{ t.msg }}</div>
+  </div>
+
+</div>`,
+
+    setup() {
+      const loading         = ref(true);
+      const saving          = ref(false);
+      const anos            = ref([]);
+      const selectedAno     = ref('');
+      const despesas        = ref([]);
+      const resumo          = ref({});
+      const actividadesOpts = ref([]);
+      const panelOpen       = ref(false);
+      const form            = reactive(EMPTY_FORM());
+      const confirmDelete   = ref(false);
+      const toasts          = ref([]);
+      const search          = ref('');
+      const filterFonte     = ref('');
+      const filterCategoria = ref('');
+      const inputDescricao  = ref(null);
+
+      // ── Computed ──────────────────────────────────────────────────────
+      const hasFilters = computed(() =>
+        filterFonte.value || filterCategoria.value || search.value.trim()
+      );
+
+      const filteredDespesas = computed(() => {
+        let items = despesas.value;
+        const q = search.value.toLowerCase().trim();
+        if (q) items = items.filter(d =>
+          (d.descricao  || '').toLowerCase().includes(q) ||
+          (d.actividade || '').toLowerCase().includes(q) ||
+          (d.notas      || '').toLowerCase().includes(q)
+        );
+        if (filterFonte.value)
+          items = items.filter(d => d.fonte === filterFonte.value);
+        if (filterCategoria.value)
+          items = items.filter(d => d.categoria === filterCategoria.value);
+        return items;
+      });
+
+      const filteredTotal = computed(() =>
+        filteredDespesas.value.reduce((s, d) => s + (d.valor || 0), 0)
+      );
+
+      const outrasReceitas = computed(() =>
+        Object.entries(resumo.value.por_fonte || {})
+          .filter(([f]) => f !== 'Quotas')
+          .reduce((s, [, v]) => s + v, 0)
+      );
+
+      const outrasDetalhes = computed(() =>
+        Object.entries(resumo.value.por_fonte || {})
+          .filter(([f]) => f !== 'Quotas')
+          .map(([f, v]) => `${f}: ${fmt(v)}`)
+          .join(' · ')
+      );
+
+      // ── Styling helpers ───────────────────────────────────────────────
+      function fonteTagStyle(fonte) {
+        const c = fonteColor(fonte);
+        return { background: c + '1a', color: c, borderColor: c + '40' };
+      }
+
+      // ── Toast ─────────────────────────────────────────────────────────
+      let _toastId = 0;
+      function toast(msg, type = 'info') {
+        const id = ++_toastId;
+        toasts.value.push({ id, msg, type });
+        setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, 3200);
+      }
+
+      // ── Panel ─────────────────────────────────────────────────────────
+      function openNew() {
+        Object.assign(form, EMPTY_FORM());
+        form.ano_lectivo = selectedAno.value;
+        form.data        = frappe.datetime.get_today();
+        confirmDelete.value = false;
+        panelOpen.value  = true;
+        nextTick(() => inputDescricao.value && inputDescricao.value.focus());
+      }
+
+      function openEdit(d) {
+        Object.assign(form, {
+          name:        d.name,
+          descricao:   d.descricao   || '',
+          fonte:       d.fonte       || 'Quotas',
+          ano_lectivo: d.ano_lectivo || selectedAno.value,
+          data:        d.data        || '',
+          valor:       d.valor       || '',
+          categoria:   d.categoria   || '',
+          actividade:  d.actividade  || '',
+          notas:       d.notas       || '',
+        });
+        confirmDelete.value = false;
+        panelOpen.value = true;
+        nextTick(() => inputDescricao.value && inputDescricao.value.focus());
+      }
+
+      function closePanel()  { panelOpen.value = false; confirmDelete.value = false; }
+      function startDelete() { confirmDelete.value = true; }
+      function cancelDelete(){ confirmDelete.value = false; }
+      function clearSearch() { search.value = ''; }
+
+      function confirmAndDelete(d) {
+        openEdit(d);
+        nextTick(() => { confirmDelete.value = true; });
+      }
+
+      // ── Save / Delete ─────────────────────────────────────────────────
+      async function saveDespesa() {
+        if (!form.descricao.trim()) { toast('A descrição é obrigatória', 'error'); return; }
+        if (!form.valor)            { toast('O valor é obrigatório', 'error');     return; }
+        saving.value = true;
+        try {
+          const payload = { ...form };
+          Object.keys(payload).forEach(k => { if (payload[k] === '') payload[k] = null; });
+          let saved;
+          if (form.name) {
+            saved = await api('update_despesa', { name: form.name, data_json: JSON.stringify(payload) });
+            const idx = despesas.value.findIndex(d => d.name === form.name);
+            if (idx >= 0) despesas.value.splice(idx, 1, saved);
+          } else {
+            saved = await api('create_despesa', { data_json: JSON.stringify(payload) });
+            despesas.value.unshift(saved);
+          }
+          await loadResumo();
+          toast(form.name ? 'Despesa actualizada' : 'Despesa criada', 'success');
+          closePanel();
+        } catch (e) {
+          toast('Erro ao guardar: ' + e.message, 'error');
+        } finally {
+          saving.value = false;
+        }
+      }
+
+      async function deleteNow() {
+        if (!form.name) return;
+        saving.value = true;
+        try {
+          await api('delete_despesa', { name: form.name });
+          despesas.value = despesas.value.filter(d => d.name !== form.name);
+          await loadResumo();
+          toast('Despesa eliminada', 'info');
+          closePanel();
+        } catch (e) {
+          toast('Erro ao eliminar: ' + e.message, 'error');
+        } finally {
+          saving.value = false;
+        }
+      }
+
+      // ── Data loading ──────────────────────────────────────────────────
+      async function loadResumo() {
+        if (!selectedAno.value) return;
+        try {
+          resumo.value = await api('get_resumo_financeiro', { ano_lectivo: selectedAno.value }) || {};
+        } catch (_) { /* non-fatal */ }
+      }
+
+      async function loadAll() {
+        if (!selectedAno.value) return;
+        loading.value = true;
+        try {
+          const [desp, res, acts] = await Promise.all([
+            api('get_despesas',           { ano_lectivo: selectedAno.value }),
+            api('get_resumo_financeiro',  { ano_lectivo: selectedAno.value }),
+            api('get_actividades_nomes',  { ano_lectivo: selectedAno.value }),
+          ]);
+          despesas.value        = desp || [];
+          resumo.value          = res  || {};
+          actividadesOpts.value = acts || [];
+        } catch (e) {
+          toast('Erro ao carregar: ' + e.message, 'error');
+        } finally {
+          loading.value = false;
+        }
+      }
+
+      async function init() {
+        loading.value = true;
+        try {
+          const [anosResp, anoAtual] = await Promise.all([
+            api('get_anos_lectivos',    {}),
+            api('get_ano_lectivo_atual', {}),
+          ]);
+          anos.value        = anosResp || [];
+          selectedAno.value = anoAtual || (anosResp && anosResp[0]) || '';
+          if (selectedAno.value) await loadAll();
+        } catch (e) {
+          toast('Erro ao inicializar: ' + e.message, 'error');
+        } finally {
+          loading.value = false;
+        }
+      }
+
+      init();
+
+      return {
+        FONTES, CATEGORIAS,
+        loading, saving, anos, selectedAno,
+        despesas, resumo, actividadesOpts,
+        panelOpen, form, confirmDelete, toasts,
+        search, filterFonte, filterCategoria, inputDescricao,
+        hasFilters, filteredDespesas, filteredTotal,
+        outrasReceitas, outrasDetalhes,
+        loadAll, openNew, openEdit, closePanel,
+        startDelete, cancelDelete, clearSearch, confirmAndDelete,
+        saveDespesa, deleteNow,
+        fmt, formatDate, fonteColor, fonteTagStyle,
+      };
+    },
+  });
+}
