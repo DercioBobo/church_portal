@@ -91,7 +91,7 @@ function formatDate(d) {
 // App
 // ─────────────────────────────────────────────────────────────────────────────
 function createDespesasApp() {
-  const { createApp, ref, computed, reactive, nextTick } = Vue;
+  const { createApp, ref, computed, reactive, nextTick, onMounted, onUnmounted } = Vue;
 
   return createApp({
     template: `
@@ -803,6 +803,33 @@ function createDespesasApp() {
           loading.value = false;
         }
       }
+
+      // ── Keyboard shortcuts ────────────────────────────────────────────
+      function _onKeyDown(e) {
+        const tag = (e.target.tagName || '').toLowerCase();
+        const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
+
+        // N → new despesa or receita (depends on active tab)
+        if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey && !panelOpen.value && !isTyping) {
+          e.preventDefault();
+          activeTab.value === 'despesas' ? openNew() : openNewReceita();
+          return;
+        }
+        // Escape → close panel
+        if (e.key === 'Escape' && panelOpen.value) {
+          closePanel();
+          return;
+        }
+        // Ctrl+Enter / Cmd+Enter → save
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          if (panelOpen.value && !saving.value) {
+            panelMode.value === 'despesa' ? saveDespesa() : saveReceita();
+          }
+        }
+      }
+
+      onMounted(() => document.addEventListener('keydown', _onKeyDown));
+      onUnmounted(() => document.removeEventListener('keydown', _onKeyDown));
 
       init();
 
