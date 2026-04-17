@@ -1,5 +1,5 @@
 {
- "autoname": "autoincrement",
+ "autoname": "REC.-.YY.-.##",
  "creation": "2024-01-01 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -11,9 +11,7 @@
   "data",
   "section_valor",
   "valor",
-  "categoria",
-  "section_detalhe",
-  "actividade",
+  "section_notas",
   "notas"
  ],
  "fields": [
@@ -28,8 +26,8 @@
    "fieldname": "fonte",
    "fieldtype": "Select",
    "label": "Fonte",
-   "options": "Quotas\nFichas\nInscrição\nDonativo\nSubsídio Paroquial\nOutro",
-   "default": "Quotas",
+   "options": "Fichas\nInscrição\nDonativo\nSubsídio Paroquial\nOutro",
+   "default": "Fichas",
    "reqd": 1,
    "in_list_view": 1
   },
@@ -56,7 +54,7 @@
   {
    "fieldname": "section_valor",
    "fieldtype": "Section Break",
-   "label": "Valor e Categoria"
+   "label": "Valor"
   },
   {
    "fieldname": "valor",
@@ -66,35 +64,22 @@
    "in_list_view": 1
   },
   {
-   "fieldname": "categoria",
-   "fieldtype": "Select",
-   "label": "Categoria",
-   "options": "\nMaterial Didáctico\nTransportes\nActividades\nAlimentação\nComunicação\nOutro",
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "section_detalhe",
+   "fieldname": "section_notas",
    "fieldtype": "Section Break",
-   "label": "Detalhe"
-  },
-  {
-   "fieldname": "actividade",
-   "fieldtype": "Link",
-   "label": "Actividade do Plano",
-   "options": "Actividade do Plano"
+   "label": "Notas"
   },
   {
    "fieldname": "notas",
    "fieldtype": "Small Text",
    "label": "Notas",
-   "description": "Número de recibo, fornecedor, observações"
+   "description": "Observações sobre esta receita"
   }
  ],
  "links": [],
  "modified": "2024-01-01 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Catequista",
- "name": "Despesa Catequese",
+ "name": "Receita Catequese",
  "owner": "Administrator",
  "permissions": [
   {

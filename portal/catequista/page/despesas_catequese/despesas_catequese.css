@@ -523,6 +523,38 @@
 .de-toast.error   { background: #dc2626; }
 .de-toast.info    { background: #4f46e5; }
 
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.de-tabs {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 0;
+}
+.de-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  transition: all 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.de-tab-btn.active {
+  background: #fff;
+  color: #4f46e5;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+.de-tab-btn:not(.active):hover { color: #374151; }
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .de-toolbar        { padding: 10px 14px; }
