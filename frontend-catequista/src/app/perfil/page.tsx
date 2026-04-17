@@ -50,7 +50,7 @@ export default function PerfilPage() {
     <>
       <Nav catequistaNome={auth?.catequista} />
 
-      <main className="max-w-lg mx-auto px-4 py-10">
+      <main className="max-w-lg mx-auto px-4 py-10 pb-24 md:pb-10">
 
         {/* Profile info */}
         <div className="bg-white rounded-2xl border border-cream-200 shadow-warm-xs p-6 mb-6 animate-fade-up">

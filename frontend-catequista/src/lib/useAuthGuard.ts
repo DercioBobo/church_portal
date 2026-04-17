@@ -22,11 +22,10 @@ export function useAuthGuard(): AuthState {
     api.getSessionInfo()
       .then(auth => setState({ loading: false, auth, error: null }))
       .catch(err => {
-        if (err instanceof AuthError) {
-          window.location.href = '/catequista/login/';
-        } else {
+        if (!(err instanceof AuthError)) {
           setState({ loading: false, auth: null, error: String(err.message || err) });
         }
+        // AuthError: api.ts already redirected to /catequista/login/[?expired=1]
       });
   }, []);
 

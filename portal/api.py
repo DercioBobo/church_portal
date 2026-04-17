@@ -429,11 +429,16 @@ def _default_field_config():
 
 
 def _load_field_config():
-    """Load field config from Settings doc, falling back to defaults."""
+    """Load field config from Settings doc, falling back to defaults.
+    Result is cached for the lifetime of the request via frappe.local."""
+    cached = getattr(frappe.local, "_portal_field_config", None)
+    if cached is not None:
+        return cached
+
     if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
         doc = frappe.get_doc("Catequista Portal Settings")
         if doc.field_config:
-            return [
+            result = [
                 {
                     "fieldname": row.fieldname,
                     "label": row.label,
@@ -450,19 +455,13 @@ def _load_field_config():
                 }
                 for row in doc.field_config
             ]
-    return _default_field_config()
+            frappe.local._portal_field_config = result
+            return result
 
+    result = _default_field_config()
+    frappe.local._portal_field_config = result
+    return result
 
-def _get_editable_cat_fields():
-    """Returns the set of Catecumeno field names that are editable per config."""
-    config = _load_field_config()
-    _meta_fields = {f.fieldname for f in frappe.get_meta("Catecumeno").fields}
-    editable = {
-        entry["fieldname"]
-        for entry in config
-        if entry["editable"] and entry["source"] == "catecumeno"
-    }
-    return editable & _meta_fields
 
 
 def _assert_catequista():
@@ -832,16 +831,23 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
     SKIP_KEYS = {"catecumeno_nome", "row_name", "cmd", "csrf_token", "type"}
     submitted = {k: v for k, v in frappe.form_dict.items() if k not in SKIP_KEYS}
 
+    # Load config and meta once — reused for both catecumeno and TC field handling
+    config      = _load_field_config()
+    cat_meta_obj = frappe.get_meta("Catecumeno")
+    cat_meta_map = {f.fieldname: f for f in cat_meta_obj.fields}
+
     # ── Catecumeno fields ──────────────────────────────────────────────────────
-    editable_cat = _get_editable_cat_fields()
+    editable_cat = {
+        entry["fieldname"]
+        for entry in config
+        if entry["editable"] and entry["source"] == "catecumeno"
+    } & set(cat_meta_map)
+
     cat_updates = {}
     for field, value in submitted.items():
         if field not in editable_cat:
             continue
-        # Convert Int fields
-        meta_field = next(
-            (f for f in frappe.get_meta("Catecumeno").fields if f.fieldname == field), None
-        )
+        meta_field = cat_meta_map.get(field)
         if meta_field and meta_field.fieldtype in ("Int", "Float"):
             cat_updates[field] = cint(value) if value not in (None, "") else None
         else:
@@ -865,8 +871,7 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
         if pf: alias_map["total_presencas"] = pf
         if ff: alias_map["total_faltas"]    = ff
 
-        # Editable TC fields from config (direct fieldnames, not aliases)
-        config = _load_field_config()
+        # Editable TC fields from config (direct fieldnames, not aliases) — reuse config
         editable_tc_direct = {
             entry["fieldname"]
             for entry in config

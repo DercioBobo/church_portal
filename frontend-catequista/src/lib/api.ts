@@ -12,8 +12,23 @@ export class AuthError extends Error {
 
 // Stored after getSessionInfo — avoids relying on cookie parsing
 let _csrfToken = '';
+// Set to true once getSessionInfo succeeds so we can distinguish
+// "never logged in" (no expired param) from "session silently expired" (?expired=1)
+let _authenticated = false;
 
 export function setCsrfToken(token: string) { _csrfToken = token; }
+
+/** Called whenever a 401/403 or AuthenticationError is received.
+ *  Redirects to login (with ?expired=1 when a session was active)
+ *  unless we are already on the login page (avoids redirect loops). */
+function _handleAuthError(): never {
+  if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+    window.location.href = _authenticated
+      ? '/catequista/login/?expired=1'
+      : '/catequista/login/';
+  }
+  throw new AuthError();
+}
 
 function getCsrfToken(): string {
   if (_csrfToken) return _csrfToken;
@@ -46,7 +61,7 @@ async function frappeFetch<T>(method: string, params?: Record<string, string>): 
     headers: { Accept: 'application/json' },
   });
 
-  if (res.status === 403 || res.status === 401) throw new AuthError();
+  if (res.status === 403 || res.status === 401) return _handleAuthError();
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({})) as Record<string, unknown>;
@@ -55,7 +70,7 @@ async function frappeFetch<T>(method: string, params?: Record<string, string>): 
 
   const data = await res.json() as Record<string, unknown>;
   if (data.exc_type === 'AuthenticationError' || data.exc_type === 'PermissionError') {
-    throw new AuthError(parseServerMsg(data._server_messages) || String(data.exc_value || ''));
+    return _handleAuthError();
   }
   if (data.exc) {
     throw new Error(parseServerMsg(data._server_messages) || String(data.exc_value || 'Erro no servidor'));
@@ -79,7 +94,7 @@ async function frappePOST<T>(method: string, body: Record<string, string | numbe
     body: formData.toString(),
   });
 
-  if (res.status === 403 || res.status === 401) throw new AuthError();
+  if (res.status === 403 || res.status === 401) return _handleAuthError();
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({})) as Record<string, unknown>;
@@ -88,7 +103,7 @@ async function frappePOST<T>(method: string, body: Record<string, string | numbe
 
   const data = await res.json() as Record<string, unknown>;
   if (data.exc_type === 'AuthenticationError' || data.exc_type === 'PermissionError') {
-    throw new AuthError(parseServerMsg(data._server_messages) || String(data.exc_value || ''));
+    return _handleAuthError();
   }
   if (data.exc) {
     throw new Error(parseServerMsg(data._server_messages) || String(data.exc_value || 'Erro no servidor'));
@@ -130,6 +145,7 @@ export const api = {
   getSessionInfo: (): Promise<AuthInfo> =>
     frappeFetch<AuthInfo>('get_catequista_session_info').then(info => {
       if (info.csrf_token) setCsrfToken(info.csrf_token);
+      _authenticated = true;
       return info;
     }),
 

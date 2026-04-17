@@ -11,6 +11,10 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [expired] = useState(() =>
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('expired') === '1'
+  );
 
   const short = process.env.NEXT_PUBLIC_PARISH_SHORT || 'PNSA';
 
@@ -73,6 +77,18 @@ export default function LoginPage() {
           <p className="text-sm text-slate-500 mt-0.5">Portal do Catequista</p>
         </div>
       </div>
+
+      {/* Session-expired banner */}
+      {expired && (
+        <div className="w-full max-w-sm mb-4 animate-fade-up-1">
+          <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 font-medium">
+              A sua sessão expirou. Por favor inicie sessão novamente.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Card */}
       <div className="w-full max-w-sm animate-fade-up-1">

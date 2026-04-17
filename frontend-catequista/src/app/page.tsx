@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   MapPin, Clock, Calendar, Users, Search, X,
   Save, BookOpen, Cake, AlertCircle, ChevronRight, FileDown,
+  ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react';
 import Nav from '@/components/Nav';
 import PhaseChip from '@/components/PhaseChip';
@@ -17,6 +18,7 @@ import type { TurmaComCatecumenos, CatecumenoCompleto, FieldConfigItem, AvisoAti
 function calcAge(dob: string | null, stored: number | null): number | null {
   if (dob) {
     const born = new Date(dob);
+    if (isNaN(born.getTime())) return stored;
     const today = new Date();
     let age = today.getFullYear() - born.getFullYear();
     const m = today.getMonth() - born.getMonth();
@@ -29,6 +31,7 @@ function calcAge(dob: string | null, stored: number | null): number | null {
 function isBirthdaySoon(dob: string | null): boolean {
   if (!dob) return false;
   const born = new Date(dob);
+  if (isNaN(born.getTime())) return false;
   const today = new Date();
   const next = new Date(today.getFullYear(), born.getMonth(), born.getDate());
   if (next < today) next.setFullYear(today.getFullYear() + 1);
@@ -39,12 +42,14 @@ function isBirthdaySoon(dob: string | null): boolean {
 function isBirthdayToday(dob: string | null): boolean {
   if (!dob) return false;
   const born = new Date(dob);
+  if (isNaN(born.getTime())) return false;
   const today = new Date();
   return born.getMonth() === today.getMonth() && born.getDate() === today.getDate();
 }
 
 function daysUntilBirthday(dob: string): number {
   const born = new Date(dob);
+  if (isNaN(born.getTime())) return Infinity;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const next = new Date(today.getFullYear(), born.getMonth(), born.getDate());
@@ -226,14 +231,6 @@ function renderCellValue(cat: CatecumenoCompleto, field: FieldConfigItem): React
     );
   }
 
-  if (field.fieldname === 'total_presencas') {
-    return <span className="text-sm font-semibold text-emerald-700">{String(val ?? 0)}</span>;
-  }
-
-  if (field.fieldname === 'total_faltas') {
-    return <span className="text-sm font-semibold text-rose-600">{String(val ?? 0)}</span>;
-  }
-
   if (field.fieldname === 'idade') {
     const age = calcAge(cat.data_de_nascimento, cat.idade);
     return <span className="text-sm text-slate-500">{age !== null ? age : '—'}</span>;
@@ -252,6 +249,25 @@ function renderCellValue(cat: CatecumenoCompleto, field: FieldConfigItem): React
       {val !== null && val !== undefined && String(val) !== '' ? String(val) : '—'}
     </span>
   );
+}
+
+function MobileSubtitle({ cat, columns }: { cat: CatecumenoCompleto; columns: FieldConfigItem[] }) {
+  const items = columns
+    .filter(f => f.fieldname !== 'name')
+    .slice(0, 3)
+    .flatMap((f): React.ReactNode[] => {
+      const val = getCatValue(cat, f.fieldname);
+      // Skip empty, null, and numeric zero (avoids showing "0" for fields that may not exist)
+      if (val === null || val === undefined || val === 0 || String(val) === '') return [];
+      const text =
+        f.fieldtype === 'Date'  ? formatDate(val as string | null) :
+        f.fieldtype === 'Check' ? (val ? 'Sim' : null) :
+        String(val);
+      if (!text) return [];
+      return [<span key={f.fieldname} className="text-xs text-slate-400 truncate max-w-[150px]">{text}</span>];
+    });
+  if (!items.length) return null;
+  return <div className="flex items-center gap-3 mt-0.5 flex-wrap">{items}</div>;
 }
 
 function renderPanelValue(val: string | number | boolean | null | undefined, field: FieldConfigItem): string {
@@ -358,8 +374,10 @@ interface SidePanelProps {
 
 function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePanelProps) {
   const [form, setForm] = useState<Record<string, string | number>>({});
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [saving,       setSaving]       = useState(false);
+  const [saved,        setSaved]        = useState(false);
+  const [error,        setError]        = useState('');
+  const [confirmClose, setConfirmClose] = useState(false);
 
   // Reset form when a new catecumeno is opened
   useEffect(() => {
@@ -378,16 +396,46 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
     const liveAge = calcAge(cat.data_de_nascimento, cat.idade);
     if (liveAge !== null) initial['idade'] = liveAge;
     setForm(initial);
+    setSaved(false);
+    setConfirmClose(false);
     setError('');
   }, [cat, fieldConfig]);
 
-  // Close on Escape
+  // Detect unsaved changes by comparing form values against the current cat snapshot
+  const isDirty = useMemo(() => {
+    if (!cat) return false;
+    return fieldConfig.some(f => {
+      if (!f.editable || f.source === 'turma') return false;
+      const raw     = getCatValue(cat, f.fieldname);
+      const current = form[f.fieldname];
+      if (f.fieldtype === 'Int' || f.fieldtype === 'Float') {
+        return (raw !== null && raw !== undefined ? Number(raw) : 0) !==
+               (current !== null && current !== undefined ? Number(current) : 0);
+      }
+      return (raw !== null && raw !== undefined ? String(raw) : '') !==
+             (current !== null && current !== undefined ? String(current) : '');
+    });
+  }, [form, cat, fieldConfig]);
+
+  // Guard close: if dirty show inline confirmation; otherwise close immediately
+  function handleClose() {
+    if (isDirty) { setConfirmClose(true); }
+    else { onClose(); }
+  }
+
+  // Close on Escape — guarded
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (confirmClose) { setConfirmClose(false); }
+        else { handleClose(); }
+      }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isDirty, confirmClose]);
 
   const panelFields = useMemo(
     () => fieldConfig.filter(f => f.show_in_panel && f.fieldname !== 'name'),
@@ -438,7 +486,9 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
         if (k !== 'row_name') (updated as unknown as Record<string, unknown>)[k] = v;
       });
 
-      onSaved(updated);
+      onSaved(updated); // updates table data; panel stays open
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
     } catch (e) {
       setError(String((e as Error).message || e));
     } finally {
@@ -451,7 +501,7 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
       {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-navy-900/40 z-40 transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       {/* Panel — right drawer on desktop, bottom sheet on mobile */}
@@ -479,8 +529,11 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
             {/* Header */}
             <div className="flex items-start justify-between px-5 py-4 border-b border-cream-200 shrink-0">
               <div className="min-w-0 pr-3">
-                <h3 className="font-display font-bold text-navy-900 text-base leading-tight truncate">
+                <h3 className="font-display font-bold text-navy-900 text-base leading-tight truncate flex items-center gap-2">
                   {cat.name}
+                  {isDirty && !saved && (
+                    <span className="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0" title="Alterações não guardadas" />
+                  )}
                 </h3>
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <PhaseChip fase={cat.fase} />
@@ -494,7 +547,7 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
                 </div>
               </div>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 transition-colors shrink-0"
               >
                 <X className="w-5 h-5" />
@@ -556,26 +609,59 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-cream-200 shrink-0">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-cream-100 transition-colors"
-              >
-                Fechar
-              </button>
-              {fieldConfig.some(f => f.editable) && (
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-navy-900 text-white text-sm font-semibold hover:bg-navy-800 disabled:opacity-50 transition-all"
-                >
-                  {saving ? (
-                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
+            <div className="px-5 py-4 border-t border-cream-200 shrink-0">
+              {confirmClose ? (
+                /* Unsaved-changes confirmation */
+                <div>
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 mb-3">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    Tem alterações não guardadas. Deseja sair?
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmClose(false)}
+                      className="flex-1 py-2 rounded-lg text-sm font-semibold bg-navy-900 text-white hover:bg-navy-800 transition-colors"
+                    >
+                      Continuar a editar
+                    </button>
+                    <button
+                      onClick={() => { setConfirmClose(false); onClose(); }}
+                      className="flex-1 py-2 rounded-lg text-sm font-medium text-rose-600 border border-rose-200 hover:bg-rose-50 transition-colors"
+                    >
+                      Descartar e sair
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Normal footer */
+                <div className="flex items-center justify-end gap-3">
+                  <button
+                    onClick={handleClose}
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-cream-100 transition-colors"
+                  >
+                    Fechar
+                  </button>
+                  {fieldConfig.some(f => f.editable) && (
+                    <button
+                      onClick={handleSave}
+                      disabled={saving || saved}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-semibold transition-all disabled:cursor-default ${
+                        saved
+                          ? 'bg-emerald-600'
+                          : 'bg-navy-900 hover:bg-navy-800 disabled:opacity-50'
+                      }`}
+                    >
+                      {saving ? (
+                        <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      ) : saved ? (
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      {saving ? 'A guardar...' : saved ? 'Guardado!' : 'Guardar'}
+                    </button>
                   )}
-                  {saving ? 'A guardar...' : 'Guardar'}
-                </button>
+                </div>
               )}
             </div>
           </>
@@ -594,21 +680,57 @@ interface TableProps {
 }
 
 function CatecumenosTable({ catecumenos, fieldConfig, onSelect }: TableProps) {
-  const [query, setQuery] = useState('');
+  const [query,     setQuery]     = useState('');
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDir,   setSortDir]   = useState<'asc' | 'desc'>('asc');
 
   const tableColumns = useMemo(
     () => fieldConfig.filter(f => f.show_in_table),
     [fieldConfig],
   );
 
-  const filtered = catecumenos.filter(c => {
-    if (!query) return true;
-    const q = query.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(q) ||
-      (c.encarregado || '').toLowerCase().includes(q)
-    );
-  });
+  function toggleSort(fieldname: string) {
+    if (sortField === fieldname) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(fieldname);
+      setSortDir('asc');
+    }
+  }
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    const base = q
+      ? catecumenos.filter(c =>
+          c.name.toLowerCase().includes(q) ||
+          tableColumns.some(f => {
+            const v = getCatValue(c, f.fieldname);
+            return v ? String(v).toLowerCase().includes(q) : false;
+          })
+        )
+      : catecumenos;
+
+    if (!sortField) return base;
+
+    const col = tableColumns.find(f => f.fieldname === sortField);
+    return [...base].sort((a, b) => {
+      const av = getCatValue(a, sortField);
+      const bv = getCatValue(b, sortField);
+      // Nulls always last regardless of direction
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+
+      let cmp = 0;
+      if (col && (col.fieldtype === 'Int' || col.fieldtype === 'Float')) {
+        cmp = Number(av) - Number(bv);
+      } else {
+        // ISO dates sort correctly as strings; everything else uses locale compare
+        cmp = String(av).localeCompare(String(bv), 'pt', { sensitivity: 'base' });
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [catecumenos, query, sortField, sortDir, tableColumns]);
 
   // Build dynamic grid template for desktop header + rows
   const gridTemplate = [
@@ -652,14 +774,29 @@ function CatecumenosTable({ catecumenos, fieldConfig, onSelect }: TableProps) {
             {/* Desktop header */}
             {tableColumns.length > 0 && (
               <div
-                className="hidden md:grid gap-2 px-4 py-2.5 border-b border-cream-200 bg-cream-50"
+                className="hidden md:grid gap-2 px-4 py-1.5 border-b border-cream-200 bg-cream-50"
                 style={{ gridTemplateColumns: gridTemplate }}
               >
-                {tableColumns.map(f => (
-                  <span key={f.fieldname} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">
-                    {f.label}
-                  </span>
-                ))}
+                {tableColumns.map(f => {
+                  const active = sortField === f.fieldname;
+                  return (
+                    <button
+                      key={f.fieldname}
+                      onClick={() => toggleSort(f.fieldname)}
+                      className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest truncate py-1 transition-colors group ${
+                        active ? 'text-navy-900' : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      <span className="truncate">{f.label}</span>
+                      {active
+                        ? (sortDir === 'asc'
+                            ? <ArrowUp   className="w-3 h-3 shrink-0" />
+                            : <ArrowDown className="w-3 h-3 shrink-0" />)
+                        : <ArrowUpDown className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" />
+                      }
+                    </button>
+                  );
+                })}
                 <span />
               </div>
             )}
@@ -697,13 +834,7 @@ function CatecumenosTable({ catecumenos, fieldConfig, onSelect }: TableProps) {
                         )}
                         <span className="text-sm font-medium text-navy-900 truncate">{cat.name}</span>
                       </div>
-                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        {cat.encarregado && (
-                          <span className="text-xs text-slate-400 truncate max-w-[150px]">{cat.encarregado}</span>
-                        )}
-                        <span className="text-xs text-emerald-600 font-semibold">✓ {cat.total_presencas}</span>
-                        <span className="text-xs text-rose-500 font-semibold">✗ {cat.total_faltas}</span>
-                      </div>
+                      <MobileSubtitle cat={cat} columns={tableColumns} />
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
                   </div>
@@ -1075,6 +1206,7 @@ export default function DashboardPage() {
   const [dataError, setDataError] = useState('');
   const [panel, setPanel] = useState<{ cat: CatecumenoCompleto; turma: TurmaComCatecumenos; turmaIdx: number } | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const closePanelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [birthdayPanelOpen, setBirthdayPanelOpen] = useState(false);
   const [avisos, setAvisos] = useState<AvisoAtivo[]>([]);
 
@@ -1115,7 +1247,12 @@ export default function DashboardPage() {
   const closePanel = useCallback(() => {
     setPanelOpen(false);
     // Delay clearing cat so exit animation completes
-    setTimeout(() => setPanel(null), 320);
+    if (closePanelTimer.current) clearTimeout(closePanelTimer.current);
+    closePanelTimer.current = setTimeout(() => setPanel(null), 320);
+  }, []);
+
+  useEffect(() => () => {
+    if (closePanelTimer.current) clearTimeout(closePanelTimer.current);
   }, []);
 
   const handleSaved = useCallback((updated: CatecumenoCompleto) => {
@@ -1128,10 +1265,8 @@ export default function DashboardPage() {
         catecumenos: t.catecumenos.map(c => c.name === updated.name ? updated : c),
       };
     }));
-    // Update panel to show fresh data
-    setPanel(p => p ? { ...p, cat: updated } : null);  // keep turma reference
-    setPanelOpen(false);
-    setTimeout(() => setPanel(null), 320);
+    // Refresh the panel's cat data but keep the panel open for verification
+    setPanel(p => p ? { ...p, cat: updated } : null);
   }, [panel]);
 
   const retry = useCallback(() => {
@@ -1160,7 +1295,7 @@ export default function DashboardPage() {
         onAniversariantes={() => setBirthdayPanelOpen(true)}
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <main className="max-w-5xl mx-auto px-4 py-8 pb-24 md:pb-8">
         {/* Page header */}
         <div className="mb-6 animate-fade-up">
           <h1 className="font-display font-bold text-navy-900 text-2xl">

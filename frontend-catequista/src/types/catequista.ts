@@ -17,8 +17,6 @@ export interface CatecumenoCompleto {
   idade: number | null;
   obs: string | null;
   row_name: string | null;
-  total_presencas: number;
-  total_faltas: number;
 }
 
 export interface TurmaComCatecumenos {

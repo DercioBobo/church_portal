@@ -223,7 +223,7 @@ export default function QuotasPage() {
     <div className="min-h-screen bg-cream-50">
       <Nav catequistaNome={meuNome || undefined} />
 
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-8 pb-24 md:pb-8">
         {/* Page header */}
         <div className="flex items-center justify-between mb-6">
           <div>
