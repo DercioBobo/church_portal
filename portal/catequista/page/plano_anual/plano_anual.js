@@ -298,6 +298,38 @@ function createPlanoAnualApp() {
           @dragleave="onDragLeave(group.key)"
           @drop.prevent="onDrop(group.key)"
         >
+          <div v-if="quickAdd.groupKey === group.key" class="pa-quick-add-card" @click.stop data-no-print>
+            <input
+              class="pa-quick-add-name"
+              type="text"
+              v-model="quickAdd.name"
+              placeholder="Nome da actividade…"
+              @keydown.enter="saveQuickAdd"
+              @keydown.escape="cancelQuickAdd"
+              :disabled="quickAddSaving"
+              autocomplete="off"
+            >
+            <input
+              class="pa-quick-add-date"
+              type="date"
+              v-model="quickAdd.date"
+              @keydown.enter="saveQuickAdd"
+              @keydown.escape="cancelQuickAdd"
+              :disabled="quickAddSaving"
+            >
+            <span class="pa-quick-add-hint">↵ guardar &nbsp;Esc fechar</span>
+            <button class="pa-btn pa-btn-primary pa-btn-sm" @click="saveQuickAdd" :disabled="quickAddSaving || !quickAdd.name.trim()" title="Guardar (Enter)">
+              <div v-if="quickAddSaving" class="pa-spinner" style="width:11px;height:11px;border-top-color:#fff;border-color:rgba(255,255,255,0.3)"></div>
+              <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button class="pa-btn pa-btn-ghost pa-btn-sm pa-quick-add-full" @click="openNewActivity(quickAdd.groupKey); cancelQuickAdd()" :disabled="quickAddSaving" title="Abrir formulário completo">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><polyline points="16 4 20 4 20 8"/><line x1="10" y1="14" x2="20" y2="4"/></svg>
+              Formulário
+            </button>
+            <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="cancelQuickAdd" :disabled="quickAddSaving" title="Cancelar (Esc)" style="padding:0 7px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
           <div
             v-for="act in group.items" :key="act.name"
             class="pa-card"
@@ -348,38 +380,6 @@ function createPlanoAnualApp() {
             </div>
           </div>
           <div v-if="group.items.length === 0 && quickAdd.groupKey !== group.key" class="pa-empty">Sem actividades — clique em Adicionar</div>
-          <div v-if="quickAdd.groupKey === group.key" class="pa-quick-add-card" @click.stop data-no-print>
-            <input
-              class="pa-quick-add-name"
-              type="text"
-              v-model="quickAdd.name"
-              placeholder="Nome da actividade…"
-              @keydown.enter="saveQuickAdd"
-              @keydown.escape="cancelQuickAdd"
-              :disabled="quickAddSaving"
-              autocomplete="off"
-            >
-            <input
-              class="pa-quick-add-date"
-              type="date"
-              v-model="quickAdd.date"
-              @keydown.enter="saveQuickAdd"
-              @keydown.escape="cancelQuickAdd"
-              :disabled="quickAddSaving"
-            >
-            <span class="pa-quick-add-hint">↵ guardar &nbsp;Esc fechar</span>
-            <button class="pa-btn pa-btn-primary pa-btn-sm" @click="saveQuickAdd" :disabled="quickAddSaving || !quickAdd.name.trim()" title="Guardar (Enter)">
-              <div v-if="quickAddSaving" class="pa-spinner" style="width:11px;height:11px;border-top-color:#fff;border-color:rgba(255,255,255,0.3)"></div>
-              <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-            </button>
-            <button class="pa-btn pa-btn-ghost pa-btn-sm pa-quick-add-full" @click="openNewActivity(quickAdd.groupKey); cancelQuickAdd()" :disabled="quickAddSaving" title="Abrir formulário completo">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><polyline points="16 4 20 4 20 8"/><line x1="10" y1="14" x2="20" y2="4"/></svg>
-              Formulário
-            </button>
-            <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="cancelQuickAdd" :disabled="quickAddSaving" title="Cancelar (Esc)" style="padding:0 7px">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
         </div>
       </div>
     </template>
@@ -428,37 +428,6 @@ function createPlanoAnualApp() {
                   </button>
                 </td>
               </tr>
-              <tr v-for="(act, i) in group.items" :key="act.name"
-                v-show="!isCollapsed(group.key)"
-                :class="{ 'pa-row-overdue': isOverdue(act), 'pa-row-selected': selected.has(act.name), 'pa-row-flashing': flashingRow === act.name }"
-                @click="handleCardClick(act)">
-                <td data-no-print @click.stop style="text-align:center;padding:0 8px">
-                  <input type="checkbox" class="pa-table-check" :checked="selected.has(act.name)" @change.stop="toggleSelect(act.name)">
-                </td>
-                <td class="pa-list-num">{{ i + 1 }}</td>
-                <td>
-                  <span class="pa-list-act-name">{{ act.actividade }}</span>
-                  <span v-if="isOverdue(act)" class="pa-list-overdue-tag">⚠ Vencida</span>
-                </td>
-                <td>
-                  <span v-if="act.tipologia" class="pa-list-tip">
-                    <span class="pa-list-tip-dot" :style="{ background: tipologiaColor(act) }"></span>
-                    {{ act.tipologia_icone ? act.tipologia_icone+' ' : '' }}{{ act.tipologia }}
-                  </span>
-                  <span v-else class="pa-list-empty-val">—</span>
-                </td>
-                <td class="pa-list-date">
-                  {{ act.data ? formatDate(act.data) : '—' }}
-                  <span v-if="act.data_original" style="color:#f59e0b" :title="'Original: '+formatDate(act.data_original)">✎</span>
-                </td>
-                <td>{{ act.orador || '—' }}</td>
-                <td>{{ act.local ? truncate(act.local, 38) : '—' }}</td>
-                <td class="pa-list-date">{{ act.orcamento ? formatCurrency(act.orcamento) : '—' }}</td>
-                <td>
-                  <span class="pa-card-status" :class="statusClass(act.estado)"
-                    @click.stop="cycleStatus(act)" title="Avançar estado">{{ act.estado }}</span>
-                </td>
-              </tr>
               <tr v-if="quickAdd.groupKey === group.key" v-show="!isCollapsed(group.key)" class="pa-quick-add-row" data-no-print>
                 <td colspan="2"></td>
                 <td style="padding:5px 8px">
@@ -499,6 +468,37 @@ function createPlanoAnualApp() {
                     <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="cancelQuickAdd" :disabled="quickAddSaving">Cancelar</button>
                     <span class="pa-quick-add-hint">↵ guardar &nbsp;Esc fechar</span>
                   </div>
+                </td>
+              </tr>
+              <tr v-for="(act, i) in group.items" :key="act.name"
+                v-show="!isCollapsed(group.key)"
+                :class="{ 'pa-row-overdue': isOverdue(act), 'pa-row-selected': selected.has(act.name), 'pa-row-flashing': flashingRow === act.name }"
+                @click="handleCardClick(act)">
+                <td data-no-print @click.stop style="text-align:center;padding:0 8px">
+                  <input type="checkbox" class="pa-table-check" :checked="selected.has(act.name)" @change.stop="toggleSelect(act.name)">
+                </td>
+                <td class="pa-list-num">{{ i + 1 }}</td>
+                <td>
+                  <span class="pa-list-act-name">{{ act.actividade }}</span>
+                  <span v-if="isOverdue(act)" class="pa-list-overdue-tag">⚠ Vencida</span>
+                </td>
+                <td>
+                  <span v-if="act.tipologia" class="pa-list-tip">
+                    <span class="pa-list-tip-dot" :style="{ background: tipologiaColor(act) }"></span>
+                    {{ act.tipologia_icone ? act.tipologia_icone+' ' : '' }}{{ act.tipologia }}
+                  </span>
+                  <span v-else class="pa-list-empty-val">—</span>
+                </td>
+                <td class="pa-list-date">
+                  {{ act.data ? formatDate(act.data) : '—' }}
+                  <span v-if="act.data_original" style="color:#f59e0b" :title="'Original: '+formatDate(act.data_original)">✎</span>
+                </td>
+                <td>{{ act.orador || '—' }}</td>
+                <td>{{ act.local ? truncate(act.local, 38) : '—' }}</td>
+                <td class="pa-list-date">{{ act.orcamento ? formatCurrency(act.orcamento) : '—' }}</td>
+                <td>
+                  <span class="pa-card-status" :class="statusClass(act.estado)"
+                    @click.stop="cycleStatus(act)" title="Avançar estado">{{ act.estado }}</span>
                 </td>
               </tr>
             </template>
@@ -989,7 +989,7 @@ function createPlanoAnualApp() {
       const searchRaw    = ref('');   // bound to input (v-model)
       const search       = ref('');   // debounced — used by filteredActividades
       let   _searchTimer = null;
-      const viewMode     = ref('card');
+      const viewMode     = ref('list');
       const panelOpen    = ref(false);
       const form         = reactive(EMPTY_FORM());
       const editingAct   = ref(null);
@@ -1212,8 +1212,37 @@ function createPlanoAnualApp() {
           actionsOpen.value = false;
         }
       }
-      onMounted(() => document.addEventListener('mousedown', _onDocClick));
-      onUnmounted(() => document.removeEventListener('mousedown', _onDocClick));
+      function _onKeyDown(e) {
+        const tag = (e.target.tagName || '').toLowerCase();
+        const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
+
+        // N → new activity
+        if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey && !panelOpen.value && !copyModal.open && !isTyping) {
+          e.preventDefault();
+          openNewActivity(null);
+          return;
+        }
+        // Escape → close panel / modal / dropdowns
+        if (e.key === 'Escape') {
+          if (panelOpen.value)   { closePanel();              return; }
+          if (copyModal.open)    { closeCopyYearModal();      return; }
+          if (actionsOpen.value) { actionsOpen.value = false; return; }
+          if (tipDdOpen.value)   { tipDdOpen.value   = false; return; }
+        }
+        // Ctrl+Enter / Cmd+Enter → save
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          if (panelOpen.value && !saving.value) saveActivity();
+        }
+      }
+
+      onMounted(() => {
+        document.addEventListener('mousedown', _onDocClick);
+        document.addEventListener('keydown',   _onKeyDown);
+      });
+      onUnmounted(() => {
+        document.removeEventListener('mousedown', _onDocClick);
+        document.removeEventListener('keydown',   _onKeyDown);
+      });
 
       // Auto-focus search when dropdown opens
       watch(tipDdOpen, (val) => {
