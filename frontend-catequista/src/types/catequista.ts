@@ -45,6 +45,12 @@ export interface AvisoAtivo {
   anexo_label?: string | null;
 }
 
+export interface PortalSectionConfig {
+  section_key: string;
+  label: string;
+  icon: string;
+}
+
 export interface FieldConfigItem {
   fieldname: string;
   label: string;

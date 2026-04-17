@@ -1,4 +1,4 @@
-import type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, AvisoAtivo, QuotasResumo } from '@/types/catequista';
+import type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, PortalSectionConfig, AvisoAtivo, QuotasResumo } from '@/types/catequista';
 
 const BASE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL || '';
 const APP = 'portal.api';
@@ -152,8 +152,8 @@ export const api = {
   getMinhaTurma: (): Promise<TurmaComCatecumenos[]> =>
     frappeFetch<TurmaComCatecumenos[]>('get_minha_turma'),
 
-  getFieldConfig: (): Promise<FieldConfigItem[]> =>
-    frappeFetch<FieldConfigItem[]>('get_catecumeno_field_config'),
+  getFieldConfig: (): Promise<{ fields: FieldConfigItem[]; sections: PortalSectionConfig[] }> =>
+    frappeFetch<{ fields: FieldConfigItem[]; sections: PortalSectionConfig[] }>('get_catecumeno_field_config'),
 
   atualizarCatecumeno: (
     catecumeno_nome: string,
@@ -178,4 +178,4 @@ export const api = {
 };
 
 // Re-export types for convenience
-export type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, AvisoAtivo, QuotasResumo };
+export type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, PortalSectionConfig, AvisoAtivo, QuotasResumo };

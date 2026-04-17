@@ -5,13 +5,21 @@ import {
   MapPin, Clock, Calendar, Users, Search, X,
   Save, BookOpen, Cake, AlertCircle, ChevronRight, FileDown,
   ArrowUp, ArrowDown, ArrowUpDown,
+  User, Heart, MessageSquare, Book, Star, Info, FileText, Pencil, Home, Shield, Phone,
 } from 'lucide-react';
 import Nav from '@/components/Nav';
 import PhaseChip from '@/components/PhaseChip';
 import { FullPageLoading } from '@/components/Loading';
 import { useAuthGuard } from '@/lib/useAuthGuard';
 import { api } from '@/lib/api';
-import type { TurmaComCatecumenos, CatecumenoCompleto, FieldConfigItem, AvisoAtivo } from '@/types/catequista';
+import type { TurmaComCatecumenos, CatecumenoCompleto, FieldConfigItem, PortalSectionConfig, AvisoAtivo } from '@/types/catequista';
+
+// ── Section icon map ──────────────────────────────────────────────────────────
+
+const SECTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  User, Users, Heart, BookOpen, Book, MessageSquare,
+  Calendar, MapPin, Phone, Star, Info, FileText, Pencil, Home, Shield,
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -368,11 +376,12 @@ interface SidePanelProps {
   cat: CatecumenoCompleto | null;
   turma: TurmaComCatecumenos | null;
   fieldConfig: FieldConfigItem[];
+  sectionConfig: PortalSectionConfig[];
   onClose: () => void;
   onSaved: (updated: CatecumenoCompleto) => void;
 }
 
-function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePanelProps) {
+function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, onClose, onSaved }: SidePanelProps) {
   const [form, setForm] = useState<Record<string, string | number>>({});
   const [saving,       setSaving]       = useState(false);
   const [saved,        setSaved]        = useState(false);
@@ -450,17 +459,31 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
     return cat ? getCatValue(cat, field.fieldname) : undefined;
   }
 
-  // Group by section, preserving order of first appearance
+  // Group by section; sectionConfig drives order, label, and icon.
+  // Sections not listed in sectionConfig appear after declared ones, in discovery order.
   const sections = useMemo(() => {
-    const order: string[] = [];
     const map: Record<string, FieldConfigItem[]> = {};
+    const discovered: string[] = [];
     panelFields.forEach(f => {
-      const sec = f.panel_section || 'Informações';
-      if (!map[sec]) { map[sec] = []; order.push(sec); }
-      map[sec].push(f);
+      const key = f.panel_section || '';
+      if (!map[key]) { map[key] = []; discovered.push(key); }
+      map[key].push(f);
     });
-    return order.map(sec => ({ title: sec, fields: map[sec] }));
-  }, [panelFields]);
+
+    const configMap = new Map(sectionConfig.map(s => [s.section_key, s]));
+    const declared  = sectionConfig.map(s => s.section_key).filter(k => map[k]);
+    const extras    = discovered.filter(k => !configMap.has(k) && map[k]);
+
+    return [...declared, ...extras].map(key => {
+      const cfg = configMap.get(key);
+      return {
+        key,
+        title: cfg?.label ?? key || 'Informações',
+        icon:  cfg?.icon  ?? '',
+        fields: map[key],
+      };
+    });
+  }, [panelFields, sectionConfig]);
 
   async function handleSave() {
     if (!cat) return;
@@ -556,11 +579,18 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
 
             {/* Body — scrollable */}
             <div className="overflow-y-auto flex-1 min-h-0 px-5 py-4 space-y-6">
-              {sections.map(section => (
-                <div key={section.title}>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-                    {section.title}
-                  </p>
+              {sections.map(section => {
+                const IconComponent = section.icon ? SECTION_ICONS[section.icon] : null;
+                return (
+                <div key={section.key}>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    {IconComponent && (
+                      <IconComponent className="w-3 h-3 text-slate-400 shrink-0" />
+                    )}
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      {section.title}
+                    </p>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     {section.fields.map(field => (
                       <div
@@ -598,7 +628,8 @@ function SidePanel({ open, cat, turma, fieldConfig, onClose, onSaved }: SidePane
                     ))}
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {error && (
                 <div className="flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-lg px-3.5 py-3">
@@ -1201,7 +1232,8 @@ function BirthdayPanel({
 export default function DashboardPage() {
   const { loading: authLoading, auth } = useAuthGuard();
   const [turmas, setTurmas] = useState<TurmaComCatecumenos[]>([]);
-  const [fieldConfig, setFieldConfig] = useState<FieldConfigItem[]>([]);
+  const [fieldConfig, setFieldConfig]     = useState<FieldConfigItem[]>([]);
+  const [sectionConfig, setSectionConfig] = useState<PortalSectionConfig[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState('');
   const [panel, setPanel] = useState<{ cat: CatecumenoCompleto; turma: TurmaComCatecumenos; turmaIdx: number } | null>(null);
@@ -1229,7 +1261,8 @@ export default function DashboardPage() {
     Promise.all([api.getMinhaTurma(), api.getFieldConfig(), api.getAvisosAtivos()])
       .then(([data, config, av]) => {
         setTurmas(data);
-        setFieldConfig(config);
+        setFieldConfig(config.fields);
+        setSectionConfig(config.sections);
         setAvisos(av);
         setDataLoading(false);
       })
@@ -1377,6 +1410,7 @@ export default function DashboardPage() {
         cat={panel?.cat ?? null}
         turma={panel?.turma ?? null}
         fieldConfig={fieldConfig}
+        sectionConfig={sectionConfig}
         onClose={closePanel}
         onSaved={handleSaved}
       />

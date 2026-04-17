@@ -428,6 +428,44 @@ def _default_field_config():
     ]
 
 
+def _default_section_config():
+    """Default section order/labels/icons matching _default_field_config panel_section values."""
+    return [
+        {"section_key": "Dados Pessoais",          "label": "Dados Pessoais",          "icon": "User"},
+        {"section_key": "Encarregado de Educação",  "label": "Encarregado de Educação",  "icon": "Users"},
+        {"section_key": "Padrinhos / Madrinhas",    "label": "Padrinhos / Madrinhas",    "icon": "Heart"},
+        {"section_key": "Presenças",                "label": "Presenças",                "icon": "BookOpen"},
+        {"section_key": "Observações",              "label": "Observações",              "icon": "MessageSquare"},
+        {"section_key": "Turma",                    "label": "Turma",                    "icon": "MapPin"},
+    ]
+
+
+def _load_section_config():
+    """Load section config from Settings doc, falling back to defaults.
+    Result is cached for the lifetime of the request via frappe.local."""
+    cached = getattr(frappe.local, "_portal_section_config", None)
+    if cached is not None:
+        return cached
+
+    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
+        doc = frappe.get_doc("Catequista Portal Settings")
+        if doc.get("sections"):
+            result = [
+                {
+                    "section_key": row.section_key,
+                    "label":       row.label,
+                    "icon":        row.icon or "",
+                }
+                for row in doc.sections
+            ]
+            frappe.local._portal_section_config = result
+            return result
+
+    result = _default_section_config()
+    frappe.local._portal_section_config = result
+    return result
+
+
 def _load_field_config():
     """Load field config from Settings doc, falling back to defaults.
     Result is cached for the lifetime of the request via frappe.local."""
@@ -483,9 +521,12 @@ def _assert_catequista():
 
 @frappe.whitelist()
 def get_catecumeno_field_config():
-    """Returns the field configuration for the catequista portal (used by the frontend)."""
+    """Returns field config and section config for the catequista portal."""
     _assert_catequista()
-    return _load_field_config()
+    return {
+        "fields":   _load_field_config(),
+        "sections": _load_section_config(),
+    }
 
 
 @frappe.whitelist()

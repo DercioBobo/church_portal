@@ -3,6 +3,7 @@
  "doctype": "DocType",
  "field_order": [
   "sync_button",
+  "sections",
   "field_config"
  ],
  "fields": [
@@ -11,6 +12,13 @@
    "fieldtype": "Button",
    "label": "Sincronizar Campos do Catecúmeno",
    "description": "Detecta campos do DocType Catecúmeno e Turma Catecumenos e adiciona os que ainda não estão configurados."
+  },
+  {
+   "fieldname": "sections",
+   "fieldtype": "Table",
+   "label": "Secções do Painel",
+   "options": "Catequista Portal Section",
+   "description": "Define a ordem, etiqueta e ícone de cada secção do painel lateral. Secções não listadas aqui aparecem no final por ordem de descoberta."
   },
   {
    "fieldname": "field_config",
