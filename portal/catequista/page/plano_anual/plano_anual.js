@@ -136,6 +136,10 @@ function createPlanoAnualApp() {
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg>
         Lista
       </button>
+      <button class="pa-view-btn" :class="{ active: viewMode==='cal' }" @click="viewMode='cal'" title="Calendário mensal">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Calendário
+      </button>
     </div>
 
     <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="expandAll" data-no-print title="Expandir todos os meses">
@@ -364,7 +368,7 @@ function createPlanoAnualApp() {
     </template>
 
     <!-- ── List view ───────────────────────────────────────────────── -->
-    <template v-else>
+    <template v-else-if="viewMode === 'list'">
       <div class="pa-table-wrap">
         <div class="pa-table-scroll">
         <table class="pa-list-table">
@@ -484,6 +488,65 @@ function createPlanoAnualApp() {
           </tbody>
         </table>
         </div><!-- /pa-table-scroll -->
+      </div>
+    </template>
+
+    <!-- ── Calendar grid view ─────────────────────────────────────── -->
+    <template v-else>
+      <div class="pa-cal-grid">
+        <div
+          v-for="month in calendarData" :key="month.key"
+          class="pa-cal-month"
+          :class="{ 'pa-cal-month-current': isCurrentMonth(month.key) }"
+        >
+          <div class="pa-cal-month-hdr">
+            <span class="pa-cal-month-name">{{ month.label }}</span>
+            <span v-if="isCurrentMonth(month.key)" class="pa-month-now-badge">Agora</span>
+            <div style="flex:1"></div>
+            <span v-if="month.actCount" class="pa-cal-month-count">{{ month.actCount }} act.</span>
+            <button class="pa-month-add" @click="openQuickAdd(month.key)" data-no-print>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Adicionar
+            </button>
+          </div>
+          <div class="pa-cal-dow-row">
+            <span v-for="dw in ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom']" :key="dw" class="pa-cal-dow">{{ dw }}</span>
+          </div>
+          <div v-for="(week, wi) in month.weeks" :key="wi" class="pa-cal-week">
+            <div
+              v-for="(cell, di) in week" :key="di"
+              class="pa-cal-cell"
+              :class="{
+                'pa-cal-empty':    !cell,
+                'pa-cal-today':    cell && cell.isToday,
+                'pa-cal-weekend':  cell && cell.isWeekend,
+                'pa-cal-has-acts': cell && cell.acts.length > 0,
+                'pa-cal-conflict': cell && cell.acts.length > 1,
+              }"
+              @click="cell && !cell.acts.length && openNewActivityOnDay(cell.dateStr)"
+              :title="cell && !cell.acts.length ? 'Adicionar actividade em ' + formatDate(cell.dateStr) : ''"
+            >
+              <div v-if="cell" class="pa-cal-day-num">{{ cell.day }}</div>
+              <div v-if="cell && cell.acts.length" class="pa-cal-acts">
+                <div
+                  v-for="act in cell.acts.slice(0, 3)" :key="act.name"
+                  class="pa-cal-act-chip"
+                  :style="calActStyle(act)"
+                  :class="{ 'pa-cal-act-overdue': isOverdue(act) }"
+                  @click.stop="openEdit(act)"
+                  :title="act.actividade + ' — ' + act.estado + (act.orador ? ' (' + act.orador + ')' : '')"
+                >
+                  <span class="pa-cal-act-dot" :style="{ background: tipologiaColor(act) }"></span>
+                  {{ truncate(act.actividade, 20) }}
+                </div>
+                <div v-if="cell.acts.length > 3" class="pa-cal-act-more" @click.stop>
+                  +{{ cell.acts.length - 3 }} mais
+                </div>
+              </div>
+              <div v-if="cell && cell.acts.length > 1" class="pa-cal-conflict-badge" title="Múltiplas actividades neste dia">!</div>
+            </div>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -981,6 +1044,43 @@ function createPlanoAnualApp() {
           return a.localeCompare(b);
         });
         return keys.map(k => ({ key: k, label: monthLabel(k), items: map[k] }));
+      });
+
+      // Calendar grid: one entry per month in the academic year
+      const calendarData = computed(() => {
+        const today = frappe.datetime.get_today();
+        // Index filtered activities by date string
+        const byDate = {};
+        filteredActividades.value.forEach(a => {
+          if (!a.data) return;
+          if (!byDate[a.data]) byDate[a.data] = [];
+          byDate[a.data].push(a);
+        });
+
+        return allMonthsForYear.value.map(({ key, label }) => {
+          const [yr, mo] = key.split('-').map(Number);
+          const firstDow    = new Date(yr, mo - 1, 1).getDay(); // 0=Sun
+          const daysInMonth = new Date(yr, mo, 0).getDate();
+          const startOffset = (firstDow + 6) % 7;               // Mon=0 … Sun=6
+
+          let actCount = 0;
+          const weeks = [];
+          let week = [];
+          for (let i = 0; i < startOffset; i++) week.push(null);
+          for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${key}-${String(d).padStart(2, '0')}`;
+            const dow     = (startOffset + d - 1) % 7;
+            const acts    = byDate[dateStr] || [];
+            actCount += acts.length;
+            week.push({ day: d, dateStr, isToday: dateStr === today, isWeekend: dow >= 5, acts });
+            if (week.length === 7) { weeks.push(week); week = []; }
+          }
+          if (week.length > 0) {
+            while (week.length < 7) week.push(null);
+            weeks.push(week);
+          }
+          return { key, label, weeks, actCount };
+        });
       });
 
       // ── Click-outside for tipologia dropdown ──────────────────────────────
@@ -1535,6 +1635,19 @@ function createPlanoAnualApp() {
         const cor = tipologiaColor(act);
         return `--tipologia-bg: ${hexToRgba(cor, 0.14)}; --tipologia-text: ${cor}`;
       }
+      function calActStyle(act) {
+        const cor = tipologiaColor(act);
+        return { background: hexToRgba(cor, 0.13), borderLeft: '2.5px solid ' + cor };
+      }
+      function openNewActivityOnDay(dateStr) {
+        Object.assign(form, EMPTY_FORM());
+        form.ano_lectivo = selectedAno.value;
+        form.data        = dateStr;
+        editingAct.value    = null;
+        confirmDelete.value = false;
+        panelOpen.value     = true;
+        nextTick(() => inputActividade.value && inputActividade.value.focus());
+      }
       function statusClass(estado) {
         return { 'Pendente':'status-pendente','Em Progresso':'status-em-progresso','Realizada':'status-realizada','Cancelada':'status-cancelada','Adiada':'status-adiada' }[estado] || 'status-pendente';
       }
@@ -1566,13 +1679,14 @@ function createPlanoAnualApp() {
         filterStatus, filterTipologias, filterMonth,
         tipDdOpen, tipSearch, tipDropEl, tipSearchInput,
         stats, availableMonths, hasFilters, filteredGroups, filteredTipDd,
-        tipologiaMap,
+        tipologiaMap, calendarData,
         loadActividades, openNewActivity, openEdit, closePanel,
         saveActivity, deleteActivity, duplicating, duplicateActivity,
         cycleStatus, removeTipFilter,
         onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop,
         printView, exporting, exportExcel,
-        cardStyle, tipologiaChipStyle, tipologiaColor,
+        cardStyle, tipologiaChipStyle, tipologiaColor, calActStyle,
+        openNewActivityOnDay,
         statusClass, statusChipClass,
         formatDate, formatCurrency, truncate, isOverdue, hexToRgba,
         TODAY_KEY, collapsedMonths, isCurrentMonth, isPastMonth, isCollapsed, toggleCollapse, expandAll,
