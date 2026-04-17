@@ -4,6 +4,7 @@ Portal de Catequese — Installation setup.
 Run automatically after `bench install-app portal`.
 Can also be re-run manually:
     bench execute portal.setup.after_install
+    bench execute portal.setup.seed_field_config
 """
 
 import frappe
@@ -39,7 +40,7 @@ def after_install():
     _ensure_role()
     _setup_permissions()
     _setup_custom_fields()
-    _seed_field_config()
+    seed_field_config()
     frappe.db.commit()
     print("[portal] Setup completo: papel 'Catequista', permissões e campos personalizados configurados.")
 
@@ -97,21 +98,26 @@ def _setup_custom_fields():
     print("[portal] Campo 'senha_temporaria' adicionado ao Catequista.")
 
 
-def _seed_field_config():
+def seed_field_config():
     """
-    Seeds Catequista Portal Settings with the default field configuration.
-    Safe to call multiple times — skips if the Settings doc already exists.
+    Seeds Catequista Portal Settings with the default field and section configuration.
+    Safe to call multiple times — skips if the Settings doc already has data.
+
+    Can be re-run manually:
+        bench execute portal.setup.seed_field_config
     """
     if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
         print("[portal] Configuração de campos já existe, a ignorar seed.")
         return
 
     try:
-        from portal.api import _default_field_config
+        from portal.api import _default_field_config, _default_section_config
         doc = frappe.new_doc("Catequista Portal Settings")
+        for entry in _default_section_config():
+            doc.append("sections", entry)
         for entry in _default_field_config():
             doc.append("field_config", entry)
         doc.insert(ignore_permissions=True)
-        print("[portal] Configuração inicial de campos do portal criada.")
+        print("[portal] Configuração inicial de campos e secções do portal criada.")
     except Exception as e:
-        print(f"[portal] Aviso: não foi possível criar configuração inicial de campos: {e}")
+        print(f"[portal] Aviso: não foi possível criar configuração inicial: {e}")
