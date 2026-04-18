@@ -16,7 +16,10 @@
       "Bash(npm install *)",
       "Bash(python -c \"import ast; ast.parse\\(open\\('portal/api.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
       "Bash(wc -l portal/catequista/page/plano_anual/*.js portal/catequista/page/plano_anual/*.css portal/catequista/page/plano_anual/*.py)",
-      "Bash(bash build-catequista.sh)"
+      "Bash(bash build-catequista.sh)",
+      "Bash(touch portal/www/catequista/.gitkeep)",
+      "Bash(rm -rf portal/www/catequista/404.html portal/www/catequista/404 portal/www/catequista/index.html portal/www/catequista/index.txt portal/www/catequista/login portal/www/catequista/perfil portal/www/catequista/quotas)",
+      "Bash(rm -rf portal/public/catequista/_next)"
     ]
   }
 }
