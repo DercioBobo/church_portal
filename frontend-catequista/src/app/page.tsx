@@ -1306,7 +1306,7 @@ export default function DashboardPage() {
     setDataLoading(true);
     setDataError('');
     Promise.all([api.getMinhaTurma(), api.getFieldConfig(), api.getAvisosAtivos()])
-      .then(([data, config, av]) => { setTurmas(data); setFieldConfig(config); setAvisos(av); })
+      .then(([data, config, av]) => { setTurmas(data); setFieldConfig(config.fields); setSectionConfig(config.sections); setAvisos(av); })
       .catch(e => setDataError(String(e.message || e)))
       .finally(() => setDataLoading(false));
   }, []);
