@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, User, ChevronDown, Cake, Home, CreditCard } from 'lucide-react';
+import { LogOut, User, ChevronDown, Cake, Home, CreditCard, Menu, X, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { logout } from '@/lib/api';
 
@@ -12,12 +12,15 @@ interface NavProps {
 
 export default function Nav({ catequistaNome, birthdayCount = 0, onAniversariantes }: NavProps) {
   const short = process.env.NEXT_PUBLIC_PARISH_SHORT || 'PNSA';
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen,       setMenuOpen]       = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   async function handleLogout() {
     await logout();
     window.location.href = '/catequista/login/';
   }
+
+  function closeMobileMenu() { setMobileMenuOpen(false); }
 
   return (
     <>
@@ -59,8 +62,9 @@ export default function Nav({ catequistaNome, birthdayCount = 0, onAniversariant
               )}
             </div>
 
+            {/* Right side buttons */}
             <div className="flex items-center gap-1">
-              {/* Mobile: birthday icon (top-nav only, since bottom bar has the main nav tabs) */}
+              {/* Mobile: birthday icon */}
               {onAniversariantes && (
                 <button
                   onClick={onAniversariantes}
@@ -76,9 +80,9 @@ export default function Nav({ catequistaNome, birthdayCount = 0, onAniversariant
                 </button>
               )}
 
-              {/* User menu */}
+              {/* Desktop: user dropdown */}
               {catequistaNome && (
-                <div className="relative">
+                <div className="relative hidden md:block">
                   <button
                     onClick={() => setMenuOpen(!menuOpen)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10 transition-all"
@@ -86,18 +90,15 @@ export default function Nav({ catequistaNome, birthdayCount = 0, onAniversariant
                     <div className="w-7 h-7 rounded-full bg-gold-500/30 flex items-center justify-center shrink-0">
                       <User className="w-3.5 h-3.5 text-gold-300" />
                     </div>
-                    <span className="hidden sm:block font-medium max-w-[140px] truncate">
+                    <span className="font-medium max-w-[140px] truncate">
                       {catequistaNome.split(' ')[0]}
                     </span>
-                    <ChevronDown className="w-3.5 h-3.5 opacity-60 hidden sm:block" />
+                    <ChevronDown className="w-3.5 h-3.5 opacity-60" />
                   </button>
 
                   {menuOpen && (
                     <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setMenuOpen(false)}
-                      />
+                      <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                       <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-warm-md border border-cream-200 py-1 z-50 animate-fade-in">
                         <div className="px-4 py-2.5 border-b border-cream-200">
                           <p className="text-xs text-slate-400 font-medium">Sessão activa</p>
@@ -123,24 +124,115 @@ export default function Nav({ catequistaNome, birthdayCount = 0, onAniversariant
                   )}
                 </div>
               )}
-            </div>
 
-            {/* Mobile: logout only if no user menu visible */}
-            {!catequistaNome && (
+              {/* Mobile: hamburger */}
               <button
-                onClick={handleLogout}
-                className="md:hidden p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                onClick={() => setMobileMenuOpen(m => !m)}
+                className="md:hidden p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
               >
-                <LogOut className="w-5 h-5" />
+                {mobileMenuOpen
+                  ? <X    className="w-5 h-5" />
+                  : <Menu className="w-5 h-5" />
+                }
               </button>
-            )}
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* Mobile bottom tab bar */}
+      {/* Mobile full-screen menu — slides in below the sticky nav */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 top-14 z-[55] bg-navy-950/97 backdrop-blur-sm flex flex-col animate-fade-in"
+          onClick={closeMobileMenu}
+        >
+          {/* Nav links */}
+          <nav
+            className="flex flex-col gap-1 p-4 pt-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <MobileMenuItem href="/catequista/"         Icon={Home}       label="Início"  onClick={closeMobileMenu} />
+            <MobileMenuItem href="/catequista/quotas/"  Icon={CreditCard} label="Quotas"  onClick={closeMobileMenu} />
+            <MobileMenuItem href="/catequista/perfil/"  Icon={User}       label="Perfil"  onClick={closeMobileMenu} />
+            {onAniversariantes && (
+              <button
+                onClick={() => { closeMobileMenu(); onAniversariantes(); }}
+                className="flex items-center gap-4 px-4 py-4 rounded-2xl text-white/80 hover:bg-white/8 active:bg-white/12 transition-colors text-left"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                  <Cake className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-base">Aniversariantes</p>
+                  {birthdayCount > 0 && (
+                    <p className="text-xs text-amber-400 font-medium mt-0.5">{birthdayCount} esta semana</p>
+                  )}
+                </div>
+              </button>
+            )}
+          </nav>
+
+          {/* Footer — user info + logout */}
+          <div
+            className="mt-auto px-4 pt-4 pb-12 border-t border-white/10"
+            onClick={e => e.stopPropagation()}
+          >
+            {catequistaNome && (
+              <div className="flex items-center gap-3 mb-4 px-4 py-3 rounded-2xl bg-white/5">
+                <div className="w-9 h-9 rounded-full bg-gold-500/30 flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-gold-300" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-white/50">Sessão activa</p>
+                  <p className="text-sm font-semibold text-white truncate">{catequistaNome}</p>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-rose-400 hover:bg-rose-900/30 active:bg-rose-900/40 transition-colors"
+            >
+              <LogOut className="w-5 h-5 shrink-0" />
+              <span className="font-semibold">Terminar sessão</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom tab bar — secondary nav reference */}
       <MobileTabBar />
     </>
+  );
+}
+
+function MobileMenuItem({
+  href, Icon, label, onClick,
+}: {
+  href: string;
+  Icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  const isActive = typeof window !== 'undefined' &&
+    (window.location.pathname === href || window.location.pathname.startsWith(href.replace(/\/$/, '/')));
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className={`flex items-center gap-4 px-4 py-4 rounded-2xl transition-colors ${
+        isActive
+          ? 'bg-white/10 text-white'
+          : 'text-white/80 hover:bg-white/8 active:bg-white/12'
+      }`}
+    >
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+        isActive ? 'bg-gold-500/30' : 'bg-white/8'
+      }`}>
+        <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+      </div>
+      <span className="font-semibold text-base">{label}</span>
+    </a>
   );
 }
 
@@ -148,29 +240,14 @@ function MobileTabBar() {
   const path = typeof window !== 'undefined' ? window.location.pathname : '';
 
   const tabs = [
-    {
-      href: '/catequista/',
-      Icon: Home,
-      label: 'Início',
-      active: path === '/catequista/' || path === '/catequista',
-    },
-    {
-      href: '/catequista/quotas/',
-      Icon: CreditCard,
-      label: 'Quotas',
-      active: path.startsWith('/catequista/quotas'),
-    },
-    {
-      href: '/catequista/perfil/',
-      Icon: User,
-      label: 'Perfil',
-      active: path.startsWith('/catequista/perfil'),
-    },
+    { href: '/catequista/',        Icon: Home,       label: 'Início',  active: path === '/catequista/' || path === '/catequista' },
+    { href: '/catequista/quotas/', Icon: CreditCard, label: 'Quotas',  active: path.startsWith('/catequista/quotas') },
+    { href: '/catequista/perfil/', Icon: User,       label: 'Perfil',  active: path.startsWith('/catequista/perfil') },
   ];
 
   return (
     <div
-      className="md:hidden fixed bottom-0 inset-x-0 z-[60] bg-white/97 backdrop-blur-md border-t border-cream-200 shadow-[0_-2px_20px_rgba(0,0,0,0.10)]"
+      className="md:hidden fixed bottom-0 inset-x-0 z-[60] bg-white border-t border-cream-200 shadow-[0_-2px_20px_rgba(0,0,0,0.10)]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-stretch h-[4.25rem]">
@@ -182,7 +259,7 @@ function MobileTabBar() {
               active ? 'text-navy-900' : 'text-slate-400'
             }`}
           >
-            <div className={`px-5 py-1.5 rounded-xl transition-colors ${active ? 'bg-navy-900/10' : ''}`}>
+            <div className={`px-5 py-1 rounded-xl transition-colors ${active ? 'bg-navy-900/10' : ''}`}>
               <Icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
             </div>
             <span className={`text-[10px] font-bold tracking-wide leading-none ${active ? 'text-navy-900' : 'text-slate-400'}`}>

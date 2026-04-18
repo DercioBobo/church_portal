@@ -146,8 +146,8 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
   return (
     <div className="bg-white rounded-2xl border border-cream-200 shadow-warm-xs overflow-hidden animate-fade-up">
       <div className={`h-1.5 w-full ${phaseStripe(turma.fase)}`} />
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
+      <div className="p-4 md:p-5">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
               <PhaseChip fase={turma.fase} />
@@ -155,21 +155,13 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
                 <span className="text-xs text-slate-400">{turma.ano_lectivo}</span>
               )}
             </div>
-            <h2 className="font-display font-bold text-navy-900 text-lg">{turma.name}</h2>
-
-            {/* Subtitle row — long-text turma fields (e.g. catecismo) */}
-            {subtitleFields.map(f => {
-              const val = turmaAny[f.fieldname];
-              if (!val) return null;
-              return (
-                <div key={f.fieldname} className="flex items-center gap-1.5 mt-1.5">
-                  <BookOpen className="w-3.5 h-3.5 shrink-0 text-gold-500" />
-                  <span className="text-sm text-slate-600 font-medium leading-snug">{String(val)}</span>
-                </div>
-              );
-            })}
+            <h2 className="font-display font-bold text-navy-900 text-base md:text-lg leading-snug">
+              {turma.name}
+            </h2>
           </div>
-          <div className="flex flex-col items-end gap-2 shrink-0">
+
+          {/* Catecumenos count — hidden on mobile, visible on sm+ */}
+          <div className="hidden sm:flex flex-col items-end gap-2 shrink-0">
             <div className="flex items-center gap-1.5 bg-cream-100 px-3 py-1.5 rounded-full">
               <Users className="w-3.5 h-3.5 text-slate-500" />
               <span className="text-xs font-semibold text-slate-700">
@@ -180,34 +172,52 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
               <ProgramaButton programa={turma.programa as { titulo?: string | null; ficheiro: string }} />
             )}
           </div>
+
+          {/* Mobile: programa button only (count hidden) */}
+          {!!turma.programa && (
+            <div className="sm:hidden shrink-0">
+              <ProgramaButton programa={turma.programa as { titulo?: string | null; ficheiro: string }} />
+            </div>
+          )}
         </div>
 
-        {/* Chip info bar — short fields with icons (local, dia, hora) */}
-        {(chipFields.length > 0 || headerFields.length === 0) && (
-          <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm text-slate-500">
-            {chipFields.length > 0 ? chipFields.map(f => {
-              const val = turmaAny[f.fieldname];
-              if (!val) return null;
-              return (
-                <span key={f.fieldname} className="flex items-center gap-1.5">
-                  {TURMA_FIELD_ICONS[f.fieldname]}
-                  {String(val)}
-                </span>
-              );
-            }) : (
-              // Fallback when no config at all
-              <>
-                {turma.local && <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.local}</span>}
-                {turma.dia   && <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.dia}</span>}
-                {turma.hora  && <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.hora}</span>}
-              </>
-            )}
-          </div>
-        )}
+        {/* Unified info bar — catecismo + local/dia/hora all inline */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-sm text-slate-500">
+          {/* Subtitle fields (catecismo etc.) inline */}
+          {subtitleFields.map(f => {
+            const val = turmaAny[f.fieldname];
+            if (!val) return null;
+            return (
+              <span key={f.fieldname} className="flex items-center gap-1.5 font-medium text-slate-600 truncate max-w-[200px]">
+                <BookOpen className="w-3.5 h-3.5 shrink-0 text-gold-500" />
+                {String(val)}
+              </span>
+            );
+          })}
+
+          {/* Chip fields (local, dia, hora) */}
+          {chipFields.length > 0 ? chipFields.map(f => {
+            const val = turmaAny[f.fieldname];
+            if (!val) return null;
+            return (
+              <span key={f.fieldname} className="flex items-center gap-1.5">
+                {TURMA_FIELD_ICONS[f.fieldname]}
+                {String(val)}
+              </span>
+            );
+          }) : (
+            // Fallback when no config
+            <>
+              {turma.local && <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.local}</span>}
+              {turma.dia   && <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.dia}</span>}
+              {turma.hora  && <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />{turma.hora}</span>}
+            </>
+          )}
+        </div>
 
         {turma.catequista_adj && (
           <p className="mt-2 text-xs text-slate-400">
-            Catequista: <span className="text-slate-600">{turma.catequista_adj}</span>
+            Catequista adj.: <span className="text-slate-600">{turma.catequista_adj}</span>
           </p>
         )}
       </div>
@@ -1579,7 +1589,7 @@ export default function DashboardPage() {
         onAniversariantes={() => setBirthdayPanelOpen(true)}
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-8 pb-24 md:pb-8">
+      <main className="max-w-5xl mx-auto px-4 py-8 pb-32 md:pb-8">
         {/* Page header */}
         <div className="mb-6 animate-fade-up">
           <h1 className="font-display font-bold text-navy-900 text-2xl">
