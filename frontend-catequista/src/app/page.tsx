@@ -403,6 +403,65 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
   const [error,        setError]        = useState('');
   const [confirmClose, setConfirmClose] = useState(false);
 
+  // ── Pull-to-close (mobile bottom sheet) ──────────────────────────────────────
+  const panelRef    = useRef<HTMLDivElement>(null);
+  const pullStartY  = useRef(0);
+  const pulling     = useRef(false);
+  const [isPulling, setIsPulling] = useState(false);
+
+  function startPull(clientY: number) {
+    pullStartY.current = clientY;
+    pulling.current    = true;
+    setIsPulling(true);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onTouchMove(e: TouchEvent) {
+      if (!pulling.current || !panelRef.current) return;
+      const delta = e.touches[0].clientY - pullStartY.current;
+      if (delta <= 0) return;
+      e.preventDefault();
+      panelRef.current.style.transform = `translateY(${delta}px)`;
+    }
+
+    function onTouchEnd() {
+      if (!pulling.current || !panelRef.current) return;
+      pulling.current = false;
+
+      const el = panelRef.current;
+      const raw = el.style.transform.match(/translateY\(([^p]+)px\)/);
+      const dragY = raw ? parseFloat(raw[1]) : 0;
+
+      if (dragY > 100) {
+        // Animate to fully off-screen from current position, then close
+        el.style.transition = 'transform 0.22s ease-in';
+        el.style.transform  = 'translateY(110dvh)';
+        setTimeout(() => {
+          el.style.transition = '';
+          el.style.transform  = '';
+          setIsPulling(false);
+          onClose();
+        }, 220);
+      } else {
+        // Spring back
+        el.style.transition = 'transform 0.35s cubic-bezier(0.32,0.72,0,1)';
+        el.style.transform  = '';
+        setTimeout(() => { el.style.transition = ''; }, 350);
+        setIsPulling(false);
+      }
+    }
+
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend',  onTouchEnd);
+    return () => {
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend',  onTouchEnd);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   // Reset form when a new catecumeno is opened
   useEffect(() => {
     if (!cat) return;
@@ -544,12 +603,14 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
 
       {/* Panel — right drawer on desktop, bottom sheet on mobile */}
       <div
+        ref={panelRef}
         className={[
           'fixed z-50 bg-white shadow-2xl flex flex-col',
-          'transition-transform duration-300 ease-in-out',
+          // Only animate via CSS when not being dragged manually
+          isPulling ? '' : 'transition-transform duration-300 ease-in-out',
           // Mobile: bottom sheet
           'inset-x-0 bottom-0 h-[90dvh] rounded-t-2xl overflow-hidden',
-          // Desktop: full-height right drawer — top-0+bottom-0 fills screen, h-auto resets h-[90dvh]
+          // Desktop: full-height right drawer
           'md:top-0 md:bottom-0 md:right-0 md:left-auto md:h-auto md:rounded-none md:overflow-visible',
           'md:w-[42%] md:max-w-2xl',
           open
@@ -559,9 +620,12 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
       >
         {cat && (
           <>
-            {/* Drag handle (mobile only) */}
-            <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 rounded-full bg-cream-300" />
+            {/* Drag handle (mobile only) — touch here to pull down and close */}
+            <div
+              className="md:hidden flex justify-center pt-3 pb-2 shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
+              onTouchStart={e => startPull(e.touches[0].clientY)}
+            >
+              <div className="w-12 h-1.5 rounded-full bg-cream-300" />
             </div>
 
             {/* Header */}
@@ -625,7 +689,7 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
             </div>
 
             {/* Body — scrollable */}
-            <div className="overflow-y-auto flex-1 min-h-0 px-5 py-4 space-y-6">
+            <div className="overflow-y-auto flex-1 min-h-0 px-5 pt-4 pb-8 space-y-6">
               {/* Section quick-jump pills (mobile only, shown when there are 2+ sections) */}
               {sections.length > 1 && (
                 <div className="md:hidden -mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -1199,6 +1263,51 @@ function BirthdayPanel({
   onClose: () => void;
   turmas: TurmaComCatecumenos[];
 }) {
+  const bdPanelRef   = useRef<HTMLDivElement>(null);
+  const bdPullStartY = useRef(0);
+  const bdPulling    = useRef(false);
+  const [bdIsPulling, setBdIsPulling] = useState(false);
+
+  function startBdPull(clientY: number) {
+    bdPullStartY.current = clientY;
+    bdPulling.current    = true;
+    setBdIsPulling(true);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function onTouchMove(e: TouchEvent) {
+      if (!bdPulling.current || !bdPanelRef.current) return;
+      const delta = e.touches[0].clientY - bdPullStartY.current;
+      if (delta <= 0) return;
+      e.preventDefault();
+      bdPanelRef.current.style.transform = `translateY(${delta}px)`;
+    }
+    function onTouchEnd() {
+      if (!bdPulling.current || !bdPanelRef.current) return;
+      bdPulling.current = false;
+      const el  = bdPanelRef.current;
+      const raw = el.style.transform.match(/translateY\(([^p]+)px\)/);
+      const dragY = raw ? parseFloat(raw[1]) : 0;
+      if (dragY > 100) {
+        el.style.transition = 'transform 0.22s ease-in';
+        el.style.transform  = 'translateY(110dvh)';
+        setTimeout(() => { el.style.transition = ''; el.style.transform = ''; setBdIsPulling(false); onClose(); }, 220);
+      } else {
+        el.style.transition = 'transform 0.35s cubic-bezier(0.32,0.72,0,1)';
+        el.style.transform  = '';
+        setTimeout(() => { el.style.transition = ''; }, 350);
+        setBdIsPulling(false);
+      }
+    }
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend',  onTouchEnd);
+    return () => {
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend',  onTouchEnd);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   const { thisWeek, thisMonth } = useMemo(() => {
     const week: BirthdayEntry[] = [];
     const month: BirthdayEntry[] = [];
@@ -1236,9 +1345,10 @@ function BirthdayPanel({
         onClick={onClose}
       />
       <div
+        ref={bdPanelRef}
         className={[
           'fixed z-50 bg-white shadow-2xl flex flex-col',
-          'transition-transform duration-300 ease-in-out',
+          bdIsPulling ? '' : 'transition-transform duration-300 ease-in-out',
           'inset-x-0 bottom-0 h-[85dvh] rounded-t-2xl overflow-hidden',
           'md:top-0 md:bottom-0 md:right-0 md:left-auto md:h-auto md:rounded-none md:overflow-visible',
           'md:w-[380px]',
@@ -1248,8 +1358,11 @@ function BirthdayPanel({
         ].join(' ')}
       >
         {/* Drag handle (mobile only) */}
-        <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-cream-300" />
+        <div
+          className="md:hidden flex justify-center pt-3 pb-2 shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
+          onTouchStart={e => startBdPull(e.touches[0].clientY)}
+        >
+          <div className="w-12 h-1.5 rounded-full bg-cream-300" />
         </div>
 
         {/* Header */}

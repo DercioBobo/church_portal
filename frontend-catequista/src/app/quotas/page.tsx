@@ -32,13 +32,13 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-cream-200 shadow-warm-xs p-5 flex gap-4 items-start">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accent}`}>
+    <div className="bg-white rounded-2xl border border-cream-200 shadow-warm-xs p-4 flex items-center gap-3">
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${accent}`}>
         {icon}
       </div>
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-slate-500 mb-0.5">{label}</p>
-        <p className="text-xl font-bold text-navy-900 leading-tight">{value}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-medium text-slate-500 leading-tight">{label}</p>
+        <p className="text-lg font-bold text-navy-900 leading-tight truncate">{value}</p>
         {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
       </div>
     </div>
@@ -258,23 +258,23 @@ export default function QuotasPage() {
           <div className="space-y-6">
 
             {/* ── Stat cards ──────────────────────────────────────────────── */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <StatCard
                 label="Os meus pagamentos"
                 value={meusTotal > 0 ? fmt(meusTotal) : '—'}
-                icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
+                icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
                 accent="bg-emerald-50"
               />
               <StatCard
                 label="Meses pagos"
                 value={`${meusMesesPagos} / 12`}
-                icon={<Calendar className="w-5 h-5 text-gold-600" />}
+                icon={<Calendar className="w-4 h-4 text-gold-600" />}
                 accent="bg-gold-50"
               />
               <StatCard
                 label="Total do grupo"
                 value={fmt(data.total_geral)}
-                icon={<Users className="w-5 h-5 text-navy-600" />}
+                icon={<Users className="w-4 h-4 text-navy-600" />}
                 accent="bg-navy-50"
               />
             </div>

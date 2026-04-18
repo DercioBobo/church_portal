@@ -1,8 +1,14 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 const parishShort = process.env.NEXT_PUBLIC_PARISH_SHORT || 'PNSA';
 const parishName  = process.env.NEXT_PUBLIC_PARISH_NAME  || 'PNSA';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',   // enables env(safe-area-inset-bottom) on iOS
+};
 
 export const metadata: Metadata = {
   title: `${parishShort} — Portal do Catequista`,

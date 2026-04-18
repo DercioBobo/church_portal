@@ -170,22 +170,22 @@ function MobileTabBar() {
 
   return (
     <div
-      className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur-sm border-t border-cream-200 shadow-[0_-2px_16px_rgba(0,0,0,0.08)]"
+      className="md:hidden fixed bottom-0 inset-x-0 z-[60] bg-white/97 backdrop-blur-md border-t border-cream-200 shadow-[0_-2px_20px_rgba(0,0,0,0.10)]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="flex items-stretch h-16">
+      <div className="flex items-stretch h-[4.25rem]">
         {tabs.map(({ href, Icon, label, active }) => (
           <a
             key={href}
             href={href}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
               active ? 'text-navy-900' : 'text-slate-400'
             }`}
           >
-            <div className={`p-1.5 rounded-xl transition-colors ${active ? 'bg-navy-900/8' : ''}`}>
+            <div className={`px-5 py-1.5 rounded-xl transition-colors ${active ? 'bg-navy-900/10' : ''}`}>
               <Icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
             </div>
-            <span className={`text-[10px] font-semibold tracking-wide ${active ? 'text-navy-900' : 'text-slate-400'}`}>
+            <span className={`text-[10px] font-bold tracking-wide leading-none ${active ? 'text-navy-900' : 'text-slate-400'}`}>
               {label}
             </span>
           </a>
