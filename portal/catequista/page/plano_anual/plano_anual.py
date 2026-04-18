@@ -616,6 +616,181 @@ def bulk_move_month(names_json, new_month):
     return {"updated": len(updated_rows), "rows": updated_rows}
 
 
+# ── Rollover ───────────────────────────────────────────────────────────────────
+
+def _shift_date_rollover(d, preserve_weekend=True):
+    """
+    Shift a date forward by exactly 1 year, preserving the same month/day.
+    If the original fell on Saturday or Sunday and preserve_weekend=True,
+    snap the result to the same weekday (nearest Sat or Sun within ±3 days).
+    Handles Feb 29 → Feb 28 in non-leap target years.
+    """
+    import calendar
+    from datetime import date, timedelta
+
+    if not d:
+        return None
+    if not hasattr(d, "year"):
+        try:
+            from datetime import datetime
+            d = datetime.strptime(str(d)[:10], "%Y-%m-%d").date()
+        except Exception:
+            return None
+
+    original_weekday = d.weekday()          # 5 = Saturday, 6 = Sunday
+    target_year      = d.year + 1
+    last_day         = calendar.monthrange(target_year, d.month)[1]
+    shifted          = date(target_year, d.month, min(d.day, last_day))
+
+    # Snap to same weekday when original was a weekend day
+    if preserve_weekend and original_weekday in (5, 6):
+        shifted_weekday = shifted.weekday()
+        if shifted_weekday != original_weekday:
+            delta = (original_weekday - shifted_weekday) % 7
+            if delta > 3:
+                delta -= 7          # shorter path backward
+            shifted = shifted + timedelta(days=delta)
+
+    return str(shifted)
+
+
+@frappe.whitelist()
+def preview_rollover(ano_origem, ano_destino, manter_orador="1", ajustar_datas="1"):
+    """
+    Returns a preview of what a rollover would create/skip.
+    Duplicate detection is by exact actividade name within the target year.
+    """
+    _assert_coordenador()
+
+    if ano_origem == ano_destino:
+        frappe.throw(_("O ano de origem e o ano de destino não podem ser iguais"))
+
+    preserve_weekend = frappe.utils.cint(ajustar_datas) == 1
+
+    src_rows = frappe.db.sql("""
+        SELECT actividade, tipologia, data, orador, local, orcamento
+        FROM `tabActividade do Plano`
+        WHERE ano_lectivo = %s
+        ORDER BY data IS NULL ASC, data ASC, name ASC
+    """, (ano_origem,), as_dict=True)
+
+    if not src_rows:
+        frappe.throw(_("O ano de origem ({0}) não tem actividades").format(ano_origem))
+
+    # Names already in the target year — used for duplicate detection
+    existing = {
+        r.actividade
+        for r in frappe.db.sql(
+            "SELECT actividade FROM `tabActividade do Plano` WHERE ano_lectivo = %s",
+            (ano_destino,), as_dict=True,
+        )
+    }
+
+    to_create = []
+    to_skip   = []
+
+    for row in src_rows:
+        shifted = _shift_date_rollover(row.data, preserve_weekend) if ajustar_datas else None
+        entry = {
+            "actividade":  row.actividade,
+            "tipologia":   row.tipologia or "",
+            "data_origem": str(row.data)[:10] if row.data else None,
+            "data_destino": shifted,
+            "orador":      row.orador if frappe.utils.cint(manter_orador) else None,
+            "local":       row.local  or "",
+        }
+        if row.actividade in existing:
+            to_skip.append(entry)
+        else:
+            to_create.append(entry)
+
+    return {
+        "ano_origem":  ano_origem,
+        "ano_destino": ano_destino,
+        "to_create":   to_create,
+        "to_skip":     to_skip,
+    }
+
+
+@frappe.whitelist()
+def executar_rollover(ano_origem, ano_destino, manter_orador="1", ajustar_datas="1"):
+    """
+    Performs the rollover: creates activities from ano_origem into ano_destino.
+    Skips any whose actividade name already exists in the target year.
+    Returns counts and the created rows (for immediate UI update).
+    """
+    _assert_coordenador()
+
+    if ano_origem == ano_destino:
+        frappe.throw(_("O ano de origem e o ano de destino não podem ser iguais"))
+
+    keep_orador      = frappe.utils.cint(manter_orador) == 1
+    preserve_weekend = frappe.utils.cint(ajustar_datas) == 1
+
+    src_rows = frappe.db.sql("""
+        SELECT actividade, tipologia, data, orador, local, orcamento
+        FROM `tabActividade do Plano`
+        WHERE ano_lectivo = %s
+        ORDER BY data IS NULL ASC, data ASC, name ASC
+    """, (ano_origem,), as_dict=True)
+
+    if not src_rows:
+        frappe.throw(_("O ano de origem ({0}) não tem actividades").format(ano_origem))
+
+    existing = {
+        r.actividade
+        for r in frappe.db.sql(
+            "SELECT actividade FROM `tabActividade do Plano` WHERE ano_lectivo = %s",
+            (ano_destino,), as_dict=True,
+        )
+    }
+
+    created_names = []
+    skipped       = 0
+
+    for row in src_rows:
+        if row.actividade in existing:
+            skipped += 1
+            continue
+
+        doc = frappe.new_doc("Actividade do Plano")
+        doc.actividade     = row.actividade
+        doc.tipologia      = row.tipologia or None
+        doc.estado         = "Pendente"
+        doc.ano_lectivo    = ano_destino
+        doc.data           = _shift_date_rollover(row.data, preserve_weekend) if preserve_weekend else None
+        doc.orador         = row.orador if keep_orador else None
+        doc.local          = row.local  or None
+        doc.orcamento      = row.orcamento or None
+        doc.notas_execucao = None
+        doc.data_original  = None
+        doc.insert(ignore_permissions=True)
+        created_names.append(doc.name)
+
+    frappe.db.commit()
+
+    rows = []
+    if created_names:
+        placeholders = ",".join(["%s"] * len(created_names))
+        rows = frappe.db.sql(f"""
+            SELECT a.name, a.actividade, a.data, a.data_original,
+                   a.orador, a.local, a.orcamento,
+                   a.tipologia, a.estado, a.notas_execucao, a.ano_lectivo,
+                   t.cor AS tipologia_cor, t.icone AS tipologia_icone
+            FROM `tabActividade do Plano` a
+            LEFT JOIN `tabTipologia Actividade` t ON t.name = a.tipologia
+            WHERE a.name IN ({placeholders})
+            ORDER BY a.data IS NULL ASC, a.data ASC
+        """, created_names, as_dict=True)
+
+    return {
+        "created": len(created_names),
+        "skipped": skipped,
+        "ano_destino": ano_destino,
+        "rows": rows,
+    }
+
+
 @frappe.whitelist()
 def reorder_actividades(ano_lectivo, ordered_names):
     """
