@@ -15,7 +15,8 @@
       "Bash(./node_modules/.bin/next build *)",
       "Bash(npm install *)",
       "Bash(python -c \"import ast; ast.parse\\(open\\('portal/api.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
-      "Bash(wc -l portal/catequista/page/plano_anual/*.js portal/catequista/page/plano_anual/*.css portal/catequista/page/plano_anual/*.py)"
+      "Bash(wc -l portal/catequista/page/plano_anual/*.js portal/catequista/page/plano_anual/*.css portal/catequista/page/plano_anual/*.py)",
+      "Bash(bash build-catequista.sh)"
     ]
   }
 }

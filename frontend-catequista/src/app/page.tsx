@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   MapPin, Clock, Calendar, Users, Search, X,
-  Save, BookOpen, Cake, AlertCircle, ChevronRight, FileDown,
+  Save, BookOpen, Cake, AlertCircle, ChevronLeft, ChevronRight, FileDown,
   ArrowUp, ArrowDown, ArrowUpDown,
   User, Heart, MessageSquare, Book, Star, Info, FileText, Pencil, Home, Shield, Phone,
 } from 'lucide-react';
@@ -81,6 +81,18 @@ function formatDate(val: string | null): string {
   } catch {
     return val;
   }
+}
+
+const INITIALS_PALETTE = [
+  'bg-sky-100 text-sky-700',
+  'bg-violet-100 text-violet-700',
+  'bg-amber-100 text-amber-700',
+  'bg-emerald-100 text-emerald-700',
+  'bg-rose-100 text-rose-700',
+  'bg-indigo-100 text-indigo-700',
+];
+function initialsColor(name: string): string {
+  return INITIALS_PALETTE[(name.charCodeAt(0) || 65) % INITIALS_PALETTE.length];
 }
 
 function getCatValue(cat: CatecumenoCompleto, fieldname: string): unknown {
@@ -377,11 +389,14 @@ interface SidePanelProps {
   turma: TurmaComCatecumenos | null;
   fieldConfig: FieldConfigItem[];
   sectionConfig: PortalSectionConfig[];
+  allCatecumenos: CatecumenoCompleto[];
+  catIndex: number;
+  onNavigate: (cat: CatecumenoCompleto, idx: number) => void;
   onClose: () => void;
   onSaved: (updated: CatecumenoCompleto) => void;
 }
 
-function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, onClose, onSaved }: SidePanelProps) {
+function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumenos, catIndex, onNavigate, onClose, onSaved }: SidePanelProps) {
   const [form, setForm] = useState<Record<string, string | number>>({});
   const [saving,       setSaving]       = useState(false);
   const [saved,        setSaved]        = useState(false);
@@ -550,8 +565,8 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, onClose, onSa
             </div>
 
             {/* Header */}
-            <div className="flex items-start justify-between px-5 py-4 border-b border-cream-200 shrink-0">
-              <div className="min-w-0 pr-3">
+            <div className="flex items-start justify-between gap-2 px-4 py-3.5 border-b border-cream-200 shrink-0">
+              <div className="min-w-0 flex-1">
                 <h3 className="font-display font-bold text-navy-900 text-base leading-tight truncate flex items-center gap-2">
                   {cat.name}
                   {isDirty && !saved && (
@@ -569,9 +584,41 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, onClose, onSa
                   </span>
                 </div>
               </div>
+
+              {/* Mobile: prev/next navigator */}
+              {allCatecumenos.length > 1 && (
+                <div className="md:hidden flex items-center gap-0.5 shrink-0 self-center">
+                  <button
+                    onClick={() => {
+                      if (isDirty) { setError('Guarde as alterações antes de navegar.'); return; }
+                      if (catIndex > 0) onNavigate(allCatecumenos[catIndex - 1], catIndex - 1);
+                    }}
+                    disabled={catIndex === 0}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 disabled:opacity-25 transition-colors"
+                    aria-label="Anterior"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs text-slate-400 tabular-nums min-w-[2.6rem] text-center select-none">
+                    {catIndex + 1}/{allCatecumenos.length}
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (isDirty) { setError('Guarde as alterações antes de navegar.'); return; }
+                      if (catIndex < allCatecumenos.length - 1) onNavigate(allCatecumenos[catIndex + 1], catIndex + 1);
+                    }}
+                    disabled={catIndex === allCatecumenos.length - 1}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 disabled:opacity-25 transition-colors"
+                    aria-label="Próximo"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={handleClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 transition-colors shrink-0"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 transition-colors shrink-0 self-start"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -579,10 +626,33 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, onClose, onSa
 
             {/* Body — scrollable */}
             <div className="overflow-y-auto flex-1 min-h-0 px-5 py-4 space-y-6">
+              {/* Section quick-jump pills (mobile only, shown when there are 2+ sections) */}
+              {sections.length > 1 && (
+                <div className="md:hidden -mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  {sections.map(section => {
+                    const Ic = section.icon ? SECTION_ICONS[section.icon] : null;
+                    return (
+                      <button
+                        key={section.key}
+                        onClick={() => {
+                          document
+                            .getElementById(`panel-section-${section.key}`)
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cream-300 bg-cream-50 text-xs font-semibold text-slate-600 hover:bg-cream-100 active:bg-cream-200 transition-colors"
+                      >
+                        {Ic && <Ic className="w-3 h-3 shrink-0" />}
+                        {section.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {sections.map(section => {
                 const IconComponent = section.icon ? SECTION_ICONS[section.icon] : null;
                 return (
-                <div key={section.key}>
+                <div key={section.key} id={`panel-section-${section.key}`}>
                   <div className="flex items-center gap-1.5 mb-3">
                     {IconComponent && (
                       <IconComponent className="w-3 h-3 text-slate-400 shrink-0" />
@@ -771,24 +841,26 @@ function CatecumenosTable({ catecumenos, fieldConfig, onSelect }: TableProps) {
 
   return (
     <div className="animate-fade-up-1">
-      {/* Search */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-        <input
-          type="search"
-          placeholder="Filtrar por nome ou encarregado..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-cream-300 bg-white text-sm text-navy-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-400/50 focus:border-gold-400 transition-all"
-        />
-        {query && (
-          <button
-            onClick={() => setQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
+      {/* Search — sticky on mobile so it stays accessible while scrolling */}
+      <div className="sticky top-14 z-20 bg-cream-50/95 backdrop-blur-sm -mx-4 px-4 pt-2 pb-2 mb-1 md:static md:bg-transparent md:backdrop-blur-none md:mx-0 md:px-0 md:pt-0 md:pb-0 md:mb-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <input
+            type="search"
+            placeholder="Filtrar por nome..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-cream-300 bg-white text-sm text-navy-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-400/50 focus:border-gold-400 transition-all shadow-warm-xs"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Count */}
@@ -854,7 +926,11 @@ function CatecumenosTable({ catecumenos, fieldConfig, onSelect }: TableProps) {
                   </div>
 
                   {/* Mobile row */}
-                  <div className="md:hidden flex items-center gap-3 px-4 py-3">
+                  <div className="md:hidden flex items-center gap-3 px-4 py-3.5">
+                    {/* Initials avatar */}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold ${initialsColor(cat.name)}`}>
+                      {cat.name.charAt(0).toUpperCase()}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         {isBirthdayToday(cat.data_de_nascimento) && (
@@ -863,7 +939,7 @@ function CatecumenosTable({ catecumenos, fieldConfig, onSelect }: TableProps) {
                         {!isBirthdayToday(cat.data_de_nascimento) && isBirthdaySoon(cat.data_de_nascimento) && (
                           <Cake className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                         )}
-                        <span className="text-sm font-medium text-navy-900 truncate">{cat.name}</span>
+                        <span className="text-sm font-semibold text-navy-900 truncate">{cat.name}</span>
                       </div>
                       <MobileSubtitle cat={cat} columns={tableColumns} />
                     </div>
@@ -1296,7 +1372,7 @@ export default function DashboardPage() {
   const [retiros, setRetiros] = useState<RetiroProximo[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState('');
-  const [panel, setPanel] = useState<{ cat: CatecumenoCompleto; turma: TurmaComCatecumenos; turmaIdx: number } | null>(null);
+  const [panel, setPanel] = useState<{ cat: CatecumenoCompleto; turma: TurmaComCatecumenos; turmaIdx: number; catIndex: number } | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const closePanelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [birthdayPanelOpen, setBirthdayPanelOpen] = useState(false);
@@ -1334,7 +1410,8 @@ export default function DashboardPage() {
   }, [auth]);
 
   const openPanel = useCallback((cat: CatecumenoCompleto, turma: TurmaComCatecumenos, turmaIdx: number) => {
-    setPanel({ cat, turma, turmaIdx });
+    const catIndex = turma.catecumenos.findIndex(c => c.name === cat.name);
+    setPanel({ cat, turma, turmaIdx, catIndex: catIndex >= 0 ? catIndex : 0 });
     setPanelOpen(true);
   }, []);
 
@@ -1477,6 +1554,9 @@ export default function DashboardPage() {
         turma={panel?.turma ?? null}
         fieldConfig={fieldConfig}
         sectionConfig={sectionConfig}
+        allCatecumenos={panel?.turma.catecumenos ?? []}
+        catIndex={panel?.catIndex ?? 0}
+        onNavigate={(cat, idx) => setPanel(p => p ? { ...p, cat, catIndex: idx } : null)}
         onClose={closePanel}
         onSaved={handleSaved}
       />

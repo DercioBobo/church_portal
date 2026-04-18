@@ -59,6 +59,10 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Hide scrollbar (used for horizontal pill rows on mobile) ─── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* ── Rich-text content rendered from Frappe Text Editor (Quill) ── */
 .aviso-richtext p            { margin-bottom: 0.55em; }
 .aviso-richtext p:last-child { margin-bottom: 0; }
