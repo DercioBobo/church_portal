@@ -1,0 +1,46 @@
+{
+ "autoname": "autoincrement",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["hora", "actividade", "responsavel", "notas"],
+ "fields": [
+  {
+   "fieldname": "hora",
+   "fieldtype": "Time",
+   "label": "Hora",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "actividade",
+   "fieldtype": "Data",
+   "label": "Actividade",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "responsavel",
+   "fieldtype": "Data",
+   "label": "Responsável",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "notas",
+   "fieldtype": "Small Text",
+   "label": "Notas"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Retiro Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 0
+}

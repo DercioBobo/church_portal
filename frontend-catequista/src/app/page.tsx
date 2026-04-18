@@ -12,7 +12,7 @@ import PhaseChip from '@/components/PhaseChip';
 import { FullPageLoading } from '@/components/Loading';
 import { useAuthGuard } from '@/lib/useAuthGuard';
 import { api } from '@/lib/api';
-import type { TurmaComCatecumenos, CatecumenoCompleto, FieldConfigItem, PortalSectionConfig, AvisoAtivo } from '@/types/catequista';
+import type { TurmaComCatecumenos, CatecumenoCompleto, FieldConfigItem, PortalSectionConfig, AvisoAtivo, RetiroProximo } from '@/types/catequista';
 
 // ── Section icon map ──────────────────────────────────────────────────────────
 
@@ -1227,6 +1227,65 @@ function BirthdayPanel({
   );
 }
 
+// ── Proximos Retiros card ─────────────────────────────────────────────────────
+
+const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function RetiroCard({ retiro }: { retiro: RetiroProximo }) {
+  const d = new Date(retiro.data);
+  const day   = isNaN(d.getTime()) ? '—' : String(d.getDate()).padStart(2, '0');
+  const month = isNaN(d.getTime()) ? '—' : MONTH_SHORT[d.getMonth()];
+
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-cream-200 last:border-0">
+      {/* Date badge */}
+      <div className="flex flex-col items-center justify-center bg-navy-900 text-white rounded-xl w-12 shrink-0 py-1.5">
+        <span className="text-lg font-bold leading-none">{day}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{month}</span>
+      </div>
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-navy-900 truncate">{retiro.titulo}</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+          {retiro.local && (
+            <span className="flex items-center gap-1 text-xs text-slate-500">
+              <MapPin className="w-3 h-3 shrink-0 text-slate-400" />
+              {retiro.local}
+            </span>
+          )}
+          {retiro.orador && (
+            <span className="flex items-center gap-1 text-xs text-slate-500">
+              <User className="w-3 h-3 shrink-0 text-slate-400" />
+              {retiro.orador}
+            </span>
+          )}
+        </div>
+        {retiro.tema && (
+          <p className="text-xs text-slate-400 italic mt-0.5 truncate">{retiro.tema}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProximosRetiros({ retiros }: { retiros: RetiroProximo[] }) {
+  if (retiros.length === 0) return null;
+  return (
+    <div className="bg-white rounded-2xl border border-cream-200 shadow-warm-xs overflow-hidden mb-8 animate-fade-up">
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-cream-200">
+        <Calendar className="w-4 h-4 text-navy-700 shrink-0" />
+        <h2 className="font-display font-bold text-navy-900 text-sm">Próximos Retiros</h2>
+        <span className="ml-auto text-xs font-semibold text-slate-400 bg-cream-100 px-2 py-0.5 rounded-full">
+          {retiros.length}
+        </span>
+      </div>
+      <div className="px-5 divide-y divide-cream-200">
+        {retiros.map(r => <RetiroCard key={r.name} retiro={r} />)}
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -1234,6 +1293,7 @@ export default function DashboardPage() {
   const [turmas, setTurmas] = useState<TurmaComCatecumenos[]>([]);
   const [fieldConfig, setFieldConfig]     = useState<FieldConfigItem[]>([]);
   const [sectionConfig, setSectionConfig] = useState<PortalSectionConfig[]>([]);
+  const [retiros, setRetiros] = useState<RetiroProximo[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState('');
   const [panel, setPanel] = useState<{ cat: CatecumenoCompleto; turma: TurmaComCatecumenos; turmaIdx: number } | null>(null);
@@ -1258,12 +1318,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!auth) return;
-    Promise.all([api.getMinhaTurma(), api.getFieldConfig(), api.getAvisosAtivos()])
-      .then(([data, config, av]) => {
+    Promise.all([api.getMinhaTurma(), api.getFieldConfig(), api.getAvisosAtivos(), api.getProximosRetiros()])
+      .then(([data, config, av, ret]) => {
         setTurmas(data);
         setFieldConfig(config.fields);
         setSectionConfig(config.sections);
         setAvisos(av);
+        setRetiros(ret);
         setDataLoading(false);
       })
       .catch(e => {
@@ -1305,8 +1366,8 @@ export default function DashboardPage() {
   const retry = useCallback(() => {
     setDataLoading(true);
     setDataError('');
-    Promise.all([api.getMinhaTurma(), api.getFieldConfig(), api.getAvisosAtivos()])
-      .then(([data, config, av]) => { setTurmas(data); setFieldConfig(config.fields); setSectionConfig(config.sections); setAvisos(av); })
+    Promise.all([api.getMinhaTurma(), api.getFieldConfig(), api.getAvisosAtivos(), api.getProximosRetiros()])
+      .then(([data, config, av, ret]) => { setTurmas(data); setFieldConfig(config.fields); setSectionConfig(config.sections); setAvisos(av); setRetiros(ret); })
       .catch(e => setDataError(String(e.message || e)))
       .finally(() => setDataLoading(false));
   }, []);
@@ -1338,6 +1399,11 @@ export default function DashboardPage() {
             {new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
+
+        {/* Upcoming retreats — only when data is loaded and there are retreats */}
+        {!dataLoading && !dataError && retiros.length > 0 && (
+          <ProximosRetiros retiros={retiros} />
+        )}
 
         {dataLoading && (
           <div className="space-y-4">

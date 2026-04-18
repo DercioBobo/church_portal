@@ -66,6 +66,18 @@ export interface FieldConfigItem {
   col_span: '1' | '2';
 }
 
+// ── Retiros ───────────────────────────────────────────────────────────────────
+
+export interface RetiroProximo {
+  name: string;
+  titulo: string;
+  data: string;
+  local: string | null;
+  tema: string | null;
+  orador: string | null;
+  estado: string;
+}
+
 // ── Quotas ────────────────────────────────────────────────────────────────────
 
 export interface QuotaMesResumo {

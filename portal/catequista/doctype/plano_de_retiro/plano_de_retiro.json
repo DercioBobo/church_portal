@@ -1,0 +1,134 @@
+{
+ "autoname": "RETIRO-.YY.-.##",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "titulo",
+  "data",
+  "ano_lectivo",
+  "estado",
+  "column_break_1",
+  "local",
+  "orador",
+  "section_tema",
+  "tema",
+  "section_fases",
+  "fases",
+  "section_programa",
+  "programa",
+  "section_notas",
+  "notas"
+ ],
+ "fields": [
+  {
+   "fieldname": "titulo",
+   "fieldtype": "Data",
+   "label": "Título",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "data",
+   "fieldtype": "Date",
+   "label": "Data",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ano_lectivo",
+   "fieldtype": "Link",
+   "label": "Ano Lectivo",
+   "options": "Ano Lectivo",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "estado",
+   "fieldtype": "Select",
+   "label": "Estado",
+   "options": "Planeado\nRealizado\nCancelado",
+   "default": "Planeado",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "local",
+   "fieldtype": "Data",
+   "label": "Local"
+  },
+  {
+   "fieldname": "orador",
+   "fieldtype": "Data",
+   "label": "Orador / Pregador"
+  },
+  {
+   "fieldname": "section_tema",
+   "fieldtype": "Section Break",
+   "label": "Tema"
+  },
+  {
+   "fieldname": "tema",
+   "fieldtype": "Small Text",
+   "label": "Tema"
+  },
+  {
+   "fieldname": "section_fases",
+   "fieldtype": "Section Break",
+   "label": "Fases"
+  },
+  {
+   "fieldname": "fases",
+   "fieldtype": "Table",
+   "label": "Fases",
+   "options": "Retiro Fase"
+  },
+  {
+   "fieldname": "section_programa",
+   "fieldtype": "Section Break",
+   "label": "Programa do Dia"
+  },
+  {
+   "fieldname": "programa",
+   "fieldtype": "Table",
+   "label": "Programa",
+   "options": "Retiro Item"
+  },
+  {
+   "fieldname": "section_notas",
+   "fieldtype": "Section Break",
+   "label": "Notas Internas"
+  },
+  {
+   "fieldname": "notas",
+   "fieldtype": "Small Text",
+   "label": "Notas"
+  }
+ ],
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Plano de Retiro",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1, "write": 1, "create": 1, "delete": 1
+  },
+  {
+   "role": "Coordenador Catequese",
+   "read": 1, "write": 1, "create": 1, "delete": 1
+  }
+ ],
+ "search_fields": "titulo,data",
+ "title_field": "titulo",
+ "sort_field": "data",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

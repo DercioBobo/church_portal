@@ -1302,6 +1302,53 @@ def delete_quota(quota_name):
 
 
 @frappe.whitelist()
+def get_proximos_retiros():
+    """
+    Portal Catequista — returns upcoming Plano de Retiro records for the
+    catequista's fases only (estado = Planeado, data >= today).
+    """
+    cat_name = _assert_catequista()
+
+    turma_fases = frappe.db.sql("""
+        SELECT DISTINCT fase FROM `tabTurma`
+        WHERE (catequista = %s OR catequista_adj = %s)
+          AND status = 'Activo'
+          AND fase IS NOT NULL AND fase != ''
+    """, (cat_name, cat_name), as_dict=True)
+
+    if not turma_fases:
+        return []
+
+    fases = [r.fase for r in turma_fases]
+    placeholders = ", ".join(["%s"] * len(fases))
+    today = frappe.utils.today()
+
+    retiros = frappe.db.sql(f"""
+        SELECT DISTINCT
+            p.name, p.titulo, p.data, p.local, p.tema, p.orador, p.estado
+        FROM `tabPlano de Retiro` p
+        INNER JOIN `tabRetiro Fase` rf ON rf.parent = p.name
+        WHERE p.estado = 'Planeado'
+          AND p.data >= %s
+          AND rf.fase IN ({placeholders})
+        ORDER BY p.data ASC
+        LIMIT 5
+    """, [today] + fases, as_dict=True)
+
+    # Attach the full fases list to each retiro
+    for r in retiros:
+        r["fases"] = [
+            row.fase
+            for row in frappe.db.sql(
+                "SELECT fase FROM `tabRetiro Fase` WHERE parent = %s ORDER BY idx ASC",
+                (r.name,), as_dict=True,
+            )
+        ]
+
+    return retiros
+
+
+@frappe.whitelist()
 def get_quotas_resumo(ano=""):
     """
     Portal Catequista — devolve resumo de quotas de todos os catequistas.

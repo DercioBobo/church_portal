@@ -12,7 +12,11 @@ fixtures = [
     {
         "dt": "Custom Field",
         "filters": [["dt", "=", "Catequista"]],
-    }
+    },
+    {
+        "dt": "Print Format",
+        "filters": [["doc_type", "=", "Plano de Retiro"]],
+    },
 ]
 
 # Required apps (pnsa_app must be installed for DocTypes to exist)

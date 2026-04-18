@@ -1,4 +1,4 @@
-import type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, PortalSectionConfig, AvisoAtivo, QuotasResumo } from '@/types/catequista';
+import type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, PortalSectionConfig, AvisoAtivo, QuotasResumo, RetiroProximo } from '@/types/catequista';
 
 const BASE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL || '';
 const APP = 'portal.api';
@@ -175,7 +175,10 @@ export const api = {
 
   getQuotasResumo: (ano?: string): Promise<QuotasResumo> =>
     frappeFetch<QuotasResumo>('get_quotas_resumo', ano ? { ano } : undefined),
+
+  getProximosRetiros: (): Promise<RetiroProximo[]> =>
+    frappeFetch<RetiroProximo[]>('get_proximos_retiros'),
 };
 
 // Re-export types for convenience
-export type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, PortalSectionConfig, AvisoAtivo, QuotasResumo };
+export type { AuthInfo, CatecumenoCompleto, TurmaComCatecumenos, FieldConfigItem, PortalSectionConfig, AvisoAtivo, QuotasResumo, RetiroProximo };

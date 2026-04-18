@@ -1,0 +1,30 @@
+{
+ "autoname": "autoincrement",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["fase"],
+ "fields": [
+  {
+   "fieldname": "fase",
+   "fieldtype": "Link",
+   "label": "Fase",
+   "options": "Fase",
+   "reqd": 1,
+   "in_list_view": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Retiro Fase",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 0
+}
