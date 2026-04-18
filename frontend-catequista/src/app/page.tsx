@@ -478,7 +478,7 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, onClose, onSa
       const cfg = configMap.get(key);
       return {
         key,
-        title: cfg?.label ?? key || 'Informações',
+        title: (cfg?.label ?? key) || 'Informações',
         icon:  cfg?.icon  ?? '',
         fields: map[key],
       };
