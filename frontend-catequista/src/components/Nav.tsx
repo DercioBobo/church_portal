@@ -144,7 +144,8 @@ export default function Nav({ catequistaNome, birthdayCount = 0, onAniversariant
       {/* Mobile full-screen menu — slides in below the sticky nav */}
       {mobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 top-14 z-[55] bg-navy-950/97 backdrop-blur-sm flex flex-col animate-fade-in"
+          className="md:hidden fixed inset-0 top-14 z-[55] flex flex-col animate-fade-in"
+          style={{ backgroundColor: '#111827' }}
           onClick={closeMobileMenu}
         >
           {/* Nav links */}
@@ -158,9 +159,12 @@ export default function Nav({ catequistaNome, birthdayCount = 0, onAniversariant
             {onAniversariantes && (
               <button
                 onClick={() => { closeMobileMenu(); onAniversariantes(); }}
-                className="flex items-center gap-4 px-4 py-4 rounded-2xl text-white/80 hover:bg-white/8 active:bg-white/12 transition-colors text-left"
+                className="flex items-center gap-4 px-4 py-4 rounded-2xl text-white transition-colors text-left"
+                style={{ '--hover-bg': 'rgba(255,255,255,0.08)' } as React.CSSProperties}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}
               >
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(245,158,11,0.2)' }}>
                   <Cake className="w-5 h-5 text-amber-400" />
                 </div>
                 <div>
@@ -179,8 +183,8 @@ export default function Nav({ catequistaNome, birthdayCount = 0, onAniversariant
             onClick={e => e.stopPropagation()}
           >
             {catequistaNome && (
-              <div className="flex items-center gap-3 mb-4 px-4 py-3 rounded-2xl bg-white/5">
-                <div className="w-9 h-9 rounded-full bg-gold-500/30 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-3 mb-4 px-4 py-3 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(184,136,46,0.3)' }}>
                   <User className="w-4 h-4 text-gold-300" />
                 </div>
                 <div className="min-w-0">
@@ -191,7 +195,9 @@ export default function Nav({ catequistaNome, birthdayCount = 0, onAniversariant
             )}
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-rose-400 hover:bg-rose-900/30 active:bg-rose-900/40 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-rose-400 transition-colors"
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(127,29,29,0.3)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}
             >
               <LogOut className="w-5 h-5 shrink-0" />
               <span className="font-semibold">Terminar sessão</span>
@@ -221,14 +227,16 @@ function MobileMenuItem({
       href={href}
       onClick={onClick}
       className={`flex items-center gap-4 px-4 py-4 rounded-2xl transition-colors ${
-        isActive
-          ? 'bg-white/10 text-white'
-          : 'text-white/80 hover:bg-white/8 active:bg-white/12'
+        isActive ? 'text-white' : 'text-white'
       }`}
+      style={isActive ? { backgroundColor: 'rgba(255,255,255,0.12)' } : undefined}
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; }}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = ''; }}
     >
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-        isActive ? 'bg-gold-500/30' : 'bg-white/8'
-      }`}>
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+        style={{ backgroundColor: isActive ? 'rgba(184,136,46,0.3)' : 'rgba(255,255,255,0.1)' }}
+      >
         <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
       </div>
       <span className="font-semibold text-base">{label}</span>
