@@ -15,6 +15,7 @@ export default function PerfilPage() {
   const [senhaConf, setSenhaConf] = useState('');
   const [showAtual, setShowAtual] = useState(false);
   const [showNova, setShowNova] = useState(false);
+  const [showConf, setShowConf] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -103,8 +104,8 @@ export default function PerfilPage() {
               label="Confirmar nova senha"
               value={senhaConf}
               onChange={setSenhaConf}
-              show={showNova}
-              onToggle={() => setShowNova(v => !v)}
+              show={showConf}
+              onToggle={() => setShowConf(v => !v)}
               placeholder="Repita a nova senha"
               autoComplete="new-password"
               hint={senhaConf.length > 0 && senhaConf !== senhaNova ? 'As senhas não coincidem' : ''}
