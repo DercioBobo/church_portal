@@ -19,7 +19,8 @@
       "Bash(bash build-catequista.sh)",
       "Bash(touch portal/www/catequista/.gitkeep)",
       "Bash(rm -rf portal/www/catequista/404.html portal/www/catequista/404 portal/www/catequista/index.html portal/www/catequista/index.txt portal/www/catequista/login portal/www/catequista/perfil portal/www/catequista/quotas)",
-      "Bash(rm -rf portal/public/catequista/_next)"
+      "Bash(rm -rf portal/public/catequista/_next)",
+      "Bash(cmd /c \"dir C:\\\\Users\\\\DBobo\\\\PhpstormProjects\\\\church_portal\\\\portal\\\\catequista\\\\doctype\")"
     ]
   }
 }

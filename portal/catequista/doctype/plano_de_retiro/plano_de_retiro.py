@@ -1,5 +1,5 @@
 import frappe
 
 
-class PlanoDeRetiro(frappe.model.document.Document):
+class PlanodeRetiro(frappe.model.document.Document):
     pass
