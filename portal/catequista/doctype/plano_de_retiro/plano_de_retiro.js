@@ -1,4 +1,15 @@
 frappe.ui.form.on('Plano de Retiro', {
+    data(frm) {
+        if (!frm.doc.data) return;
+        const day = new Date(frm.doc.data).getDay(); // 0=Sun, 6=Sat
+        if (day !== 0 && day !== 6) {
+            frappe.show_alert({
+                message: __('Atenção: a data seleccionada não é sábado nem domingo.'),
+                indicator: 'orange',
+            }, 6);
+        }
+    },
+
     refresh(frm) {
         frm.add_custom_button(__('Copiar Programa de Retiro Anterior'), () => {
             // Fetch retiros that have a programa defined
