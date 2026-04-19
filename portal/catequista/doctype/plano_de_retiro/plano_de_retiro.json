@@ -1,5 +1,4 @@
 {
- "autoname": "RETIRO-.YY.-.##",
  "creation": "2024-01-01 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -11,10 +10,11 @@
   "column_break_1",
   "local",
   "orador",
+  "section_fases",
+  "fase_1",
+  "fase_2",
   "section_tema",
   "tema",
-  "section_fases",
-  "fases",
   "section_programa",
   "programa",
   "section_notas",
@@ -64,7 +64,26 @@
   {
    "fieldname": "orador",
    "fieldtype": "Data",
-   "label": "Orador / Pregador"
+   "label": "Orador"
+  },
+  {
+   "fieldname": "section_fases",
+   "fieldtype": "Section Break",
+   "label": "Fases"
+  },
+  {
+   "fieldname": "fase_1",
+   "fieldtype": "Link",
+   "label": "1ª Fase",
+   "options": "Fase",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "fase_2",
+   "fieldtype": "Link",
+   "label": "2ª Fase",
+   "options": "Fase"
   },
   {
    "fieldname": "section_tema",
@@ -75,17 +94,6 @@
    "fieldname": "tema",
    "fieldtype": "Small Text",
    "label": "Tema"
-  },
-  {
-   "fieldname": "section_fases",
-   "fieldtype": "Section Break",
-   "label": "Fases"
-  },
-  {
-   "fieldname": "fases",
-   "fieldtype": "Table",
-   "label": "Fases",
-   "options": "Retiro Fase"
   },
   {
    "fieldname": "section_programa",
@@ -110,7 +118,7 @@
   }
  ],
  "links": [],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2025-04-19 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Catequista",
  "name": "Plano de Retiro",
