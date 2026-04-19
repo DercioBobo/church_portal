@@ -8,9 +8,26 @@ frappe.pages['rollover-plano'].on_page_load = function (wrapper) {
     single_column: true,
   });
 
-  const mount = document.createElement('div');
-  wrapper.querySelector('.page-content').appendChild(mount);
-  createRolloverApp().mount(mount);
+  function _mountApp() {
+    const mount = document.createElement('div');
+    wrapper.querySelector('.page-content').appendChild(mount);
+    createRolloverApp().mount(mount);
+  }
+
+  if (window.Vue) {
+    _mountApp();
+  } else {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js';
+    script.onload = _mountApp;
+    script.onerror = function () {
+      const s2 = document.createElement('script');
+      s2.src = 'https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js';
+      s2.onload = _mountApp;
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(script);
+  }
 };
 
 function createRolloverApp() {
