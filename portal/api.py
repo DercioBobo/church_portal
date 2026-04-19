@@ -1324,26 +1324,16 @@ def get_proximos_retiros():
     today = frappe.utils.today()
 
     retiros = frappe.db.sql(f"""
-        SELECT DISTINCT
-            p.name, p.titulo, p.data, p.local, p.tema, p.orador, p.estado
+        SELECT
+            p.name, p.titulo, p.data, p.local, p.tema, p.orador, p.estado,
+            p.fase_1, p.fase_2
         FROM `tabPlano de Retiro` p
-        INNER JOIN `tabRetiro Fase` rf ON rf.parent = p.name
         WHERE p.estado = 'Planeado'
           AND p.data >= %s
-          AND rf.fase IN ({placeholders})
+          AND (p.fase_1 IN ({placeholders}) OR p.fase_2 IN ({placeholders}))
         ORDER BY p.data ASC
         LIMIT 5
-    """, [today] + fases, as_dict=True)
-
-    # Attach the full fases list to each retiro
-    for r in retiros:
-        r["fases"] = [
-            row.fase
-            for row in frappe.db.sql(
-                "SELECT fase FROM `tabRetiro Fase` WHERE parent = %s ORDER BY idx ASC",
-                (r.name,), as_dict=True,
-            )
-        ]
+    """, [today] + fases + fases, as_dict=True)
 
     return retiros
 

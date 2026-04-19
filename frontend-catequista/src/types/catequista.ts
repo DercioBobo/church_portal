@@ -76,6 +76,8 @@ export interface RetiroProximo {
   tema: string | null;
   orador: string | null;
   estado: string;
+  fase_1: string | null;
+  fase_2: string | null;
 }
 
 // ── Quotas ────────────────────────────────────────────────────────────────────

@@ -215,11 +215,6 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
           )}
         </div>
 
-        {turma.catequista_adj && (
-          <p className="mt-2 text-xs text-slate-400">
-            Catequista adj.: <span className="text-slate-600">{turma.catequista_adj}</span>
-          </p>
-        )}
       </div>
     </div>
   );
@@ -1444,6 +1439,18 @@ function RetiroCard({ retiro }: { retiro: RetiroProximo }) {
       </div>
       {/* Info */}
       <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+          {retiro.fase_1 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-100 text-violet-700">
+              {retiro.fase_1}
+            </span>
+          )}
+          {retiro.fase_2 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-100 text-violet-700">
+              {retiro.fase_2}
+            </span>
+          )}
+        </div>
         <p className="text-sm font-semibold text-navy-900 truncate">{retiro.titulo}</p>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
           {retiro.local && (
