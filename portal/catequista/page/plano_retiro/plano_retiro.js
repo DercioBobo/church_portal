@@ -62,7 +62,7 @@ function api(method, args) {
 // App
 // ─────────────────────────────────────────────────────────────────────────────
 function createPlanoRetiroApp() {
-  const { createApp, ref, computed, onMounted, reactive } = Vue;
+  const { createApp, ref, computed, onMounted, watch, reactive } = Vue;
 
   return createApp({
     template: `
@@ -272,7 +272,7 @@ function createPlanoRetiroApp() {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, idx) in editItems" :key="idx">
+                <tr v-for="(item, idx) in (editMode ? editItems : items)" :key="idx">
                   <td>
                     <span v-if="!editMode">{{ item.hora || '—' }}</span>
                     <input v-else v-model="item.hora" placeholder="ex: 09h30" class="prog-input" style="width:80px;" />
@@ -399,6 +399,19 @@ function createPlanoRetiroApp() {
 
       const emptyForm = () => ({ titulo:'', data:'', estado:'Planeado', fase_1:'', fase_2:'', local:'', orador:'', tema:'' });
       const form = ref(emptyForm());
+
+      // Auto-suggest title from fases + year when creating new retiro
+      function suggestTitle() {
+        if (editMode.value) return;         // don't overwrite on edit
+        const f1 = form.value.fase_1;
+        const f2 = form.value.fase_2;
+        const year = anoLectivo.value ? anoLectivo.value.split('-')[0] : new Date().getFullYear();
+        if (!f1) { form.value.titulo = ''; return; }
+        const faseStr = f2 ? `${f1} e ${f2}` : f1;
+        form.value.titulo = `Retiro da ${faseStr} ${year}`;
+      }
+      watch(() => form.value.fase_1, suggestTitle);
+      watch(() => form.value.fase_2, suggestTitle);
 
       const STATUS_CYCLE = ['Planeado','Realizado','Cancelado'];
       function nextEstado(e)  { return STATUS_CYCLE[(STATUS_CYCLE.indexOf(e)+1)%STATUS_CYCLE.length]; }
