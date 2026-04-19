@@ -131,6 +131,42 @@ def update_estado(name, estado):
     return {"success": True, "estado": estado}
 
 
+@frappe.whitelist()
+def get_programa(retiro_name):
+    _assert_coordenador()
+    if not frappe.db.exists("Plano de Retiro", retiro_name):
+        frappe.throw(_("Retiro não encontrado"))
+    rows = frappe.db.sql("""
+        SELECT name, hora, actividade, responsavel, notas, idx
+        FROM `tabRetiro Item`
+        WHERE parent = %s
+        ORDER BY idx ASC
+    """, (retiro_name,), as_dict=True)
+    return rows
+
+
+@frappe.whitelist()
+def save_programa(retiro_name, items_json):
+    _assert_coordenador()
+    items = json.loads(items_json) if isinstance(items_json, str) else items_json
+    doc = frappe.get_doc("Plano de Retiro", retiro_name)
+    doc.set("programa", [])
+    for item in items:
+        doc.append("programa", {
+            "hora":        item.get("hora") or None,
+            "actividade":  item.get("actividade") or "",
+            "responsavel": item.get("responsavel") or None,
+            "notas":       item.get("notas") or None,
+        })
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return frappe.db.sql("""
+        SELECT name, hora, actividade, responsavel, notas, idx
+        FROM `tabRetiro Item`
+        WHERE parent = %s ORDER BY idx ASC
+    """, (retiro_name,), as_dict=True)
+
+
 def _fetch_retiro(name):
     rows = frappe.db.sql("""
         SELECT name, titulo, data, estado,

@@ -12,6 +12,7 @@
   "orador",
   "section_fases",
   "fase_1",
+  "column_break_fases",
   "fase_2",
   "section_tema",
   "tema",
@@ -74,15 +75,19 @@
   {
    "fieldname": "fase_1",
    "fieldtype": "Link",
-   "label": "1ª Fase",
+   "label": "Fase 1",
    "options": "Fase",
    "reqd": 1,
    "in_list_view": 1
   },
   {
+   "fieldname": "column_break_fases",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "fase_2",
    "fieldtype": "Link",
-   "label": "2ª Fase",
+   "label": "Fase 2",
    "options": "Fase"
   },
   {

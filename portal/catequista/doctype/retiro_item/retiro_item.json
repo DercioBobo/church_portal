@@ -8,7 +8,7 @@
  "fields": [
   {
    "fieldname": "hora",
-   "fieldtype": "Time",
+   "fieldtype": "Data",
    "label": "Hora",
    "in_list_view": 1
   },
