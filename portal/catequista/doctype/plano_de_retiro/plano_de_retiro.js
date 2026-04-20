@@ -1,4 +1,17 @@
+function suggestTitulo(frm) {
+    if (!frm.is_new()) return;
+    const f1 = frm.doc.fase_1;
+    const f2 = frm.doc.fase_2;
+    if (!f1) { frm.set_value('titulo', ''); return; }
+    const ano = frm.doc.ano_lectivo ? frm.doc.ano_lectivo.split('-')[0] : new Date().getFullYear();
+    const faseStr = f2 ? `${f1} e ${f2}` : f1;
+    frm.set_value('titulo', `Retiro da ${faseStr} ${ano}`);
+}
+
 frappe.ui.form.on('Plano de Retiro', {
+    fase_1: suggestTitulo,
+    fase_2: suggestTitulo,
+
     data(frm) {
         if (!frm.doc.data) return;
         const day = new Date(frm.doc.data).getDay(); // 0=Sun, 6=Sat
