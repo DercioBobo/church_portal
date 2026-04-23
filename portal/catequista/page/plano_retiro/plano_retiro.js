@@ -59,7 +59,7 @@ function api(method, args) {
 }
 
 const _DOCTYPE_ENC = encodeURIComponent('Plano de Retiro');
-const _FORMAT_ENC  = encodeURIComponent('Plano de Retiro Padrão');
+const _FORMAT_ENC  = encodeURIComponent('Retiro');
 
 function printUrl(name) {
   return `/printview?doctype=${_DOCTYPE_ENC}&name=${encodeURIComponent(name)}&format=${_FORMAT_ENC}&no_letterhead=0`;
@@ -169,8 +169,8 @@ function createPlanoRetiroApp() {
               </tr>
             </thead>
             <tbody>
-              <template v-for="r in filteredRetiros" :key="r.name">
-                <!-- Main row -->
+              <!-- Active (non-Realizado) retiros -->
+              <template v-for="r in activeRetiros" :key="r.name">
                 <tr class="retiro-row" :class="{ expanded: expandedName === r.name }"
                     @click="toggleExpand(r)">
                   <td style="text-align:center; color:#9ca3af;">
@@ -190,7 +190,9 @@ function createPlanoRetiroApp() {
                   <td style="font-size:12px; color:#374151;">{{ fmtDate(r.data) }}</td>
                   <td style="font-size:12px; color:#6b7280;">{{ r.local || '—' }}</td>
                   <td>
-                    <span :class="['estado-badge', 'estado-' + r.estado]">{{ r.estado }}</span>
+                    <span :class="['estado-badge', 'estado-' + r.estado]"
+                      @click.stop="cycleEstado(r)"
+                      :title="'→ ' + nextEstado(r.estado)">{{ r.estado }}</span>
                   </td>
                   <td @click.stop style="white-space:nowrap;">
                     <a class="btn-icon" :href="deskUrl(r.name)" target="_blank" title="Abrir no Frappe">
@@ -200,14 +202,9 @@ function createPlanoRetiroApp() {
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                     </a>
                     <button class="btn-icon" @click="openEdit(r)" title="Editar">✏️</button>
-                    <button class="btn-icon" @click="cycleEstado(r)" :title="'→ ' + nextEstado(r.estado)">
-                      {{ estadoIcon(nextEstado(r.estado)) }}
-                    </button>
                     <button class="btn-icon danger" @click="deleteRetiro(r)" title="Eliminar">🗑</button>
                   </td>
                 </tr>
-
-                <!-- Expanded: programa -->
                 <tr v-if="expandedName === r.name" class="programa-row">
                   <td colspan="7" style="padding:0;">
                     <div class="programa-panel">
@@ -215,6 +212,65 @@ function createPlanoRetiroApp() {
                     </div>
                   </td>
                 </tr>
+              </template>
+
+              <!-- Realizados collapsible section -->
+              <template v-if="realizadosList.length">
+                <tr class="realizados-sep-row" @click="showRealizados = !showRealizados">
+                  <td colspan="7">
+                    <svg class="realizados-chevron" :class="{ open: showRealizados }"
+                      width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                    Realizados
+                    <span class="realizados-count">({{ realizadosList.length }})</span>
+                  </td>
+                </tr>
+                <template v-if="showRealizados">
+                  <template v-for="r in realizadosList" :key="r.name">
+                    <tr class="retiro-row retiro-row-realizado" :class="{ expanded: expandedName === r.name }"
+                        @click="toggleExpand(r)">
+                      <td style="text-align:center; color:#9ca3af;">
+                        <svg :style="{ transform: expandedName===r.name ? 'rotate(90deg)':'', transition:'transform 0.2s' }"
+                          width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                      </td>
+                      <td>
+                        <span style="font-weight:600; color:#111827;">{{ r.titulo }}</span>
+                        <span v-if="r.orador" style="display:block; font-size:11px; color:#9ca3af; margin-top:1px;">{{ r.orador }}</span>
+                      </td>
+                      <td>
+                        <span v-if="r.fase_1" class="fase-pill">{{ r.fase_1 }}</span>
+                        <span v-if="r.fase_2" class="fase-pill" style="margin-left:4px;">{{ r.fase_2 }}</span>
+                      </td>
+                      <td style="font-size:12px; color:#374151;">{{ fmtDate(r.data) }}</td>
+                      <td style="font-size:12px; color:#6b7280;">{{ r.local || '—' }}</td>
+                      <td>
+                        <span :class="['estado-badge', 'estado-' + r.estado]"
+                          @click.stop="cycleEstado(r)"
+                          :title="'→ ' + nextEstado(r.estado)">{{ r.estado }}</span>
+                      </td>
+                      <td @click.stop style="white-space:nowrap;">
+                        <a class="btn-icon" :href="deskUrl(r.name)" target="_blank" title="Abrir no Frappe">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        </a>
+                        <a class="btn-icon" :href="printUrl(r.name)" target="_blank" title="Imprimir">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                        </a>
+                        <button class="btn-icon" @click="openEdit(r)" title="Editar">✏️</button>
+                        <button class="btn-icon danger" @click="deleteRetiro(r)" title="Eliminar">🗑</button>
+                      </td>
+                    </tr>
+                    <tr v-if="expandedName === r.name" class="programa-row">
+                      <td colspan="7" style="padding:0;">
+                        <div class="programa-panel">
+                          <ProgramaPanel :retiro="r" :fases="fases" />
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </template>
               </template>
             </tbody>
           </table>
@@ -545,6 +601,8 @@ function createPlanoRetiroApp() {
         !!(filterEstado.value || filterFase.value || search.value.trim())
       );
 
+      const showRealizados = ref(false);
+
       const filteredRetiros = computed(() => {
         let items = retiros.value;
 
@@ -577,6 +635,21 @@ function createPlanoRetiroApp() {
           const cmp = a.data < b.data ? -1 : 1;
           return sortDir.value === 'asc' ? cmp : -cmp;
         });
+      });
+
+      // When filterEstado is set to Realizado, auto-expand the realizados section
+      watch(filterEstado, (val) => {
+        if (val === 'Realizado') showRealizados.value = true;
+      });
+
+      const activeRetiros = computed(() => {
+        if (filterEstado.value === 'Realizado') return filteredRetiros.value;
+        return filteredRetiros.value.filter(r => r.estado !== 'Realizado');
+      });
+
+      const realizadosList = computed(() => {
+        if (filterEstado.value === 'Realizado') return [];
+        return filteredRetiros.value.filter(r => r.estado === 'Realizado');
       });
 
       function toggleExpand(r) {
@@ -701,6 +774,7 @@ function createPlanoRetiroApp() {
         searchRaw, filterEstado, filterFase, sortDir,
         stats, hasActiveFilters,
         toasts, printUrl, deskUrl,
+        showRealizados, activeRetiros, realizadosList,
         loadRetiros, toggleExpand, openCreate, openEdit, closeModal, saveRetiro,
         cycleEstado, deleteRetiro, nextEstado, estadoIcon, fmtDate,
         clearSearch, clearFilters,

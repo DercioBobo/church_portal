@@ -430,3 +430,48 @@
   transition: background 0.15s;
 }
 .pr-toast-undo:hover { background: rgba(255,255,255,0.35); }
+
+/* ── Estado badge — clickable ───────────────────────────────────────────────── */
+.estado-badge {
+  cursor: pointer;
+  transition: filter 0.15s, box-shadow 0.15s;
+}
+.estado-badge:hover {
+  filter: brightness(0.9);
+  box-shadow: 0 0 0 2px currentColor;
+}
+
+/* ── Realizados collapsible ─────────────────────────────────────────────────── */
+.realizados-sep-row td {
+  padding: 7px 14px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+  user-select: none;
+  border-top: 2px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+.realizados-sep-row:hover td { background: #e9ecef; }
+
+.realizados-chevron {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+  transition: transform 0.2s;
+  color: #9ca3af;
+}
+.realizados-chevron.open { transform: rotate(180deg); }
+
+.realizados-count {
+  font-weight: 400;
+  opacity: 0.75;
+  margin-left: 3px;
+}
+
+.retiro-row-realizado { background: #f0fdf4; }
+.retiro-row-realizado:hover { background: #dcfce7; }
+.retiro-row-realizado.expanded { background: #bbf7d0; }
