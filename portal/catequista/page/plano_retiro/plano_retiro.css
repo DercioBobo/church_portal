@@ -66,6 +66,9 @@
 
 /* ── Action buttons ────────────────────────────────────────────────────────── */
 .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
@@ -75,8 +78,10 @@
   color: #374151;
   transition: background 0.12s;
   margin-left: 2px;
+  text-decoration: none;
+  line-height: 1;
 }
-.btn-icon:hover { background: #f3f4f6; }
+.btn-icon:hover { background: #f3f4f6; color: #374151; }
 .btn-icon.danger:hover { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
 
 /* ── Programa panel ────────────────────────────────────────────────────────── */
@@ -213,7 +218,13 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding-bottom: 10px;
+  padding: 10px 0;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 0;
 }
 
 .pr-select {
@@ -370,3 +381,52 @@
   transition: background 0.15s;
 }
 .pr-clear-filters:hover { background: #ede9fe; }
+
+/* ── Toasts ─────────────────────────────────────────────────────────────────── */
+.pr-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.pr-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 14px 10px 18px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  animation: pr-slide-in 0.25s ease;
+  pointer-events: auto;
+  min-width: 240px;
+}
+@keyframes pr-slide-in {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.pr-toast.success { background: #059669; }
+.pr-toast.error   { background: #dc2626; }
+.pr-toast.info    { background: #4f46e5; }
+
+.pr-toast-undo {
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.pr-toast-undo:hover { background: rgba(255,255,255,0.35); }

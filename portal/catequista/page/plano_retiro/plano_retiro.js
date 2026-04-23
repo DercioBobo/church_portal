@@ -58,6 +58,17 @@ function api(method, args) {
   });
 }
 
+const _DOCTYPE_ENC = encodeURIComponent('Plano de Retiro');
+const _FORMAT_ENC  = encodeURIComponent('Plano de Retiro Padrão');
+
+function printUrl(name) {
+  return `/printview?doctype=${_DOCTYPE_ENC}&name=${encodeURIComponent(name)}&format=${_FORMAT_ENC}&no_letterhead=0`;
+}
+
+function deskUrl(name) {
+  return `/app/plano-de-retiro/${encodeURIComponent(name)}`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // App
 // ─────────────────────────────────────────────────────────────────────────────
@@ -182,11 +193,17 @@ function createPlanoRetiroApp() {
                     <span :class="['estado-badge', 'estado-' + r.estado]">{{ r.estado }}</span>
                   </td>
                   <td @click.stop style="white-space:nowrap;">
+                    <a class="btn-icon" :href="deskUrl(r.name)" target="_blank" title="Abrir no Frappe">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </a>
+                    <a class="btn-icon" :href="printUrl(r.name)" target="_blank" title="Imprimir">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    </a>
                     <button class="btn-icon" @click="openEdit(r)" title="Editar">✏️</button>
                     <button class="btn-icon" @click="cycleEstado(r)" :title="'→ ' + nextEstado(r.estado)">
                       {{ estadoIcon(nextEstado(r.estado)) }}
                     </button>
-                    <button class="btn-icon danger" @click="confirmDelete(r)" title="Eliminar">🗑</button>
+                    <button class="btn-icon danger" @click="deleteRetiro(r)" title="Eliminar">🗑</button>
                   </td>
                 </tr>
 
@@ -272,6 +289,14 @@ function createPlanoRetiroApp() {
                 <span v-else>{{ editMode ? 'Guardar' : 'Criar Retiro' }}</span>
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- Toasts -->
+        <div class="pr-toast-container">
+          <div v-for="t in toasts" :key="t.id" class="pr-toast" :class="t.type">
+            <span>{{ t.msg }}</span>
+            <button v-if="t.undo" class="pr-toast-undo" @click="t.undo()">Desfazer</button>
           </div>
         </div>
 
@@ -439,6 +464,18 @@ function createPlanoRetiroApp() {
       const retiros      = ref([]);
       const loading      = ref(false);
       const expandedName = ref(null);
+
+      // Toasts
+      const toasts  = ref([]);
+      let   _toastId = 0;
+
+      function toast(msg, type = 'success', opts = {}) {
+        const id = ++_toastId;
+        toasts.value.push({ id, msg, type, undo: opts.undo || null });
+        setTimeout(() => {
+          toasts.value = toasts.value.filter(x => x.id !== id);
+        }, opts.undo ? 5500 : 3000);
+      }
 
       // Search
       const searchRaw    = ref('');
@@ -609,16 +646,30 @@ function createPlanoRetiroApp() {
         }
       }
 
-      function confirmDelete(r) {
-        frappe.confirm(`Eliminar o retiro <strong>${r.titulo}</strong>?`, async () => {
+      function deleteRetiro(r) {
+        const snapshot = { ...r };
+
+        // Optimistic remove
+        retiros.value = retiros.value.filter(x => x.name !== r.name);
+        if (expandedName.value === r.name) expandedName.value = null;
+
+        let undone = false;
+        const timer = setTimeout(async () => {
+          if (undone) return;
           try {
-            await api('delete_retiro', { name:r.name });
-            retiros.value = retiros.value.filter(x => x.name !== r.name);
-            if (expandedName.value === r.name) expandedName.value = null;
-            frappe.show_alert({ message:'Retiro eliminado', indicator:'orange' });
+            await api('delete_retiro', { name: snapshot.name });
           } catch(e) {
-            frappe.msgprint({ title:'Erro', message:String(e), indicator:'red' });
+            retiros.value.push(snapshot);
+            toast('Erro ao eliminar: ' + String(e?.message || e), 'error');
           }
+        }, 5000);
+
+        toast(`"${snapshot.titulo}" eliminado`, 'info', {
+          undo: () => {
+            undone = true;
+            clearTimeout(timer);
+            retiros.value.push(snapshot);
+          },
         });
       }
 
@@ -649,8 +700,9 @@ function createPlanoRetiroApp() {
         showModal, editMode, saving, form, formError,
         searchRaw, filterEstado, filterFase, sortDir,
         stats, hasActiveFilters,
+        toasts, printUrl, deskUrl,
         loadRetiros, toggleExpand, openCreate, openEdit, closeModal, saveRetiro,
-        cycleEstado, confirmDelete, nextEstado, estadoIcon, fmtDate,
+        cycleEstado, deleteRetiro, nextEstado, estadoIcon, fmtDate,
         clearSearch, clearFilters,
       };
     },
