@@ -83,12 +83,20 @@ def get_ano_lectivo_atual():
         except Exception:
             pass
         if not ano:
-            # fallback: most recent by name (assumes "YYYY-YYYY" format)
+            from datetime import date
+            current_year = str(date.today().year)
             rows = frappe.db.sql(
-                "SELECT name FROM `tabAno Lectivo` ORDER BY name DESC LIMIT 1",
+                "SELECT name FROM `tabAno Lectivo` ORDER BY name ASC",
                 as_dict=True,
             )
-            ano = rows[0].name if rows else None
+            # Pick the last ano_lectivo whose start year (first 4 chars) <= current calendar year.
+            # Works for single-year names ("2026") and range names ("2026-2027").
+            for r in rows:
+                if str(r.name)[:4] <= current_year:
+                    ano = r.name
+            # If all anos are future, fall back to the earliest available.
+            if not ano and rows:
+                ano = rows[0].name
         return ano
     except Exception:
         return None

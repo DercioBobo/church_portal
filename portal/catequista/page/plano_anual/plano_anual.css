@@ -116,6 +116,8 @@
 .pa-btn-secondary:hover:not(:disabled) { background:#f9fafb; border-color:#9ca3af; }
 .pa-btn-ghost     { background:transparent; color:#6b7280; border-color:#e5e7eb; }
 .pa-btn-ghost:hover:not(:disabled)     { background:#f3f4f6; color:#374151; }
+.pa-sort-btn      { gap: 5px; white-space: nowrap; }
+.pa-sort-btn.pa-sort-desc { color: #4f46e5; border-color: #c7d2fe; background: #eef2ff; }
 .pa-btn-danger    { background:#fff; color:#dc2626; border-color:#fca5a5; }
 .pa-btn-danger:hover:not(:disabled)    { background:#fee2e2; border-color:#ef4444; }
 .pa-btn-danger-solid { background:#dc2626; color:#fff; border-color:#dc2626; }

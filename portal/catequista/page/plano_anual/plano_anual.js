@@ -109,6 +109,18 @@ function createPlanoAnualApp() {
       <option v-for="mk in availableMonths" :key="mk.key" :value="mk.key">{{ mk.label }}</option>
     </select>
 
+    <!-- Sort direction toggle -->
+    <button
+      class="pa-btn pa-btn-ghost pa-btn-sm pa-sort-btn"
+      :class="{ 'pa-sort-desc': sortDir === 'desc' }"
+      @click="sortDir = sortDir === 'asc' ? 'desc' : 'asc'"
+      :title="sortDir === 'asc' ? 'Ordenação crescente (mais antigo primeiro) — clique para inverter' : 'Ordenação decrescente (mais recente primeiro) — clique para inverter'"
+    >
+      <svg v-if="sortDir === 'asc'" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+      <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      {{ sortDir === 'asc' ? 'Antigo→Novo' : 'Novo→Antigo' }}
+    </button>
+
     <!-- Search — isolated prominent field -->
     <div class="pa-search-wrap">
       <svg class="pa-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1004,6 +1016,7 @@ function createPlanoAnualApp() {
       const filterStatus    = ref('');      // single string
       const filterTipologias = ref([]);     // multi array
       const filterMonth     = ref('');
+      const sortDir         = ref('asc');   // 'asc' = earliest first, 'desc' = latest first
 
       // Tipologia dropdown
       const tipDdOpen    = ref(false);
@@ -1143,12 +1156,21 @@ function createPlanoAnualApp() {
           if (!map[k]) map[k] = [];
           map[k].push(a);
         });
+        const dir = sortDir.value;
         const keys = Object.keys(map).sort((a, b) => {
           if (a === '__nodate__') return 1;
           if (b === '__nodate__') return -1;
-          return a.localeCompare(b);
+          return dir === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
         });
-        return keys.map(k => ({ key: k, label: monthLabel(k), items: map[k] }));
+        return keys.map(k => {
+          const items = [...map[k]].sort((a, b) => {
+            if (!a.data && !b.data) return 0;
+            if (!a.data) return 1;
+            if (!b.data) return -1;
+            return dir === 'asc' ? a.data.localeCompare(b.data) : b.data.localeCompare(a.data);
+          });
+          return { key: k, label: monthLabel(k), items };
+        });
       });
 
       // Calendar grid: one entry per month in the academic year
@@ -1921,7 +1943,7 @@ function createPlanoAnualApp() {
         loading, saving, actividades, tipologias, anos, selectedAno,
         searchRaw, viewMode, panelOpen, form, editingAct, confirmDelete, toasts,
         inputActividade, dragItem, dragOverGroup, dragTarget,
-        filterStatus, filterTipologias, filterMonth,
+        filterStatus, filterTipologias, filterMonth, sortDir,
         tipDdOpen, tipSearch, tipDropEl, tipSearchInput,
         actionsOpen, actionsEl,
         stats, availableMonths, hasFilters, filteredGroups, filteredTipDd,
