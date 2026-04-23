@@ -544,6 +544,22 @@ def _sorted_anos():
 
 
 @frappe.whitelist()
+def get_field_suggestions(fieldname, query):
+    _assert_coordenador()
+    allowed = {"orador", "local"}
+    if fieldname not in allowed:
+        frappe.throw(_("Campo inválido"))
+    q = f"%{(query or '').strip()}%"
+    rows = frappe.db.sql(
+        f"SELECT DISTINCT `{fieldname}` FROM `tabActividade do Plano`"
+        f" WHERE `{fieldname}` LIKE %s AND `{fieldname}` IS NOT NULL AND `{fieldname}` != ''"
+        f" ORDER BY `{fieldname}` ASC LIMIT 12",
+        (q,), as_dict=False,
+    )
+    return [r[0] for r in rows if r[0]]
+
+
+@frappe.whitelist()
 def bulk_update_estado(names_json, estado):
     _assert_coordenador()
     allowed = {"Pendente", "Em Progresso", "Realizada", "Cancelada", "Adiada"}

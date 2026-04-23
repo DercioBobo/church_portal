@@ -748,7 +748,7 @@ function createPlanoAnualApp() {
     <div class="pa-panel-body">
       <div class="pa-field">
         <label>Actividade <span class="req">*</span></label>
-        <input v-model="form.actividade" type="text" placeholder="Nome ou descrição" ref="inputActividade">
+        <textarea v-model="form.actividade" placeholder="Nome ou descrição" ref="inputActividade" rows="2" class="pa-actividade-field"></textarea>
       </div>
       <div class="pa-field-row">
         <div class="pa-field">
@@ -851,13 +851,49 @@ function createPlanoAnualApp() {
       </div>
       <div class="pa-section-divider"></div>
       <div class="pa-section-label">Responsável e Local</div>
-      <div class="pa-field">
+      <div class="pa-field pa-ac-wrap">
         <label>Orador / Responsável</label>
-        <input v-model="form.orador" type="text" placeholder="Nome do responsável">
+        <input
+          v-model="form.orador"
+          type="text"
+          placeholder="Nome do responsável"
+          autocomplete="off"
+          @input="onAcInput('orador', form.orador, acOrador)"
+          @focus="onAcInput('orador', form.orador, acOrador)"
+          @blur="hideAc(acOrador)"
+          @keydown.escape="acOrador.show = false"
+          @keydown.down.prevent="acFocus(acOrador, 0)"
+        >
+        <div v-if="acOrador.show && acOrador.items.length" class="pa-ac-dropdown">
+          <div
+            v-for="(item, i) in acOrador.items" :key="item"
+            class="pa-ac-item"
+            :data-ac-idx="i"
+            @mousedown.prevent="selectAcItem('orador', item, acOrador)"
+          >{{ item }}</div>
+        </div>
       </div>
-      <div class="pa-field">
+      <div class="pa-field pa-ac-wrap">
         <label>Local</label>
-        <textarea v-model="form.local" rows="2" placeholder="Local(is) da actividade"></textarea>
+        <input
+          v-model="form.local"
+          type="text"
+          placeholder="Local da actividade"
+          autocomplete="off"
+          @input="onAcInput('local', form.local, acLocal)"
+          @focus="onAcInput('local', form.local, acLocal)"
+          @blur="hideAc(acLocal)"
+          @keydown.escape="acLocal.show = false"
+          @keydown.down.prevent="acFocus(acLocal, 0)"
+        >
+        <div v-if="acLocal.show && acLocal.items.length" class="pa-ac-dropdown">
+          <div
+            v-for="(item, i) in acLocal.items" :key="item"
+            class="pa-ac-item"
+            :data-ac-idx="i"
+            @mousedown.prevent="selectAcItem('local', item, acLocal)"
+          >{{ item }}</div>
+        </div>
       </div>
       <div class="pa-field">
         <label>Orçamento</label>
@@ -1017,6 +1053,37 @@ function createPlanoAnualApp() {
       const filterTipologias = ref([]);     // multi array
       const filterMonth     = ref('');
       const sortDir         = ref('asc');   // 'asc' = earliest first, 'desc' = latest first
+
+      // Autocomplete for orador / local
+      const acOrador = reactive({ items: [], show: false });
+      const acLocal  = reactive({ items: [], show: false });
+      let _acTimer   = null;
+
+      async function _fetchAc(fieldname, query, ac) {
+        try {
+          const res = await api('get_field_suggestions', { fieldname, query });
+          ac.items = res || [];
+          ac.show  = ac.items.length > 0;
+        } catch (_) {
+          ac.items = []; ac.show = false;
+        }
+      }
+      function onAcInput(fieldname, query, ac) {
+        clearTimeout(_acTimer);
+        if (!query || query.trim().length < 2) { ac.show = false; return; }
+        _acTimer = setTimeout(() => _fetchAc(fieldname, query.trim(), ac), 300);
+      }
+      function selectAcItem(field, value, ac) {
+        form[field] = value;
+        ac.show = false;
+      }
+      function hideAc(ac) { setTimeout(() => { ac.show = false; }, 150); }
+      function acFocus(ac, idx) {
+        nextTick(() => {
+          const el = document.querySelector(`.pa-ac-dropdown [data-ac-idx="${idx}"]`);
+          if (el) el.focus();
+        });
+      }
 
       // Tipologia dropdown
       const tipDdOpen    = ref(false);
@@ -1350,7 +1417,13 @@ function createPlanoAnualApp() {
         editingAct.value = act;
         confirmDelete.value = false;
         panelOpen.value = true;
-        nextTick(() => { _resetPanelScroll(); inputActividade.value && inputActividade.value.focus(); });
+        nextTick(() => {
+          _resetPanelScroll();
+          if (inputActividade.value) {
+            inputActividade.value.focus();
+            inputActividade.value.setSelectionRange(0, 0);
+          }
+        });
       }
 
       function closePanel() { panelOpen.value = false; confirmDelete.value = false; }
@@ -1944,6 +2017,7 @@ function createPlanoAnualApp() {
         searchRaw, viewMode, panelOpen, form, editingAct, confirmDelete, toasts,
         inputActividade, dragItem, dragOverGroup, dragTarget,
         filterStatus, filterTipologias, filterMonth, sortDir,
+        acOrador, acLocal, onAcInput, selectAcItem, hideAc, acFocus,
         tipDdOpen, tipSearch, tipDropEl, tipSearchInput,
         actionsOpen, actionsEl,
         stats, availableMonths, hasFilters, filteredGroups, filteredTipDd,
