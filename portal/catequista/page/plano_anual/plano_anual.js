@@ -1227,7 +1227,7 @@ function createPlanoAnualApp() {
         const keys = Object.keys(map).sort((a, b) => {
           if (a === '__nodate__') return 1;
           if (b === '__nodate__') return -1;
-          return dir === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+          return a.localeCompare(b); // months always chronological
         });
         return keys.map(k => {
           const items = [...map[k]].sort((a, b) => {
