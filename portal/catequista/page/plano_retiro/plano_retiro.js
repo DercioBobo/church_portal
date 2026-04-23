@@ -69,13 +69,60 @@ function createPlanoRetiroApp() {
       <div style="padding:16px 0; min-height:300px;">
 
         <!-- Toolbar -->
-        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
-          <select v-model="anoLectivo" @change="loadRetiros"
-            style="border:1px solid #d1d5db; border-radius:8px; padding:6px 12px; font-size:13px; background:#fff; min-width:140px;">
+        <div class="pr-toolbar">
+          <select v-model="anoLectivo" @change="loadRetiros" class="pr-select">
             <option v-for="a in anos" :key="a" :value="a">{{ a }}</option>
           </select>
+
+          <!-- Sort direction toggle -->
+          <button class="pr-sort-btn" :class="{ 'pr-sort-desc': sortDir === 'desc' }"
+            @click="sortDir = sortDir === 'asc' ? 'desc' : 'asc'"
+            :title="sortDir === 'asc' ? 'Mais antigo primeiro — clique para inverter' : 'Mais recente primeiro — clique para inverter'">
+            <svg v-if="sortDir === 'asc'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+            {{ sortDir === 'asc' ? 'Antigo→Novo' : 'Novo→Antigo' }}
+          </button>
+
+          <!-- Search -->
+          <div class="pr-search-wrap">
+            <svg class="pr-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="pr-search-input" type="text" v-model="searchRaw"
+              placeholder="Pesquisar retiro…"
+              @keydown.escape="clearSearch">
+            <button v-if="searchRaw" class="pr-search-clear" @click="clearSearch" title="Limpar">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
           <div style="flex:1"></div>
           <button class="btn btn-primary btn-sm" @click="openCreate">+ Novo Retiro</button>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="pr-filter-bar" v-if="!loading">
+          <span class="pr-filter-label">Estado</span>
+          <span class="pr-chip pr-chip-total" :class="{ active: !filterEstado }" @click="filterEstado = ''">
+            Todos <span class="pr-chip-count">({{ stats.total }})</span>
+          </span>
+          <span v-for="s in ['Planeado','Realizado','Cancelado']" :key="s"
+            class="pr-chip" :class="['pr-chip-' + s.toLowerCase(), { active: filterEstado === s }]"
+            @click="filterEstado = filterEstado === s ? '' : s">
+            {{ s }} <span class="pr-chip-count">({{ stats[s] || 0 }})</span>
+          </span>
+
+          <div class="pr-filter-sep" v-if="fases.length"></div>
+
+          <template v-if="fases.length">
+            <span class="pr-filter-label">Fase</span>
+            <select v-model="filterFase" class="pr-select pr-select-sm">
+              <option value="">Todas</option>
+              <option v-for="f in fases" :key="f" :value="f">{{ f }}</option>
+            </select>
+          </template>
+
+          <button v-if="filterEstado || filterFase || searchRaw" class="pr-clear-filters" @click="clearFilters">
+            ✕ Limpar
+          </button>
         </div>
 
         <!-- Loading -->
@@ -85,13 +132,15 @@ function createPlanoRetiroApp() {
         </div>
 
         <!-- Empty -->
-        <div v-else-if="!retiros.length" class="empty-state">
+        <div v-else-if="!filteredRetiros.length" class="empty-state">
           <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#d1d5db" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
           </svg>
-          <p>Nenhum retiro registado para <strong>{{ anoLectivo }}</strong></p>
-          <button class="btn btn-default btn-sm" style="margin-top:12px;" @click="openCreate">Criar primeiro retiro</button>
+          <p v-if="hasActiveFilters">Nenhum retiro corresponde aos filtros activos.</p>
+          <p v-else>Nenhum retiro registado para <strong>{{ anoLectivo }}</strong></p>
+          <button v-if="hasActiveFilters" class="btn btn-default btn-sm" style="margin-top:12px;" @click="clearFilters">Limpar filtros</button>
+          <button v-else class="btn btn-default btn-sm" style="margin-top:12px;" @click="openCreate">Criar primeiro retiro</button>
         </div>
 
         <!-- List table -->
@@ -109,7 +158,7 @@ function createPlanoRetiroApp() {
               </tr>
             </thead>
             <tbody>
-              <template v-for="r in retirosSorted" :key="r.name">
+              <template v-for="r in filteredRetiros" :key="r.name">
                 <!-- Main row -->
                 <tr class="retiro-row" :class="{ expanded: expandedName === r.name }"
                     @click="toggleExpand(r)">
@@ -311,14 +360,14 @@ function createPlanoRetiroApp() {
         `,
 
         setup(props) {
-          const { ref, watch, onMounted } = Vue;
+          const { ref, onMounted } = Vue;
 
-          const items          = ref([]);
-          const editItems      = ref([]);
-          const editMode       = ref(false);
+          const items           = ref([]);
+          const editItems       = ref([]);
+          const editMode        = ref(false);
           const loadingPrograma = ref(false);
-          const saving         = ref(false);
-          const saveError      = ref('');
+          const saving          = ref(false);
+          const saveError       = ref('');
 
           async function load() {
             loadingPrograma.value = true;
@@ -384,12 +433,22 @@ function createPlanoRetiroApp() {
     },
 
     setup() {
-      const anos       = ref([]);
-      const anoLectivo = ref('');
-      const fases      = ref([]);
-      const retiros    = ref([]);
-      const loading    = ref(false);
+      const anos         = ref([]);
+      const anoLectivo   = ref('');
+      const fases        = ref([]);
+      const retiros      = ref([]);
+      const loading      = ref(false);
       const expandedName = ref(null);
+
+      // Search
+      const searchRaw    = ref('');
+      const search       = ref('');
+      let   _searchTimer = null;
+
+      // Filters & sort
+      const filterEstado = ref('');
+      const filterFase   = ref('');
+      const sortDir      = ref('asc');
 
       const showModal  = ref(false);
       const editMode   = ref(false);
@@ -402,7 +461,7 @@ function createPlanoRetiroApp() {
 
       // Auto-suggest title from fases + year when creating new retiro
       function suggestTitle() {
-        if (editMode.value) return;         // don't overwrite on edit
+        if (editMode.value) return;
         const f1 = form.value.fase_1;
         const f2 = form.value.fase_2;
         const year = anoLectivo.value ? anoLectivo.value.split('-')[0] : new Date().getFullYear();
@@ -413,18 +472,75 @@ function createPlanoRetiroApp() {
       watch(() => form.value.fase_1, suggestTitle);
       watch(() => form.value.fase_2, suggestTitle);
 
+      // Debounce search
+      watch(searchRaw, (val) => {
+        clearTimeout(_searchTimer);
+        _searchTimer = setTimeout(() => { search.value = val; }, 200);
+      });
+
+      function clearSearch() {
+        clearTimeout(_searchTimer);
+        searchRaw.value = '';
+        search.value    = '';
+      }
+
+      function clearFilters() {
+        clearSearch();
+        filterEstado.value = '';
+        filterFase.value   = '';
+      }
+
       const STATUS_CYCLE = ['Planeado','Realizado','Cancelado'];
       function nextEstado(e)  { return STATUS_CYCLE[(STATUS_CYCLE.indexOf(e)+1)%STATUS_CYCLE.length]; }
       function estadoIcon(e)  { return { Planeado:'📋', Realizado:'✅', Cancelado:'❌' }[e] || '📋'; }
 
-      const retirosSorted = computed(() =>
-        [...retiros.value].sort((a,b) => {
+      // Counts from full list (unaffected by active filters so chips always show totals)
+      const stats = computed(() => {
+        const s = { total: 0, Planeado: 0, Realizado: 0, Cancelado: 0 };
+        retiros.value.forEach(r => {
+          s.total++;
+          if (s[r.estado] !== undefined) s[r.estado]++;
+        });
+        return s;
+      });
+
+      const hasActiveFilters = computed(() =>
+        !!(filterEstado.value || filterFase.value || search.value.trim())
+      );
+
+      const filteredRetiros = computed(() => {
+        let items = retiros.value;
+
+        // Full-text search across título, orador, local, tema
+        const q = search.value.toLowerCase().trim();
+        if (q) {
+          items = items.filter(r =>
+            (r.titulo || '').toLowerCase().includes(q) ||
+            (r.orador || '').toLowerCase().includes(q) ||
+            (r.local  || '').toLowerCase().includes(q) ||
+            (r.tema   || '').toLowerCase().includes(q)
+          );
+        }
+
+        // Estado chip filter
+        if (filterEstado.value) {
+          items = items.filter(r => r.estado === filterEstado.value);
+        }
+
+        // Fase filter — matches fase_1 OR fase_2
+        if (filterFase.value) {
+          items = items.filter(r => r.fase_1 === filterFase.value || r.fase_2 === filterFase.value);
+        }
+
+        // Sort by date (nulls always last)
+        return [...items].sort((a, b) => {
           if (!a.data && !b.data) return 0;
           if (!a.data) return 1;
           if (!b.data) return -1;
-          return a.data < b.data ? -1 : 1;
-        })
-      );
+          const cmp = a.data < b.data ? -1 : 1;
+          return sortDir.value === 'asc' ? cmp : -cmp;
+        });
+      });
 
       function toggleExpand(r) {
         expandedName.value = expandedName.value === r.name ? null : r.name;
@@ -513,7 +629,15 @@ function createPlanoRetiroApp() {
           ]);
           anos.value  = anosData  || [];
           fases.value = fasesData || [];
-          anoLectivo.value = anoAtual || (anosData[0] || '');
+
+          // Always honour the real calendar year rather than whatever is_current says.
+          // For academic-year strings like "2025-2026" we prefer the one whose end
+          // year matches today (April 2026 → "2025-2026"), then any that contains it.
+          const currentYear = frappe.datetime.get_today().substring(0, 4);
+          const byEndYear   = (anosData || []).find(a => String(a).endsWith(currentYear));
+          const byAnyMatch  = (anosData || []).find(a => String(a).includes(currentYear));
+          anoLectivo.value  = byEndYear || byAnyMatch || anoAtual || (anosData[0] || '');
+
           await loadRetiros();
         } catch(e) {
           frappe.msgprint({ title:'Erro ao inicializar', message:String(e), indicator:'red' });
@@ -521,10 +645,13 @@ function createPlanoRetiroApp() {
       });
 
       return {
-        anos, anoLectivo, fases, retiros, retirosSorted, loading, expandedName,
+        anos, anoLectivo, fases, retiros, filteredRetiros, loading, expandedName,
         showModal, editMode, saving, form, formError,
+        searchRaw, filterEstado, filterFase, sortDir,
+        stats, hasActiveFilters,
         loadRetiros, toggleExpand, openCreate, openEdit, closeModal, saveRetiro,
         cycleEstado, confirmDelete, nextEstado, estadoIcon, fmtDate,
+        clearSearch, clearFilters,
       };
     },
   });
