@@ -10,6 +10,7 @@
   "column_break_1",
   "local",
   "orador",
+  "valor_de_contribuicao",
   "section_fases",
   "fase_1",
   "column_break_fases",
@@ -66,6 +67,11 @@
    "fieldname": "orador",
    "fieldtype": "Data",
    "label": "Orador"
+  },
+  {
+   "fieldname": "valor_de_contribuicao",
+   "fieldtype": "Currency",
+   "label": "Valor de Contribuição"
   },
   {
    "fieldname": "section_fases",

@@ -61,7 +61,7 @@ def get_retiros(ano_lectivo):
         SELECT
             name, titulo, data, estado,
             local, orador, tema,
-            fase_1, fase_2
+            fase_1, fase_2, valor_de_contribuicao
         FROM `tabPlano de Retiro`
         WHERE ano_lectivo = %s
         ORDER BY data IS NULL ASC, data ASC
@@ -82,8 +82,9 @@ def create_retiro(data_json):
     doc.local       = data.get("local") or None
     doc.orador      = data.get("orador") or None
     doc.tema        = data.get("tema") or None
-    doc.fase_1      = data.get("fase_1") or None
-    doc.fase_2      = data.get("fase_2") or None
+    doc.fase_1                 = data.get("fase_1") or None
+    doc.fase_2                 = data.get("fase_2") or None
+    doc.valor_de_contribuicao  = data.get("valor_de_contribuicao") or None
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
 
@@ -102,8 +103,9 @@ def update_retiro(name, data_json):
     doc.local   = data.get("local") or None
     doc.orador  = data.get("orador") or None
     doc.tema    = data.get("tema") or None
-    doc.fase_1  = data.get("fase_1") or None
-    doc.fase_2  = data.get("fase_2") or None
+    doc.fase_1                = data.get("fase_1") or None
+    doc.fase_2                = data.get("fase_2") or None
+    doc.valor_de_contribuicao = data.get("valor_de_contribuicao") or None
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 
@@ -171,7 +173,7 @@ def _fetch_retiro(name):
     rows = frappe.db.sql("""
         SELECT name, titulo, data, estado,
                local, orador, tema,
-               fase_1, fase_2
+               fase_1, fase_2, valor_de_contribuicao
         FROM `tabPlano de Retiro`
         WHERE name = %s
     """, (name,), as_dict=True)

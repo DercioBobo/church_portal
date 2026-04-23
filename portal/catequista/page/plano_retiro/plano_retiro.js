@@ -47,6 +47,11 @@ function fmtDate(d) {
   return `${parseInt(day)} ${MESES_PT[parseInt(m) - 1]} ${y}`;
 }
 
+function fmtCurrency(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  return '€ ' + Number(v).toFixed(2);
+}
+
 function api(method, args) {
   return new Promise((resolve, reject) => {
     frappe.call({
@@ -164,6 +169,7 @@ function createPlanoRetiroApp() {
                 <th style="width:180px">Fases</th>
                 <th style="width:130px">Data</th>
                 <th style="width:140px">Local</th>
+                <th style="width:110px">Contribuição</th>
                 <th style="width:110px">Estado</th>
                 <th style="width:100px"></th>
               </tr>
@@ -189,6 +195,7 @@ function createPlanoRetiroApp() {
                   </td>
                   <td style="font-size:12px; color:#374151;">{{ fmtDate(r.data) }}</td>
                   <td style="font-size:12px; color:#6b7280;">{{ r.local || '—' }}</td>
+                  <td style="font-size:12px; color:#374151; font-variant-numeric:tabular-nums;">{{ fmtCurrency(r.valor_de_contribuicao) }}</td>
                   <td>
                     <span :class="['estado-badge', 'estado-' + r.estado]"
                       @click.stop="cycleEstado(r)"
@@ -209,7 +216,7 @@ function createPlanoRetiroApp() {
                   </td>
                 </tr>
                 <tr v-if="expandedName === r.name" class="programa-row">
-                  <td colspan="7" style="padding:0;">
+                  <td colspan="8" style="padding:0;">
                     <div class="programa-panel">
                       <ProgramaPanel :retiro="r" :fases="fases" />
                     </div>
@@ -220,7 +227,7 @@ function createPlanoRetiroApp() {
               <!-- Realizados collapsible section -->
               <template v-if="realizadosList.length">
                 <tr class="realizados-sep-row" @click="showRealizados = !showRealizados">
-                  <td colspan="7">
+                  <td colspan="8">
                     <svg class="realizados-chevron" :class="{ open: showRealizados }"
                       width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="6 9 12 15 18 9"/>
@@ -266,7 +273,7 @@ function createPlanoRetiroApp() {
                       </td>
                     </tr>
                     <tr v-if="expandedName === r.name" class="programa-row">
-                      <td colspan="7" style="padding:0;">
+                      <td colspan="8" style="padding:0;">
                         <div class="programa-panel">
                           <ProgramaPanel :retiro="r" :fases="fases" />
                         </div>
@@ -347,6 +354,11 @@ function createPlanoRetiroApp() {
                       <option v-for="o in oradorOptions" :key="o" :value="o" />
                     </datalist>
                   </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Valor de Contribuição (€)</label>
+                  <input type="number" v-model="form.valor_de_contribuicao" min="0" step="0.01" placeholder="0.00" />
                 </div>
 
                 <div class="form-group">
@@ -571,7 +583,7 @@ function createPlanoRetiroApp() {
       const saving     = ref(false);
       const formError  = ref('');
 
-      const emptyForm = () => ({ titulo:'', data:'', estado:'Planeado', fase_1:'', fase_2:'', local:'', orador:'', tema:'' });
+      const emptyForm = () => ({ titulo:'', data:'', estado:'Planeado', fase_1:'', fase_2:'', local:'', orador:'', tema:'', valor_de_contribuicao:'' });
       const form = ref(emptyForm());
 
       // Auto-suggest title from fases + year when creating new retiro
@@ -710,7 +722,8 @@ function createPlanoRetiroApp() {
       function openEdit(r) {
         form.value = { titulo:r.titulo||'', data:r.data?String(r.data).substring(0,10):'',
           estado:r.estado||'Planeado', fase_1:r.fase_1||'', fase_2:r.fase_2||'',
-          local:r.local||'', orador:r.orador||'', tema:r.tema||'' };
+          local:r.local||'', orador:r.orador||'', tema:r.tema||'',
+          valor_de_contribuicao: r.valor_de_contribuicao ?? '' };
         editMode.value = true; editName.value = r.name; formError.value = '';
         showModal.value = true;
       }
@@ -830,7 +843,7 @@ function createPlanoRetiroApp() {
         showRealizados, activeRetiros, realizadosList,
         oradorOptions, localOptions,
         loadRetiros, toggleExpand, openCreate, openEdit, closeModal, saveRetiro,
-        cycleEstado, deleteRetiro, duplicateRetiro, nextEstado, estadoIcon, fmtDate,
+        cycleEstado, deleteRetiro, duplicateRetiro, nextEstado, estadoIcon, fmtDate, fmtCurrency,
         clearSearch, clearFilters,
       };
     },
