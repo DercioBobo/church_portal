@@ -201,6 +201,9 @@ function createPlanoRetiroApp() {
                     <a class="btn-icon" :href="printUrl(r.name)" target="_blank" title="Imprimir">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                     </a>
+                    <button class="btn-icon" @click="duplicateRetiro(r)" title="Duplicar">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
                     <button class="btn-icon" @click="openEdit(r)" title="Editar">✏️</button>
                     <button class="btn-icon danger" @click="deleteRetiro(r)" title="Eliminar">🗑</button>
                   </td>
@@ -276,77 +279,96 @@ function createPlanoRetiroApp() {
           </table>
         </div>
 
-        <!-- Create / Edit Modal -->
-        <div v-if="showModal" class="retiro-modal-overlay" @click.self="closeModal">
-          <div class="retiro-modal">
-            <h3>{{ editMode ? 'Editar Retiro' : 'Novo Retiro' }}</h3>
-
-            <div class="form-group">
-              <label>Título *</label>
-              <input v-model="form.titulo" placeholder="Ex: Retiro de Quaresma" />
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>Data</label>
-                <input type="date" v-model="form.data" />
+        <!-- Create / Edit Slide-over -->
+        <Transition name="pr-drawer">
+          <div v-if="showModal" class="retiro-drawer-overlay" @click.self="closeModal">
+            <div class="retiro-drawer">
+              <div class="retiro-drawer-header">
+                <h3>{{ editMode ? 'Editar Retiro' : 'Novo Retiro' }}</h3>
+                <button class="btn-icon" @click="closeModal" title="Fechar" style="border:none; padding:6px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
               </div>
-              <div class="form-group">
-                <label>Estado</label>
-                <select v-model="form.estado">
-                  <option>Planeado</option>
-                  <option>Realizado</option>
-                  <option>Cancelado</option>
-                </select>
-              </div>
-            </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label>Fase 1 *</label>
-                <select v-model="form.fase_1">
-                  <option value="">— seleccionar —</option>
-                  <option v-for="f in fases" :key="f" :value="f">{{ f }}</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Fase 2</label>
-                <select v-model="form.fase_2">
-                  <option value="">— nenhuma —</option>
-                  <option v-for="f in fases" :key="f" :value="f" :disabled="f === form.fase_1">{{ f }}</option>
-                </select>
-              </div>
-            </div>
+              <div class="retiro-drawer-body">
+                <div class="form-group">
+                  <label>Título *</label>
+                  <input v-model="form.titulo" placeholder="Ex: Retiro de Quaresma" />
+                </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label>Local</label>
-                <input v-model="form.local" placeholder="Ex: Casa de Exercícios" />
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Data</label>
+                    <input type="date" v-model="form.data" />
+                  </div>
+                  <div class="form-group">
+                    <label>Estado</label>
+                    <select v-model="form.estado">
+                      <option>Planeado</option>
+                      <option>Realizado</option>
+                      <option>Cancelado</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Fase 1 *</label>
+                    <select v-model="form.fase_1">
+                      <option value="">— seleccionar —</option>
+                      <option v-for="f in fases" :key="f" :value="f">{{ f }}</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Fase 2</label>
+                    <select v-model="form.fase_2">
+                      <option value="">— nenhuma —</option>
+                      <option v-for="f in fases" :key="f" :value="f" :disabled="f === form.fase_1">{{ f }}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Local</label>
+                    <input v-model="form.local" placeholder="Ex: Casa de Exercícios"
+                      list="pr-local-list" autocomplete="off" />
+                    <datalist id="pr-local-list">
+                      <option v-for="o in localOptions" :key="o" :value="o" />
+                    </datalist>
+                  </div>
+                  <div class="form-group">
+                    <label>Orador</label>
+                    <input v-model="form.orador" placeholder="Nome do orador"
+                      list="pr-orador-list" autocomplete="off" />
+                    <datalist id="pr-orador-list">
+                      <option v-for="o in oradorOptions" :key="o" :value="o" />
+                    </datalist>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Tema</label>
+                  <textarea v-model="form.tema" placeholder="Tema ou subtítulo do retiro" rows="2"></textarea>
+                </div>
+
+                <div v-if="formError" style="color:#dc2626; font-size:12px; margin-top:-6px; margin-bottom:10px;">
+                  {{ formError }}
+                </div>
               </div>
-              <div class="form-group">
-                <label>Orador</label>
-                <input v-model="form.orador" placeholder="Nome do orador" />
+
+              <div class="retiro-drawer-footer">
+                <button class="btn btn-default btn-sm" @click="closeModal" :disabled="saving">Cancelar</button>
+                <button class="btn btn-primary btn-sm" @click="saveRetiro" :disabled="saving || !form.titulo || !form.fase_1">
+                  <span v-if="saving">A guardar...</span>
+                  <span v-else>{{ editMode ? 'Guardar' : 'Criar Retiro' }}</span>
+                </button>
               </div>
-            </div>
-
-            <div class="form-group">
-              <label>Tema</label>
-              <textarea v-model="form.tema" placeholder="Tema ou subtítulo do retiro" rows="2"></textarea>
-            </div>
-
-            <div v-if="formError" style="color:#dc2626; font-size:12px; margin-top:-6px; margin-bottom:10px;">
-              {{ formError }}
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn btn-default btn-sm" @click="closeModal" :disabled="saving">Cancelar</button>
-              <button class="btn btn-primary btn-sm" @click="saveRetiro" :disabled="saving || !form.titulo || !form.fase_1">
-                <span v-if="saving">A guardar...</span>
-                <span v-else>{{ editMode ? 'Guardar' : 'Criar Retiro' }}</span>
-              </button>
             </div>
           </div>
-        </div>
+        </Transition>
 
         <!-- Toasts -->
         <div class="pr-toast-container">
@@ -652,6 +674,16 @@ function createPlanoRetiroApp() {
         return filteredRetiros.value.filter(r => r.estado === 'Realizado');
       });
 
+      const oradorOptions = computed(() => {
+        const seen = new Set();
+        return retiros.value.map(r => r.orador).filter(o => o && !seen.has(o) && seen.add(o));
+      });
+
+      const localOptions = computed(() => {
+        const seen = new Set();
+        return retiros.value.map(r => r.local).filter(l => l && !seen.has(l) && seen.add(l));
+      });
+
       function toggleExpand(r) {
         expandedName.value = expandedName.value === r.name ? null : r.name;
       }
@@ -746,6 +778,27 @@ function createPlanoRetiroApp() {
         });
       }
 
+      async function duplicateRetiro(r) {
+        const payload = {
+          titulo: 'Cópia de ' + r.titulo,
+          data: '',
+          estado: 'Planeado',
+          fase_1: r.fase_1 || '',
+          fase_2: r.fase_2 || '',
+          local: r.local || '',
+          orador: r.orador || '',
+          tema: r.tema || '',
+          ano_lectivo: anoLectivo.value,
+        };
+        try {
+          const result = await api('create_retiro', { data_json: JSON.stringify(payload) });
+          retiros.value.push(result);
+          toast(`"${result.titulo}" criado`, 'success');
+        } catch(e) {
+          frappe.msgprint({ title: 'Erro', message: String(e), indicator: 'red' });
+        }
+      }
+
       onMounted(async () => {
         try {
           const [anosData, fasesData, anoAtual] = await Promise.all([
@@ -775,8 +828,9 @@ function createPlanoRetiroApp() {
         stats, hasActiveFilters,
         toasts, printUrl, deskUrl,
         showRealizados, activeRetiros, realizadosList,
+        oradorOptions, localOptions,
         loadRetiros, toggleExpand, openCreate, openEdit, closeModal, saveRetiro,
-        cycleEstado, deleteRetiro, nextEstado, estadoIcon, fmtDate,
+        cycleEstado, deleteRetiro, duplicateRetiro, nextEstado, estadoIcon, fmtDate,
         clearSearch, clearFilters,
       };
     },
