@@ -205,6 +205,9 @@ function createPlanoAnualApp() {
       </div>
     </div>
 
+    <button class="pa-btn pa-btn-ghost pa-btn-sm" @click="loadActividades" :disabled="loading" title="Actualizar dados" data-no-print>
+      <svg :class="{ 'pa-spin-once': loading }" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </button>
     <button class="pa-btn pa-btn-primary pa-btn-sm" @click="openNewActivity(null)" data-no-print>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Adicionar
@@ -583,12 +586,12 @@ function createPlanoAnualApp() {
       <!-- ── Annual: responsive grid of all months ────────────────── -->
       <div v-if="calViewMode === 'annual'" class="pa-cal-grid">
         <div
-          v-for="month in calendarData" :key="month.key"
+          v-for="(month, mi) in calendarData" :key="month.key"
           class="pa-cal-month"
           :class="{ 'pa-cal-month-current': isCurrentMonth(month.key) }"
         >
           <div class="pa-cal-month-hdr">
-            <span class="pa-cal-month-name">{{ month.label }}</span>
+            <span class="pa-cal-month-name pa-cal-month-name-link" @click="jumpToMonthView(mi)" :title="'Ver ' + month.label + ' em detalhe'">{{ month.label }}</span>
             <span v-if="isCurrentMonth(month.key)" class="pa-month-now-badge">Agora</span>
             <div style="flex:1"></div>
             <span v-if="month.actCount" class="pa-cal-month-count">{{ month.actCount }} act.</span>
@@ -1363,6 +1366,7 @@ function createPlanoAnualApp() {
 
       function calPrevMonth() { if (calMonthIndex.value > 0) calMonthIndex.value--; }
       function calNextMonth() { if (calMonthIndex.value < calendarData.value.length - 1) calMonthIndex.value++; }
+      function jumpToMonthView(idx) { calMonthIndex.value = idx; calViewMode.value = 'monthly'; }
 
       const calTooltip = reactive({ show: false, act: null, x: 0, y: 0 });
       function showDotTooltip(event, act) {
@@ -2188,7 +2192,7 @@ function createPlanoAnualApp() {
         tipDdOpen, tipSearch, tipDropEl, tipSearchInput,
         actionsOpen, actionsEl,
         stats, availableMonths, hasFilters, filteredGroups, filteredTipDd,
-        tipologiaMap, calendarData, calViewMode, calMonthIndex, calCurrentMonthData, calPrevMonth, calNextMonth,
+        tipologiaMap, calendarData, calViewMode, calMonthIndex, calCurrentMonthData, calPrevMonth, calNextMonth, jumpToMonthView,
         calTooltip, showDotTooltip, hideDotTooltip, dayCount,
         dragOverCell, dragOverRow,
         onCalCellDragOver, onCalCellDragLeave, onCalCellDrop,
