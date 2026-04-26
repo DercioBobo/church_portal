@@ -1366,7 +1366,7 @@ function createPlanoAnualApp() {
 
       function calPrevMonth() { if (calMonthIndex.value > 0) calMonthIndex.value--; }
       function calNextMonth() { if (calMonthIndex.value < calendarData.value.length - 1) calMonthIndex.value++; }
-      function jumpToMonthView(idx) { calMonthIndex.value = idx; calViewMode.value = 'monthly'; }
+      function jumpToMonthView(idx) { calViewMode.value = 'monthly'; nextTick(() => { calMonthIndex.value = idx; }); }
 
       const calTooltip = reactive({ show: false, act: null, x: 0, y: 0 });
       function showDotTooltip(event, act) {
