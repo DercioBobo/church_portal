@@ -581,21 +581,17 @@ function createPlanoAnualApp() {
               :title="cell && !cell.acts.length ? 'Adicionar actividade em ' + formatDate(cell.dateStr) : ''"
             >
               <div v-if="cell" class="pa-cal-day-num">{{ cell.day }}</div>
-              <div v-if="cell && cell.acts.length" class="pa-cal-acts">
-                <div
-                  v-for="act in cell.acts.slice(0, 3)" :key="act.name"
-                  class="pa-cal-act-chip"
-                  :style="calActStyle(act)"
-                  :class="{ 'pa-cal-act-overdue': isOverdue(act) }"
+              <div v-if="cell && cell.acts.length" class="pa-cal-dots">
+                <span
+                  v-for="act in cell.acts.slice(0, 7)" :key="act.name"
+                  class="pa-cal-dot-btn"
+                  :style="{ background: tipologiaColor(act), boxShadow: isOverdue(act) ? '0 0 0 1.5px #ef4444' : 'none' }"
                   @click.stop="openEdit(act)"
-                  :title="act.actividade + ' — ' + act.estado + (act.orador ? ' (' + act.orador + ')' : '')"
-                >
-                  <span class="pa-cal-act-dot" :style="{ background: tipologiaColor(act) }"></span>
-                  {{ truncate(act.actividade, 20) }}
-                </div>
-                <div v-if="cell.acts.length > 3" class="pa-cal-act-more" @click.stop>+{{ cell.acts.length - 3 }} mais</div>
+                  @mouseenter="showDotTooltip($event, act)"
+                  @mouseleave="hideDotTooltip"
+                ></span>
+                <span v-if="cell.acts.length > 7" class="pa-cal-dots-more">+{{ cell.acts.length - 7 }}</span>
               </div>
-              <div v-if="cell && cell.acts.length > 1" class="pa-cal-conflict-badge" title="Múltiplas actividades neste dia">!</div>
             </div>
           </div>
         </div>
@@ -1027,6 +1023,17 @@ function createPlanoAnualApp() {
     </div>
   </div>
 
+  <!-- ── Dot hover tooltip ──────────────────────────────────────────── -->
+  <teleport to="body">
+    <div v-if="calTooltip.show && calTooltip.act" class="pa-dot-tooltip"
+      :style="{ left: calTooltip.x + 'px', top: calTooltip.y + 'px' }"
+    >
+      <span class="pa-dot-tooltip-dot" :style="{ background: tipologiaColor(calTooltip.act) }"></span>
+      <span class="pa-dot-tooltip-name">{{ calTooltip.act.actividade }}</span>
+      <span class="pa-dot-tooltip-estado">{{ calTooltip.act.estado }}</span>
+    </div>
+  </teleport>
+
 </div>`,
 
     setup() {
@@ -1285,6 +1292,16 @@ function createPlanoAnualApp() {
 
       function calPrevMonth() { if (calMonthIndex.value > 0) calMonthIndex.value--; }
       function calNextMonth() { if (calMonthIndex.value < calendarData.value.length - 1) calMonthIndex.value++; }
+
+      const calTooltip = reactive({ show: false, act: null, x: 0, y: 0 });
+      function showDotTooltip(event, act) {
+        const r = event.target.getBoundingClientRect();
+        calTooltip.x = r.left + r.width / 2;
+        calTooltip.y = r.top - 8;
+        calTooltip.act = act;
+        calTooltip.show = true;
+      }
+      function hideDotTooltip() { calTooltip.show = false; }
 
       // When switching to monthly view, jump to the current month (or first)
       watch(() => calViewMode.value, (val) => {
@@ -2022,6 +2039,7 @@ function createPlanoAnualApp() {
         actionsOpen, actionsEl,
         stats, availableMonths, hasFilters, filteredGroups, filteredTipDd,
         tipologiaMap, calendarData, calViewMode, calMonthIndex, calCurrentMonthData, calPrevMonth, calNextMonth,
+        calTooltip, showDotTooltip, hideDotTooltip,
         loadActividades, openNewActivity, openEdit, closePanel,
         saveActivity, deleteActivity, duplicating, duplicateActivity,
         cycleStatus, flashingRow, removeTipFilter,
