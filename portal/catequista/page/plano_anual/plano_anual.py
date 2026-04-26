@@ -544,6 +544,44 @@ def _sorted_anos():
 
 
 @frappe.whitelist()
+def get_retiros_as_actividades(ano_lectivo):
+    """Return Plano de Retiro records shaped like Actividade do Plano rows."""
+    _assert_coordenador()
+
+    tip = frappe.db.get_value(
+        "Tipologia Actividade", "Retiro",
+        ["cor", "icone"], as_dict=True,
+    ) or {}
+
+    rows = frappe.db.sql("""
+        SELECT name, titulo, data, local, orador, estado, valor_de_contribuicao, notas
+        FROM `tabPlano de Retiro`
+        WHERE ano_lectivo = %s
+        ORDER BY data IS NULL ASC, data ASC
+    """, (ano_lectivo,), as_dict=True)
+
+    estado_map = {"Planeado": "Pendente", "Realizado": "Realizada", "Cancelado": "Cancelada"}
+
+    return [{
+        "name":            row.name,
+        "actividade":      row.titulo,
+        "data":            str(row.data)[:10] if row.data else None,
+        "data_original":   None,
+        "local":           row.local  or None,
+        "orador":          row.orador or None,
+        "estado":          estado_map.get(row.estado, "Pendente"),
+        "orcamento":       str(row.valor_de_contribuicao) if row.valor_de_contribuicao else None,
+        "ano_lectivo":     ano_lectivo,
+        "tipologia":       "Retiro",
+        "tipologia_cor":   tip.get("cor")   or "#8b5cf6",
+        "tipologia_icone": tip.get("icone") or "⛺",
+        "notas_execucao":  row.notas or None,
+        "_is_retiro":      True,
+        "_retiro_name":    row.name,
+    } for row in rows]
+
+
+@frappe.whitelist()
 def get_field_suggestions(fieldname, query):
     _assert_coordenador()
     allowed = {"orador", "local"}
