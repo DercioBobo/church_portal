@@ -474,18 +474,18 @@
 /* ── Cards grid ──────────────────────────────────────────────────────────── */
 .pa-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 10px;
-  min-height: 54px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+  min-height: 48px;
 }
 .pa-cards.drag-over { background:#eef2ff; border-radius:10px; outline:2px dashed #818cf8; }
 
 /* ── Card ────────────────────────────────────────────────────────────────── */
 .pa-card {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid #e5e7eb;
-  padding: 13px 15px;
+  padding: 9px 12px;
   cursor: pointer;
   transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
   position: relative;
@@ -502,6 +502,9 @@
 }
 .pa-card.overdue { border-color:#fca5a5; background:#fff9f9; }
 .pa-card.overdue::before { background:#ef4444; }
+.pa-card.pa-card-retiro { background:#fdfcff; border-style: dashed; cursor: pointer; }
+.pa-card.pa-card-retiro:hover { border-color:#a78bfa; box-shadow: 0 3px 12px rgba(139,92,246,0.1); }
+.pa-card-retiro-icon { color:#a78bfa; flex-shrink:0; }
 
 @keyframes pa-card-land {
   0%   { opacity: 0.35; transform: translateY(-10px) scale(0.97); box-shadow: none; }
@@ -513,10 +516,10 @@
   border-color: #a5b4fc;
 }
 
-.pa-card-header { display:flex; align-items:flex-start; gap:8px; margin-bottom:7px; }
-.pa-card-drag-handle { color:#cbd5e1; cursor:grab; margin-top:2px; flex-shrink:0; font-size:1rem; line-height:1; padding:0 2px; }
+.pa-card-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.pa-card-drag-handle { color:#cbd5e1; cursor:grab; flex-shrink:0; font-size:0.95rem; line-height:1; padding:0 1px; }
 .pa-card-drag-handle:active { cursor:grabbing; }
-.pa-card-title { font-size:0.87rem; font-weight:600; color:#1f2937; flex:1; line-height:1.35; }
+.pa-card-title { font-size:0.84rem; font-weight:600; color:#1f2937; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* Status badge */
 .pa-card-status {
@@ -535,18 +538,17 @@
 .status-cancelada     { background:#fee2e2; color:#dc2626; border-color:#fecaca; }
 .status-adiada        { background:#fef3c7; color:#d97706; border-color:#fde68a; }
 
-.pa-card-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:5px; }
-.pa-card-meta-item { display:inline-flex; align-items:center; gap:4px; font-size:0.73rem; color:#6b7280; }
-.pa-card-meta-item svg { width:11px; height:11px; flex-shrink:0; }
+.pa-card-meta { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
+.pa-card-meta-item { display:inline-flex; align-items:center; gap:3px; font-size:0.71rem; color:#6b7280; }
+.pa-card-meta-item svg { width:10px; height:10px; flex-shrink:0; }
 .pa-card-tipologia {
-  display:inline-flex; align-items:center; gap:4px;
-  font-size:0.71rem; font-weight:600;
-  padding:1px 7px; border-radius:10px;
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:0.68rem; font-weight:600;
+  padding:1px 6px; border-radius:8px;
   background:var(--tipologia-bg,#f3f4f6);
   color:var(--tipologia-text,#4b5563);
-  margin-top:5px;
 }
-.pa-overdue-tag { display:inline-flex; align-items:center; gap:3px; font-size:0.68rem; font-weight:700; color:#dc2626; background:#fee2e2; padding:1px 7px; border-radius:10px; margin-top:5px; }
+.pa-overdue-tag { display:inline-flex; align-items:center; gap:3px; font-size:0.66rem; font-weight:700; color:#dc2626; background:#fee2e2; padding:1px 6px; border-radius:8px; }
 
 .pa-notes-indicator {
   display: inline-flex;
@@ -772,6 +774,7 @@
 .pa-ac-item:hover,
 .pa-ac-item:focus { background: #eef2ff; color: #4f46e5; outline: none; }
 .pa-field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.pa-field-row-3 { grid-template-columns: 1fr 1fr 1fr; }
 .pa-field-hint { font-size:0.72rem; color:#9ca3af; margin-top:3px; }
 .pa-section-divider { height:1px; background:#f1f3f5; margin:18px 0 14px; }
 .pa-section-label { font-size:0.71rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#9ca3af; margin-bottom:12px; }
@@ -1194,6 +1197,62 @@
   text-align: center;
 }
 
+/* Multi-day continuation strip (non-start days in monthly view) */
+.pa-cal-multiday-cont {
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 2px;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.pa-cal-multiday-cont:hover { opacity: 0.85; }
+
+/* Duration badge on multi-day chips */
+.pa-cal-chip-dur {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0,0,0,0.25);
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* Monthly chip while being dragged */
+.pa-cal-act-chip-lg.pa-cal-chip-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+/* Monthly cell drop target */
+.pa-cal-cell-lg.pa-cal-drop-over {
+  background: #eef2ff !important;
+  outline: 2px dashed #818cf8;
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+/* Table row drop target */
+.pa-list-table tr.pa-row-drag-over td {
+  background: #eef2ff !important;
+  border-top: 2px solid #818cf8 !important;
+}
+
+/* Table drag handle cell */
+.pa-list-drag-handle {
+  color: #d1d5db;
+  cursor: grab;
+  text-align: center;
+  user-select: none;
+  font-size: 0.95rem;
+  padding: 0 4px !important;
+}
+.pa-list-drag-handle:active { cursor: grabbing; }
+.pa-list-table tr:hover .pa-list-drag-handle { color: #9ca3af; }
+
 /* ── Monthly large view ──────────────────────────────────────────────────── */
 .pa-cal-monthly-wrap {
   padding: 12px 24px 24px;
@@ -1445,6 +1504,30 @@
 /* Selected list row */
 .pa-list-table tr.pa-row-selected td             { background: #f5f3ff !important; }
 .pa-list-table tr.pa-row-selected:hover td       { background: #ede9fe !important; }
+
+/* Retiros toggle in filter bar */
+.pa-retiro-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #9ca3af;
+  cursor: pointer;
+  user-select: none;
+  padding: 3px 10px 3px 8px;
+  border-radius: 20px;
+  border: 1.5px solid #e5e7eb;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.pa-retiro-toggle:hover { border-color: #c4b5fd; color: #7c3aed; }
+.pa-retiro-toggle.active { color: #7c3aed; background: #f5f3ff; border-color: #c4b5fd; }
+.pa-retiro-toggle input { width: 13px; height: 13px; accent-color: #7c3aed; cursor: pointer; margin: 0; }
+
+/* Retiro row in list view */
+.pa-list-table tr.pa-row-retiro td { background: #fdfcff !important; }
+.pa-list-table tr.pa-row-retiro:hover td { background: #f5f3ff !important; }
 
 /* Status cycle flash */
 @keyframes pa-row-flash {

@@ -10,6 +10,7 @@
   "column_break_1",
   "ano_lectivo",
   "data",
+  "data_fim",
   "data_original",
   "section_responsavel",
   "orador",
@@ -59,6 +60,12 @@
    "fieldtype": "Date",
    "label": "Data",
    "in_list_view": 1
+  },
+  {
+   "fieldname": "data_fim",
+   "fieldtype": "Date",
+   "label": "Data Fim",
+   "description": "Data de fim (para actividades com duração de vários dias)"
   },
   {
    "fieldname": "data_original",

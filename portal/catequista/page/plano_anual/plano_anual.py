@@ -18,7 +18,7 @@ def get_actividades(ano_lectivo):
 
     rows = frappe.db.sql("""
         SELECT
-            a.name, a.actividade, a.data, a.data_original,
+            a.name, a.actividade, a.data, a.data_fim, a.data_original,
             a.orador, a.local, a.orcamento,
             a.tipologia, a.estado, a.notas_execucao,
             a.ano_lectivo,
@@ -113,6 +113,7 @@ def create_actividade(data_json):
     doc.estado        = data.get("estado") or "Pendente"
     doc.ano_lectivo   = data.get("ano_lectivo")
     doc.data          = data.get("data") or None
+    doc.data_fim      = data.get("data_fim") or None
     doc.orador        = data.get("orador") or None
     doc.local         = data.get("local") or None
     doc.orcamento     = data.get("orcamento") or None
@@ -122,7 +123,7 @@ def create_actividade(data_json):
 
     # Return full row with tipologia details
     row = frappe.db.sql("""
-        SELECT a.name, a.actividade, a.data, a.data_original,
+        SELECT a.name, a.actividade, a.data, a.data_fim, a.data_original,
                a.orador, a.local, a.orcamento,
                a.tipologia, a.estado, a.notas_execucao, a.ano_lectivo,
                t.cor AS tipologia_cor, t.icone AS tipologia_icone
@@ -149,6 +150,7 @@ def update_actividade(name, data_json):
     doc.tipologia      = data.get("tipologia") or None
     doc.estado         = data.get("estado", doc.estado)
     doc.data           = new_data
+    doc.data_fim       = data.get("data_fim") or None
     doc.orador         = data.get("orador") or None
     doc.local          = data.get("local") or None
     doc.orcamento      = data.get("orcamento") or None
@@ -157,7 +159,7 @@ def update_actividade(name, data_json):
     frappe.db.commit()
 
     row = frappe.db.sql("""
-        SELECT a.name, a.actividade, a.data, a.data_original,
+        SELECT a.name, a.actividade, a.data, a.data_fim, a.data_original,
                a.orador, a.local, a.orcamento,
                a.tipologia, a.estado, a.notas_execucao, a.ano_lectivo,
                t.cor AS tipologia_cor, t.icone AS tipologia_icone
@@ -477,7 +479,7 @@ def copy_from_previous_year(target_ano_lectivo):
     prev_year = years[idx - 1]
 
     src_rows = frappe.db.sql("""
-        SELECT actividade, tipologia, data, orador, local, orcamento
+        SELECT actividade, tipologia, data, data_fim, orador, local, orcamento
         FROM `tabActividade do Plano`
         WHERE ano_lectivo = %s
         ORDER BY data IS NULL ASC, data ASC, name ASC
@@ -508,6 +510,7 @@ def copy_from_previous_year(target_ano_lectivo):
         doc.estado         = "Pendente"
         doc.ano_lectivo    = target_ano_lectivo
         doc.data           = _shift(row.data)
+        doc.data_fim       = _shift(row.data_fim)
         doc.orador         = row.orador or None
         doc.local          = row.local or None
         doc.orcamento      = row.orcamento or None
@@ -522,7 +525,7 @@ def copy_from_previous_year(target_ano_lectivo):
 
     placeholders = ",".join(["%s"] * len(created_names))
     rows = frappe.db.sql(f"""
-        SELECT a.name, a.actividade, a.data, a.data_original,
+        SELECT a.name, a.actividade, a.data, a.data_fim, a.data_original,
                a.orador, a.local, a.orcamento,
                a.tipologia, a.estado, a.notas_execucao, a.ano_lectivo,
                t.cor AS tipologia_cor, t.icone AS tipologia_icone
@@ -541,6 +544,45 @@ def _sorted_anos():
         "SELECT name FROM `tabAno Lectivo` ORDER BY name ASC", as_dict=True
     )
     return [r.name for r in rows]
+
+
+@frappe.whitelist()
+def get_retiros_as_actividades(ano_lectivo):
+    """Return Plano de Retiro records shaped like Actividade do Plano rows."""
+    _assert_coordenador()
+
+    tip = frappe.db.get_value(
+        "Tipologia Actividade", "Retiro",
+        ["cor", "icone"], as_dict=True,
+    ) or {}
+
+    rows = frappe.db.sql("""
+        SELECT name, titulo, data, local, orador, estado, valor_de_contribuicao, notas
+        FROM `tabPlano de Retiro`
+        WHERE ano_lectivo = %s
+        ORDER BY data IS NULL ASC, data ASC
+    """, (ano_lectivo,), as_dict=True)
+
+    estado_map = {"Planeado": "Pendente", "Realizado": "Realizada", "Cancelado": "Cancelada"}
+
+    return [{
+        "name":            row.name,
+        "actividade":      row.titulo,
+        "data":            str(row.data)[:10] if row.data else None,
+        "data_fim":        None,
+        "data_original":   None,
+        "local":           row.local  or None,
+        "orador":          row.orador or None,
+        "estado":          estado_map.get(row.estado, "Pendente"),
+        "orcamento":       str(row.valor_de_contribuicao) if row.valor_de_contribuicao else None,
+        "ano_lectivo":     ano_lectivo,
+        "tipologia":       "Retiro",
+        "tipologia_cor":   tip.get("cor")   or "#8b5cf6",
+        "tipologia_icone": tip.get("icone") or "⛺",
+        "notas_execucao":  row.notas or None,
+        "_is_retiro":      True,
+        "_retiro_name":    row.name,
+    } for row in rows]
 
 
 @frappe.whitelist()
@@ -612,7 +654,7 @@ def bulk_move_month(names_json, new_month):
     for name in names:
         row = frappe.db.get_value(
             "Actividade do Plano", name,
-            ["data", "data_original"], as_dict=True
+            ["data", "data_fim", "data_original"], as_dict=True
         )
         if not row:
             continue
@@ -624,6 +666,14 @@ def bulk_move_month(names_json, new_month):
             new_date = _date(ny, nm, 1)
 
         update_vals = {"data": str(new_date)}
+
+        # Shift data_fim by the same month change, preserving the duration
+        new_data_fim = None
+        if row.data_fim:
+            fim_day = row.data_fim.day if hasattr(row.data_fim, 'day') else int(str(row.data_fim)[8:10])
+            new_data_fim = str(_date(ny, nm, min(fim_day, last_day)))
+            update_vals["data_fim"] = new_data_fim
+
         new_data_original = None
         if row.data and not row.data_original:
             update_vals["data_original"] = str(row.data)
@@ -633,6 +683,7 @@ def bulk_move_month(names_json, new_month):
         updated_rows.append({
             "name": name,
             "data": str(new_date),
+            "data_fim": new_data_fim,
             "data_original": new_data_original or (str(row.data_original) if row.data_original else None),
         })
 
@@ -692,7 +743,7 @@ def preview_rollover(ano_origem, ano_destino, manter_orador="1", ajustar_datas="
     preserve_weekend = frappe.utils.cint(ajustar_datas) == 1
 
     src_rows = frappe.db.sql("""
-        SELECT actividade, tipologia, data, orador, local, orcamento
+        SELECT actividade, tipologia, data, data_fim, orador, local, orcamento
         FROM `tabActividade do Plano`
         WHERE ano_lectivo = %s
         ORDER BY data IS NULL ASC, data ASC, name ASC
@@ -752,7 +803,7 @@ def executar_rollover(ano_origem, ano_destino, manter_orador="1", ajustar_datas=
     preserve_weekend = frappe.utils.cint(ajustar_datas) == 1
 
     src_rows = frappe.db.sql("""
-        SELECT actividade, tipologia, data, orador, local, orcamento
+        SELECT actividade, tipologia, data, data_fim, orador, local, orcamento
         FROM `tabActividade do Plano`
         WHERE ano_lectivo = %s
         ORDER BY data IS NULL ASC, data ASC, name ASC
@@ -783,6 +834,7 @@ def executar_rollover(ano_origem, ano_destino, manter_orador="1", ajustar_datas=
         doc.estado         = "Pendente"
         doc.ano_lectivo    = ano_destino
         doc.data           = _shift_date_rollover(row.data, preserve_weekend) if preserve_weekend else None
+        doc.data_fim       = _shift_date_rollover(row.data_fim, preserve_weekend) if preserve_weekend and row.data_fim else None
         doc.orador         = row.orador if keep_orador else None
         doc.local          = row.local  or None
         doc.orcamento      = row.orcamento or None
@@ -797,7 +849,7 @@ def executar_rollover(ano_origem, ano_destino, manter_orador="1", ajustar_datas=
     if created_names:
         placeholders = ",".join(["%s"] * len(created_names))
         rows = frappe.db.sql(f"""
-            SELECT a.name, a.actividade, a.data, a.data_original,
+            SELECT a.name, a.actividade, a.data, a.data_fim, a.data_original,
                    a.orador, a.local, a.orcamento,
                    a.tipologia, a.estado, a.notas_execucao, a.ano_lectivo,
                    t.cor AS tipologia_cor, t.icone AS tipologia_icone
