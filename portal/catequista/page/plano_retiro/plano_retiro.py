@@ -169,6 +169,181 @@ def save_programa(retiro_name, items_json):
     """, (retiro_name,), as_dict=True)
 
 
+@frappe.whitelist()
+def export_retiros(ano_lectivo, estado="", fase="", search=""):
+    _assert_coordenador()
+
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        import io
+        from datetime import date as _date
+    except ImportError:
+        frappe.throw(_("openpyxl não está instalado. Execute: pip install openpyxl"))
+
+    conditions = ["ano_lectivo = %s"]
+    params     = [ano_lectivo]
+
+    if estado:
+        conditions.append("estado = %s")
+        params.append(estado)
+
+    if fase:
+        conditions.append("(fase_1 = %s OR fase_2 = %s)")
+        params.extend([fase, fase])
+
+    search = (search or "").strip()
+    if search:
+        sq = f"%{search}%"
+        conditions.append("(titulo LIKE %s OR orador LIKE %s OR local LIKE %s OR tema LIKE %s)")
+        params.extend([sq, sq, sq, sq])
+
+    where = " AND ".join(conditions)
+
+    rows = frappe.db.sql(f"""
+        SELECT name, titulo, data, estado, local, orador, tema,
+               fase_1, fase_2, valor_de_contribuicao, notas
+        FROM `tabPlano de Retiro`
+        WHERE {where}
+        ORDER BY data IS NULL ASC, data ASC
+    """, params, as_dict=True)
+
+    MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+             "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+
+    def fmt_date(d):
+        if not d:
+            return "—"
+        s = str(d)[:10]
+        y, m, day = s.split("-")
+        return f"{int(day)} {MESES[int(m)-1]} {y}"
+
+    def _fill(hex_color):
+        return PatternFill("solid", fgColor=hex_color)
+
+    def _side(style="thin", color="D1D5DB"):
+        return Side(style=style, color=color)
+
+    def _border():
+        s = _side()
+        return Border(left=s, right=s, top=s, bottom=s)
+
+    TITLE_FONT  = Font(name="Calibri", bold=True, size=14, color="FFFFFF")
+    META_FONT   = Font(name="Calibri", size=9,  color="6B7280", italic=True)
+    HEADER_FONT = Font(name="Calibri", bold=True, size=9, color="374151")
+    BODY_FONT   = Font(name="Calibri", size=9,  color="1F2937")
+    MUTED_FONT  = Font(name="Calibri", size=9,  color="6B7280")
+
+    TITLE_FILL  = _fill("7C3AED")
+    META_FILL   = _fill("F5F3FF")
+    HEADER_FILL = _fill("EDE9FE")
+
+    STATUS_DATA = {
+        "Planeado":  (_fill("DBEAFE"), Font(name="Calibri", size=9, bold=True, color="1D4ED8")),
+        "Realizado": (_fill("DCFCE7"), Font(name="Calibri", size=9, bold=True, color="166534")),
+        "Cancelado": (_fill("FEE2E2"), Font(name="Calibri", size=9, bold=True, color="991B1B")),
+    }
+
+    COLS    = ["N", "Título", "Orador", "Fases", "Data", "Local", "Contribuição (MZN)", "Estado", "Notas"]
+    WIDTHS  = [5,   40,       20,       15,      15,     20,      18,                   12,       35]
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plano de Retiros"
+
+    # Title row
+    ws.merge_cells(f"A1:{get_column_letter(len(COLS))}1")
+    tc = ws["A1"]
+    tc.value = f"Plano de Retiros — {ano_lectivo}"
+    tc.font = TITLE_FONT
+    tc.fill = TITLE_FILL
+    tc.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.row_dimensions[1].height = 26
+
+    # Meta row
+    ws.merge_cells(f"A2:{get_column_letter(len(COLS))}2")
+    mc = ws["A2"]
+    filters_desc = []
+    if estado: filters_desc.append(f"Estado: {estado}")
+    if fase:   filters_desc.append(f"Fase: {fase}")
+    if search: filters_desc.append(f'Pesquisa: "{search}"')
+    meta_text = f"Total: {len(rows)} retiro(s)"
+    if filters_desc:
+        meta_text += "  |  Filtros: " + ", ".join(filters_desc)
+    meta_text += f"  |  Exportado em {_date.today().strftime('%d/%m/%Y')}"
+    mc.value = mc.value = meta_text
+    mc.font  = META_FONT
+    mc.fill  = META_FILL
+    mc.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.row_dimensions[2].height = 18
+
+    ws.row_dimensions[3].height = 4
+
+    # Header row
+    HR = 4
+    for ci, (col_name, width) in enumerate(zip(COLS, WIDTHS), 1):
+        cell = ws.cell(row=HR, column=ci)
+        cell.value = col_name
+        cell.font  = HEADER_FONT
+        cell.fill  = HEADER_FILL
+        cell.alignment = Alignment(horizontal="center" if ci == 1 else "left", vertical="center")
+        cell.border = _border()
+        ws.column_dimensions[get_column_letter(ci)].width = width
+    ws.row_dimensions[HR].height = 18
+    ws.freeze_panes = ws.cell(row=HR + 1, column=1)
+
+    # Data rows
+    for ri, row in enumerate(rows, 1):
+        rn = HR + ri
+        fases_str = " + ".join(filter(None, [row.fase_1, row.fase_2]))
+        contribuicao = f"{float(row.valor_de_contribuicao):.2f}" if row.valor_de_contribuicao else "—"
+        s_fill, s_font = STATUS_DATA.get(row.estado, (_fill("F9FAFB"), BODY_FONT))
+
+        values = [
+            ri,
+            row.titulo   or "",
+            row.orador   or "",
+            fases_str,
+            fmt_date(row.data),
+            row.local    or "",
+            contribuicao,
+            row.estado   or "",
+            row.notas    or "",
+        ]
+
+        alt = ri % 2 == 0
+        for ci, val in enumerate(values, 1):
+            cell = ws.cell(row=rn, column=ci)
+            cell.value  = val
+            cell.border = Border(bottom=Side(style="thin", color="E5E7EB"))
+            if ci == 8:
+                cell.font      = s_font
+                cell.fill      = s_fill
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+            elif ci == 7:
+                cell.font      = MUTED_FONT
+                cell.alignment = Alignment(horizontal="right", vertical="center")
+                if alt: cell.fill = _fill("F9FAFB")
+            elif ci == 1:
+                cell.font      = MUTED_FONT
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                if alt: cell.fill = _fill("F9FAFB")
+            else:
+                cell.font = BODY_FONT
+                if alt: cell.fill = _fill("F9FAFB")
+        ws.row_dimensions[rn].height = 16
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    fname = f"Plano_Retiros_{ano_lectivo.replace('/', '-')}.xlsx"
+    frappe.response.filename    = fname
+    frappe.response.filecontent = buf.read()
+    frappe.response.type        = "download"
+
+
 def _fetch_retiro(name):
     rows = frappe.db.sql("""
         SELECT name, titulo, data, estado,

@@ -28,6 +28,18 @@
   color: #9ca3af;
   white-space: nowrap;
 }
+.pr-th-sort {
+  cursor: pointer;
+  user-select: none;
+}
+.pr-th-sort:hover { color: #6b7280; }
+.pr-sort-icon {
+  vertical-align: middle;
+  margin-left: 3px;
+  opacity: 0.2;
+  transition: opacity 0.15s;
+}
+.pr-sort-icon.active { opacity: 0.8; color: #4f46e5; }
 
 .retiro-row {
   cursor: pointer;

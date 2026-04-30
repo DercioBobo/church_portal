@@ -2100,6 +2100,8 @@ function createPlanoAnualApp() {
             estado:         filterStatus.value  || '',
             tipologias_json: JSON.stringify(filterTipologias.value),
             month:          filterMonth.value   || '',
+            search:         search.value        || '',
+            show_retiros:   showRetiros.value ? '1' : '0',
             csrf_token:     frappe.csrf_token,
           });
           const url = `/api/method/portal.catequista.page.plano_anual.plano_anual.export_actividades?${params}`;

@@ -192,7 +192,7 @@ def update_estado(name, estado):
 
 
 @frappe.whitelist()
-def export_actividades(ano_lectivo, estado="", tipologias_json="", month=""):
+def export_actividades(ano_lectivo, estado="", tipologias_json="", month="", search="", show_retiros="1"):
     """
     Exports the activities plan to a styled .xlsx file.
     Respects the same filters the UI has active.
@@ -227,6 +227,14 @@ def export_actividades(ano_lectivo, estado="", tipologias_json="", month=""):
         conditions.append("DATE_FORMAT(a.data, '%%Y-%%m') = %s")
         params.append(month)
 
+    search = (search or "").strip()
+    if search:
+        sq = f"%{search}%"
+        conditions.append(
+            "(a.actividade LIKE %s OR a.orador LIKE %s OR a.local LIKE %s OR a.tipologia LIKE %s)"
+        )
+        params.extend([sq, sq, sq, sq])
+
     where = " AND ".join(conditions)
 
     rows = frappe.db.sql(f"""
@@ -238,6 +246,43 @@ def export_actividades(ano_lectivo, estado="", tipologias_json="", month=""):
         WHERE {where}
         ORDER BY a.data IS NULL ASC, a.data ASC, a.name ASC
     """, params, as_dict=True)
+
+    # ── Merge retiros ──────────────────────────────────────────────────────
+    if show_retiros == "1":
+        _estado_map = {"Planeado": "Pendente", "Realizado": "Realizada", "Cancelado": "Cancelada"}
+        retiro_rows = frappe.db.sql("""
+            SELECT name, titulo, data, local, orador, estado, valor_de_contribuicao, notas
+            FROM `tabPlano de Retiro`
+            WHERE ano_lectivo = %s
+        """, (ano_lectivo,), as_dict=True)
+
+        for r in retiro_rows:
+            mapped_estado = _estado_map.get(r.estado, "Pendente")
+            if estado and mapped_estado != estado:
+                continue
+            if tip_list and "Retiro" not in tip_list:
+                continue
+            r_month = str(r.data)[:7] if r.data else None
+            if month and r_month != month:
+                continue
+            if search:
+                haystack = " ".join(filter(None, [r.titulo, r.orador, r.local, "Retiro"])).lower()
+                if search.lower() not in haystack:
+                    continue
+            rows.append(frappe._dict({
+                "name":          r.name,
+                "actividade":    r.titulo,
+                "data":          str(r.data)[:10] if r.data else None,
+                "data_original": None,
+                "orador":        r.orador or None,
+                "local":         r.local  or None,
+                "orcamento":     str(r.valor_de_contribuicao) if r.valor_de_contribuicao else None,
+                "tipologia":     "Retiro",
+                "estado":        mapped_estado,
+                "notas_execucao": r.notas or None,
+            }))
+
+        rows.sort(key=lambda x: (x.data is None, x.data or "", x.name or ""))
 
     # ── Month grouping ─────────────────────────────────────────────────────
     MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",

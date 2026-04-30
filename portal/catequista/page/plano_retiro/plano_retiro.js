@@ -1,4 +1,4 @@
-/* global frappe, Vue */
+﻿/* global frappe, Vue */
 // Plano de Retiros — Vue 3 CDN, list view with inline programa editing
 
 frappe.pages['plano-retiro'].on_page_load = function (wrapper) {
@@ -49,7 +49,7 @@ function fmtDate(d) {
 
 function fmtCurrency(v) {
   if (v === null || v === undefined || v === '') return '—';
-  return '€ ' + Number(v).toFixed(2);
+  return Number(v).toFixed(2);
 }
 
 function api(method, args) {
@@ -90,13 +90,9 @@ function createPlanoRetiroApp() {
             <option v-for="a in anos" :key="a" :value="a">{{ a }}</option>
           </select>
 
-          <!-- Sort direction toggle -->
-          <button class="pr-sort-btn" :class="{ 'pr-sort-desc': sortDir === 'desc' }"
-            @click="sortDir = sortDir === 'asc' ? 'desc' : 'asc'"
-            :title="sortDir === 'asc' ? 'Mais antigo primeiro — clique para inverter' : 'Mais recente primeiro — clique para inverter'">
-            <svg v-if="sortDir === 'asc'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-            <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-            {{ sortDir === 'asc' ? 'Antigo→Novo' : 'Novo→Antigo' }}
+          <button class="pr-sort-btn" @click="exportExcel" :disabled="exporting" title="Exportar para Excel">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            {{ exporting ? 'A exportar...' : 'Excel' }}
           </button>
 
           <!-- Search -->
@@ -165,12 +161,48 @@ function createPlanoRetiroApp() {
             <thead>
               <tr>
                 <th style="width:36px"></th>
-                <th>Título</th>
-                <th style="width:180px">Fases</th>
-                <th style="width:130px">Data</th>
-                <th style="width:140px">Local</th>
-                <th style="width:110px">Contribuição</th>
-                <th style="width:110px">Estado</th>
+                <th class="pr-th-sort" @click="setSort('titulo')">
+                  Título
+                  <svg class="pr-sort-icon" :class="{ active: sortCol==='titulo' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline v-if="sortCol==='titulo' && sortDir==='desc'" points="6 9 12 15 18 9"/>
+                    <polyline v-else points="18 15 12 9 6 15"/>
+                  </svg>
+                </th>
+                <th class="pr-th-sort" style="width:180px" @click="setSort('fases')">
+                  Fases
+                  <svg class="pr-sort-icon" :class="{ active: sortCol==='fases' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline v-if="sortCol==='fases' && sortDir==='desc'" points="6 9 12 15 18 9"/>
+                    <polyline v-else points="18 15 12 9 6 15"/>
+                  </svg>
+                </th>
+                <th class="pr-th-sort" style="width:130px" @click="setSort('data')">
+                  Data
+                  <svg class="pr-sort-icon" :class="{ active: sortCol==='data' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline v-if="sortCol==='data' && sortDir==='desc'" points="6 9 12 15 18 9"/>
+                    <polyline v-else points="18 15 12 9 6 15"/>
+                  </svg>
+                </th>
+                <th class="pr-th-sort" style="width:140px" @click="setSort('local')">
+                  Local
+                  <svg class="pr-sort-icon" :class="{ active: sortCol==='local' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline v-if="sortCol==='local' && sortDir==='desc'" points="6 9 12 15 18 9"/>
+                    <polyline v-else points="18 15 12 9 6 15"/>
+                  </svg>
+                </th>
+                <th class="pr-th-sort" style="width:120px" @click="setSort('contribuicao')">
+                  Contribuição
+                  <svg class="pr-sort-icon" :class="{ active: sortCol==='contribuicao' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline v-if="sortCol==='contribuicao' && sortDir==='desc'" points="6 9 12 15 18 9"/>
+                    <polyline v-else points="18 15 12 9 6 15"/>
+                  </svg>
+                </th>
+                <th class="pr-th-sort" style="width:110px" @click="setSort('estado')">
+                  Estado
+                  <svg class="pr-sort-icon" :class="{ active: sortCol==='estado' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline v-if="sortCol==='estado' && sortDir==='desc'" points="6 9 12 15 18 9"/>
+                    <polyline v-else points="18 15 12 9 6 15"/>
+                  </svg>
+                </th>
                 <th style="width:100px"></th>
               </tr>
             </thead>
@@ -256,6 +288,7 @@ function createPlanoRetiroApp() {
                       </td>
                       <td style="font-size:12px; color:#374151;">{{ fmtDate(r.data) }}</td>
                       <td style="font-size:12px; color:#6b7280;">{{ r.local || '—' }}</td>
+                      <td style="font-size:12px; color:#374151; font-variant-numeric:tabular-nums;">{{ fmtCurrency(r.valor_de_contribuicao) }}</td>
                       <td>
                         <span :class="['estado-badge', 'estado-' + r.estado]"
                           @click.stop="cycleEstado(r)"
@@ -575,7 +608,17 @@ function createPlanoRetiroApp() {
       // Filters & sort
       const filterEstado = ref('');
       const filterFase   = ref('');
+      const sortCol      = ref('data');
       const sortDir      = ref('asc');
+
+      function setSort(col) {
+        if (sortCol.value === col) {
+          sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortCol.value = col;
+          sortDir.value = 'asc';
+        }
+      }
 
       const showModal  = ref(false);
       const editMode   = ref(false);
@@ -661,13 +704,28 @@ function createPlanoRetiroApp() {
           items = items.filter(r => r.fase_1 === filterFase.value || r.fase_2 === filterFase.value);
         }
 
-        // Sort by date (nulls always last)
+        // Sort by selected column (nulls always last)
         return [...items].sort((a, b) => {
-          if (!a.data && !b.data) return 0;
-          if (!a.data) return 1;
-          if (!b.data) return -1;
-          const cmp = a.data < b.data ? -1 : 1;
-          return sortDir.value === 'asc' ? cmp : -cmp;
+          const col = sortCol.value;
+          let av, bv;
+          if (col === 'data') {
+            if (!a.data && !b.data) return 0;
+            if (!a.data) return 1;
+            if (!b.data) return -1;
+            av = a.data; bv = b.data;
+          } else if (col === 'contribuicao') {
+            av = Number(a.valor_de_contribuicao) || 0;
+            bv = Number(b.valor_de_contribuicao) || 0;
+          } else if (col === 'fases') {
+            av = ((a.fase_1 || '') + (a.fase_2 || '')).toLowerCase();
+            bv = ((b.fase_1 || '') + (b.fase_2 || '')).toLowerCase();
+          } else {
+            av = (a[col] || '').toLowerCase();
+            bv = (b[col] || '').toLowerCase();
+          }
+          if (av < bv) return sortDir.value === 'asc' ? -1 : 1;
+          if (av > bv) return sortDir.value === 'asc' ? 1 : -1;
+          return 0;
         });
       });
 
@@ -812,6 +870,34 @@ function createPlanoRetiroApp() {
         }
       }
 
+      const exporting = ref(false);
+
+      async function exportExcel() {
+        if (exporting.value) return;
+        exporting.value = true;
+        try {
+          const params = new URLSearchParams({
+            ano_lectivo: anoLectivo.value,
+            estado:      filterEstado.value || '',
+            fase:        filterFase.value   || '',
+            search:      search.value       || '',
+            csrf_token:  frappe.csrf_token,
+          });
+          const url = `/api/method/portal.catequista.page.plano_retiro.plano_retiro.export_retiros?${params}`;
+          const a = document.createElement('a');
+          a.href = url;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          toast('A descarregar Excel...', 'success');
+        } catch(e) {
+          toast('Erro ao exportar: ' + (e.message || e), 'error');
+        } finally {
+          setTimeout(() => { exporting.value = false; }, 2000);
+        }
+      }
+
       onMounted(async () => {
         try {
           const [anosData, fasesData, anoAtual] = await Promise.all([
@@ -837,14 +923,15 @@ function createPlanoRetiroApp() {
       return {
         anos, anoLectivo, fases, retiros, filteredRetiros, loading, expandedName,
         showModal, editMode, saving, form, formError,
-        searchRaw, filterEstado, filterFase, sortDir,
+        searchRaw, filterEstado, filterFase, sortCol, sortDir,
         stats, hasActiveFilters,
         toasts, printUrl, deskUrl,
         showRealizados, activeRetiros, realizadosList,
         oradorOptions, localOptions,
+        exporting,
         loadRetiros, toggleExpand, openCreate, openEdit, closeModal, saveRetiro,
         cycleEstado, deleteRetiro, duplicateRetiro, nextEstado, estadoIcon, fmtDate, fmtCurrency,
-        clearSearch, clearFilters,
+        clearSearch, clearFilters, setSort, exportExcel,
       };
     },
   });
