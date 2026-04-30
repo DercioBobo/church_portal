@@ -60,11 +60,16 @@
 .pr-chevron-cell:hover { color: #6366f1; }
 
 /* ── Título cell ───────────────────────────────────────────────────────────── */
-.pr-cell-titulo { cursor: pointer; }
+.pr-cell-titulo { cursor: pointer; max-width: 300px; overflow: hidden; }
 .pr-titulo-text {
   font-weight: 600;
   color: #111827;
   transition: color 0.15s;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
 }
 .pr-cell-titulo:hover .pr-titulo-text {
   color: #4f46e5;

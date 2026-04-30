@@ -220,7 +220,7 @@ function createPlanoRetiroApp() {
             <thead>
               <tr>
                 <th style="width:36px"></th>
-                <th class="pr-th-sort" @click="setSort('titulo')">
+                <th class="pr-th-sort" style="width:240px" @click="setSort('titulo')">
                   Título
                   <svg class="pr-sort-icon" :class="{ active: sortCol==='titulo' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <polyline v-if="sortCol==='titulo' && sortDir==='desc'" points="6 9 12 15 18 9"/>
