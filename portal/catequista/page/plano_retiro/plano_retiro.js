@@ -248,10 +248,10 @@ function createPlanoRetiroApp() {
                     <polyline v-else points="18 15 12 9 6 15"/>
                   </svg>
                 </th>
-                <th class="pr-th-sort" style="width:120px" @click="setSort('contribuicao')">
-                  Contribuição
-                  <svg class="pr-sort-icon" :class="{ active: sortCol==='contribuicao' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polyline v-if="sortCol==='contribuicao' && sortDir==='desc'" points="6 9 12 15 18 9"/>
+                <th class="pr-th-sort" style="width:140px" @click="setSort('orador')">
+                  Orador
+                  <svg class="pr-sort-icon" :class="{ active: sortCol==='orador' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline v-if="sortCol==='orador' && sortDir==='desc'" points="6 9 12 15 18 9"/>
                     <polyline v-else points="18 15 12 9 6 15"/>
                   </svg>
                 </th>
@@ -278,7 +278,6 @@ function createPlanoRetiroApp() {
                   </td>
                   <td>
                     <span style="font-weight:600; color:#111827;">{{ r.titulo }}</span>
-                    <span v-if="r.orador" style="display:block; font-size:11px; color:#9ca3af; margin-top:1px;">{{ r.orador }}</span>
                   </td>
                   <td>
                     <span v-if="r.fase_1" class="fase-pill">{{ r.fase_1 }}</span>
@@ -286,7 +285,7 @@ function createPlanoRetiroApp() {
                   </td>
                   <td style="font-size:12px; color:#374151;">{{ fmtDate(r.data) }}</td>
                   <td style="font-size:12px; color:#6b7280;">{{ r.local || '—' }}</td>
-                  <td style="font-size:12px; color:#374151; font-variant-numeric:tabular-nums;">{{ fmtCurrency(r.valor_de_contribuicao) }}</td>
+                  <td style="font-size:12px; color:#374151;">{{ r.orador || '—' }}</td>
                   <td>
                     <span :class="['estado-badge', 'estado-' + r.estado]"
                       @click.stop="cycleEstado(r)"
@@ -339,7 +338,6 @@ function createPlanoRetiroApp() {
                       </td>
                       <td>
                         <span style="font-weight:600; color:#111827;">{{ r.titulo }}</span>
-                        <span v-if="r.orador" style="display:block; font-size:11px; color:#9ca3af; margin-top:1px;">{{ r.orador }}</span>
                       </td>
                       <td>
                         <span v-if="r.fase_1" class="fase-pill">{{ r.fase_1 }}</span>
@@ -347,7 +345,7 @@ function createPlanoRetiroApp() {
                       </td>
                       <td style="font-size:12px; color:#374151;">{{ fmtDate(r.data) }}</td>
                       <td style="font-size:12px; color:#6b7280;">{{ r.local || '—' }}</td>
-                      <td style="font-size:12px; color:#374151; font-variant-numeric:tabular-nums;">{{ fmtCurrency(r.valor_de_contribuicao) }}</td>
+                      <td style="font-size:12px; color:#374151;">{{ r.orador || '—' }}</td>
                       <td>
                         <span :class="['estado-badge', 'estado-' + r.estado]"
                           @click.stop="cycleEstado(r)"
@@ -816,9 +814,6 @@ function createPlanoRetiroApp() {
             if (!a.data) return 1;
             if (!b.data) return -1;
             av = a.data; bv = b.data;
-          } else if (col === 'contribuicao') {
-            av = Number(a.valor_de_contribuicao) || 0;
-            bv = Number(b.valor_de_contribuicao) || 0;
           } else if (col === 'fases') {
             av = ((a.fase_1 || '') + (a.fase_2 || '')).toLowerCase();
             bv = ((b.fase_1 || '') + (b.fase_2 || '')).toLowerCase();
