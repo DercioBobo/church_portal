@@ -710,21 +710,17 @@
 /* ── @media print ───────────────────────────────────────────────────────────── */
 @media print {
   body * { visibility: hidden; }
-  #plano-retiro-app, #plano-retiro-app * { visibility: visible; }
-  #plano-retiro-app { position: absolute; left: 0; top: 0; width: 100%; background: #fff; padding: 0 !important; }
+  #plano-retiro-app { visibility: visible; position: absolute; left: 0; top: 0; width: 100%; background: #fff; padding: 0 !important; }
 
-  .pr-screen-only,
-  .pr-toolbar,
-  .pr-filter-bar,
-  .retiro-drawer-overlay,
-  .pr-toast-container,
-  .pr-export-drawer,
-  [data-no-print] { display: none !important; visibility: hidden !important; }
+  /* Hide all screen content inside the Vue root wrapper */
+  #plano-retiro-app > div > * { display: none !important; visibility: hidden !important; }
 
-  .pr-print-only {
+  /* Show only the print section */
+  #plano-retiro-app > div > .pr-print-only {
     display: block !important;
     visibility: visible !important;
   }
+  .pr-print-only * { visibility: visible !important; }
 
   .pr-print-header {
     -webkit-print-color-adjust: exact;
