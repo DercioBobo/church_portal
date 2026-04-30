@@ -623,7 +623,7 @@
 
 /* ── Print-only layout (hidden on screen) ───────────────────────────────────── */
 .pr-print-only { display: none; }
-.pr-screen-only { display: contents; }
+.pr-screen-only { display: revert; }
 
 .pr-print-header {
   display: flex;
