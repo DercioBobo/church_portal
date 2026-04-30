@@ -699,36 +699,26 @@
 .pr-seg-btn.active { background: #fef9ec; color: #9a7020; font-weight: 700; }
 .pr-seg-btn:hover:not(.active) { background: #f9fafb; }
 
-/* Toggle switch */
-.pr-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-}
-.pr-toggle input { display: none; }
-.pr-toggle-track {
-  position: relative;
-  width: 34px;
-  height: 18px;
-  background: #d1d5db;
-  border-radius: 9px;
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-.pr-toggle input:checked + .pr-toggle-track { background: #9a7020; }
-.pr-toggle-thumb {
-  position: absolute;
-  top: 2px; left: 2px;
-  width: 14px; height: 14px;
-  border-radius: 50%;
+/* Letter head select */
+.pr-lh-select {
+  flex: 1;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 12px;
+  color: #374151;
+  font-family: inherit;
   background: #fff;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  outline: none;
+  cursor: pointer;
 }
-.pr-toggle input:checked + .pr-toggle-track .pr-toggle-thumb { transform: translateX(16px); }
-.pr-toggle-label { font-size: 12px; color: #374151; min-width: 90px; }
+.pr-lh-select:focus { border-color: #9a7020; }
+
+/* Letter head rendered HTML in print */
+.pr-letterhead-wrap {
+  width: 100%;
+  margin-bottom: 8px;
+}
 
 .pr-export-actions {
   display: flex;

@@ -99,7 +99,8 @@ function createPlanoRetiroApp() {
 
         <!-- ── Print-only layout (hidden on screen, visible when printing) ─────── -->
         <div class="pr-print-only">
-          <div v-if="printLetterhead" class="pr-print-header">
+          <div v-if="selectedLetterHeadObj" class="pr-letterhead-wrap" v-html="selectedLetterHeadObj.content"></div>
+          <div class="pr-print-header">
             <div class="pr-print-header-inner">
               <div class="pr-print-title">Plano de Retiros</div>
               <div class="pr-print-subtitle">{{ anoLectivo }}</div>
@@ -470,11 +471,10 @@ function createPlanoRetiroApp() {
                   </div>
                   <div class="pr-export-opt-row">
                     <span class="pr-export-opt-label">Cabeçalho</span>
-                    <label class="pr-toggle">
-                      <input type="checkbox" v-model="printLetterhead">
-                      <span class="pr-toggle-track"><span class="pr-toggle-thumb"></span></span>
-                      <span class="pr-toggle-label">{{ printLetterhead ? 'Com cabeçalho' : 'Sem cabeçalho' }}</span>
-                    </label>
+                    <select class="pr-lh-select" v-model="selectedLetterHead">
+                      <option value="">— Sem cabeçalho —</option>
+                      <option v-for="lh in letterHeads" :key="lh.name" :value="lh.name">{{ lh.name }}</option>
+                    </select>
                   </div>
                 </div>
 
@@ -1120,7 +1120,6 @@ function createPlanoRetiroApp() {
       });
 
       const printOrientation = ref('portrait');
-      const printLetterhead  = ref(true);
 
       function printRetiros() {
         showExportPanel.value = false;
@@ -1164,11 +1163,21 @@ function createPlanoRetiroApp() {
         }
       }
 
+      const letterHeads         = ref([]);
+      const selectedLetterHead  = ref('');   // name of selected letter head, '' = none
+      const selectedLetterHeadObj = computed(() =>
+        letterHeads.value.find(lh => lh.name === selectedLetterHead.value) || null
+      );
+
       onMounted(async () => {
         try {
-          const [anosData, fasesData, anoAtual] = await Promise.all([
+          const [anosData, fasesData, anoAtual, lhData] = await Promise.all([
             api('get_anos_lectivos'), api('get_fases'), api('get_ano_lectivo_atual'),
+            api('get_letter_heads'),
           ]);
+          letterHeads.value = lhData || [];
+          // Pre-select the first (default) letter head if any
+          if (letterHeads.value.length) selectedLetterHead.value = letterHeads.value[0].name;
           anos.value  = anosData  || [];
           fases.value = fasesData || [];
 
@@ -1194,7 +1203,8 @@ function createPlanoRetiroApp() {
         toasts, printUrl, deskUrl,
         showRealizados, activeRetiros, realizadosList,
         oradorOptions, localOptions,
-        exporting, showExportPanel, exportFields, printDate, printOrientation, printLetterhead,
+        exporting, showExportPanel, exportFields, printDate, printOrientation,
+        letterHeads, selectedLetterHead, selectedLetterHeadObj,
         EXPORT_FIELD_LABELS,
         loadRetiros, toggleExpand, openCreate, openEdit, closeModal, saveRetiro,
         cycleEstado, deleteRetiro, duplicateRetiro, nextEstado, estadoIcon, fmtDate, fmtCurrency,
