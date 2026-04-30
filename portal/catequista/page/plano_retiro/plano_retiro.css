@@ -42,13 +42,80 @@
 .pr-sort-icon.active { opacity: 0.8; color: #4f46e5; }
 
 .retiro-row {
-  cursor: pointer;
   border-bottom: 1px solid #f3f4f6;
   transition: background 0.1s;
 }
 .retiro-row:hover { background: #f9fafb; }
 .retiro-row.expanded { background: #f5f3ff; }
 .retiro-row td { padding: 10px 14px; vertical-align: middle; }
+
+/* ── Chevron (programa toggle) ─────────────────────────────────────────────── */
+.pr-chevron-cell {
+  cursor: pointer;
+  text-align: center;
+  color: #9ca3af;
+  width: 36px;
+  transition: color 0.15s;
+}
+.pr-chevron-cell:hover { color: #6366f1; }
+
+/* ── Título cell ───────────────────────────────────────────────────────────── */
+.pr-cell-titulo { cursor: pointer; }
+.pr-titulo-text {
+  font-weight: 600;
+  color: #111827;
+  transition: color 0.15s;
+}
+.pr-cell-titulo:hover .pr-titulo-text {
+  color: #4f46e5;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Inline-editable cells ─────────────────────────────────────────────────── */
+.pr-cell-editable {
+  cursor: text;
+  position: relative;
+}
+.pr-editable-text {
+  display: block;
+  min-height: 18px;
+  font-size: 12px;
+  color: #374151;
+  transition: color 0.1s;
+}
+.pr-editable-date { color: #374151; }
+.pr-cell-editable:hover .pr-editable-text { color: #4f46e5; }
+.pr-cell-editable:hover::after {
+  content: '✎';
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: #c7d2fe;
+  pointer-events: none;
+}
+
+.pr-inline-input {
+  border: none;
+  border-bottom: 2px solid #4f46e5;
+  background: transparent;
+  outline: none;
+  font-size: 12px;
+  color: #111827;
+  font-family: inherit;
+  padding: 1px 0;
+  width: 100%;
+  line-height: 1.5;
+  transition: border-color 0.15s;
+}
+.pr-inline-input:focus { border-bottom-color: #6366f1; }
+.pr-inline-date {
+  font-size: 11.5px;
+  color-scheme: light;
+  min-width: 110px;
+}
 
 /* ── Estado badge ──────────────────────────────────────────────────────────── */
 .estado-badge {

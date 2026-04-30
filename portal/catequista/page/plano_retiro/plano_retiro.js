@@ -91,7 +91,7 @@ function deskUrl(name) {
 // App
 // ─────────────────────────────────────────────────────────────────────────────
 function createPlanoRetiroApp() {
-  const { createApp, ref, computed, onMounted, watch, reactive } = Vue;
+  const { createApp, ref, computed, onMounted, watch, reactive, nextTick } = Vue;
 
   return createApp({
     template: `
@@ -268,16 +268,15 @@ function createPlanoRetiroApp() {
             <tbody>
               <!-- Active (non-Realizado) retiros -->
               <template v-for="r in activeRetiros" :key="r.name">
-                <tr class="retiro-row" :class="{ expanded: expandedName === r.name }"
-                    @click="toggleExpand(r)">
-                  <td style="text-align:center; color:#9ca3af;">
+                <tr class="retiro-row" :class="{ expanded: expandedName === r.name }">
+                  <td class="pr-chevron-cell" @click="toggleExpand(r)" title="Ver / editar programa">
                     <svg :style="{ transform: expandedName===r.name ? 'rotate(90deg)':'', transition:'transform 0.2s' }"
                       width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
                     </svg>
                   </td>
-                  <td>
-                    <span style="font-weight:600; color:#111827;">{{ r.titulo }}</span>
+                  <td class="pr-cell-titulo" @click="openEdit(r)" title="Clique para editar">
+                    <span class="pr-titulo-text">{{ r.titulo }}</span>
                   </td>
                   <td>
                     <div class="fase-pills-wrap">
@@ -286,9 +285,37 @@ function createPlanoRetiroApp() {
                       <span v-if="!r.fase_1 && !r.fase_2" style="color:#9ca3af;">—</span>
                     </div>
                   </td>
-                  <td style="font-size:12px; color:#374151;">{{ fmtDate(r.data) }}</td>
-                  <td style="font-size:12px; color:#6b7280;">{{ r.local || '—' }}</td>
-                  <td style="font-size:12px; color:#374151;">{{ r.orador || '—' }}</td>
+                  <td class="pr-cell-editable" @click.stop="startInlineEdit(r, 'data', $event)">
+                    <input v-if="editingCell && editingCell.name===r.name && editingCell.field==='data'"
+                      class="pr-inline-input pr-inline-date" type="date" v-model="editingValue"
+                      @blur="commitInlineEdit(r)" @keydown.enter.prevent="commitInlineEdit(r)"
+                      @keydown.escape="cancelInlineEdit" @click.stop>
+                    <span v-else class="pr-editable-text pr-editable-date">{{ fmtDate(r.data) }}</span>
+                  </td>
+                  <td class="pr-cell-editable" @click.stop="startInlineEdit(r, 'local', $event)">
+                    <template v-if="editingCell && editingCell.name===r.name && editingCell.field==='local'">
+                      <input class="pr-inline-input" type="text" v-model="editingValue"
+                        list="pr-local-list-inline" autocomplete="off"
+                        @blur="commitInlineEdit(r)" @keydown.enter.prevent="commitInlineEdit(r)"
+                        @keydown.escape="cancelInlineEdit" @click.stop>
+                      <datalist id="pr-local-list-inline">
+                        <option v-for="l in localOptions" :key="l" :value="l"/>
+                      </datalist>
+                    </template>
+                    <span v-else class="pr-editable-text">{{ r.local || '—' }}</span>
+                  </td>
+                  <td class="pr-cell-editable" @click.stop="startInlineEdit(r, 'orador', $event)">
+                    <template v-if="editingCell && editingCell.name===r.name && editingCell.field==='orador'">
+                      <input class="pr-inline-input" type="text" v-model="editingValue"
+                        list="pr-orador-list-inline" autocomplete="off"
+                        @blur="commitInlineEdit(r)" @keydown.enter.prevent="commitInlineEdit(r)"
+                        @keydown.escape="cancelInlineEdit" @click.stop>
+                      <datalist id="pr-orador-list-inline">
+                        <option v-for="o in oradorOptions" :key="o" :value="o"/>
+                      </datalist>
+                    </template>
+                    <span v-else class="pr-editable-text">{{ r.orador || '—' }}</span>
+                  </td>
                   <td>
                     <span :class="['estado-badge', 'estado-' + r.estado]"
                       @click.stop="cycleEstado(r)"
@@ -304,7 +331,6 @@ function createPlanoRetiroApp() {
                     <button class="btn-icon" @click="duplicateRetiro(r)" title="Duplicar">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     </button>
-                    <button class="btn-icon" @click="openEdit(r)" title="Editar">✏️</button>
                     <button class="btn-icon danger" @click="deleteRetiro(r)" title="Eliminar">🗑</button>
                   </td>
                 </tr>
@@ -331,16 +357,15 @@ function createPlanoRetiroApp() {
                 </tr>
                 <template v-if="showRealizados">
                   <template v-for="r in realizadosList" :key="r.name">
-                    <tr class="retiro-row retiro-row-realizado" :class="{ expanded: expandedName === r.name }"
-                        @click="toggleExpand(r)">
-                      <td style="text-align:center; color:#9ca3af;">
+                    <tr class="retiro-row retiro-row-realizado" :class="{ expanded: expandedName === r.name }">
+                      <td class="pr-chevron-cell" @click="toggleExpand(r)" title="Ver / editar programa">
                         <svg :style="{ transform: expandedName===r.name ? 'rotate(90deg)':'', transition:'transform 0.2s' }"
                           width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
                         </svg>
                       </td>
-                      <td>
-                        <span style="font-weight:600; color:#111827;">{{ r.titulo }}</span>
+                      <td class="pr-cell-titulo" @click="openEdit(r)" title="Clique para editar">
+                        <span class="pr-titulo-text">{{ r.titulo }}</span>
                       </td>
                       <td>
                         <div class="fase-pills-wrap">
@@ -349,9 +374,31 @@ function createPlanoRetiroApp() {
                           <span v-if="!r.fase_1 && !r.fase_2" style="color:#9ca3af;">—</span>
                         </div>
                       </td>
-                      <td style="font-size:12px; color:#374151;">{{ fmtDate(r.data) }}</td>
-                      <td style="font-size:12px; color:#6b7280;">{{ r.local || '—' }}</td>
-                      <td style="font-size:12px; color:#374151;">{{ r.orador || '—' }}</td>
+                      <td class="pr-cell-editable" @click.stop="startInlineEdit(r, 'data', $event)">
+                        <input v-if="editingCell && editingCell.name===r.name && editingCell.field==='data'"
+                          class="pr-inline-input pr-inline-date" type="date" v-model="editingValue"
+                          @blur="commitInlineEdit(r)" @keydown.enter.prevent="commitInlineEdit(r)"
+                          @keydown.escape="cancelInlineEdit" @click.stop>
+                        <span v-else class="pr-editable-text pr-editable-date">{{ fmtDate(r.data) }}</span>
+                      </td>
+                      <td class="pr-cell-editable" @click.stop="startInlineEdit(r, 'local', $event)">
+                        <template v-if="editingCell && editingCell.name===r.name && editingCell.field==='local'">
+                          <input class="pr-inline-input" type="text" v-model="editingValue"
+                            list="pr-local-list-inline" autocomplete="off"
+                            @blur="commitInlineEdit(r)" @keydown.enter.prevent="commitInlineEdit(r)"
+                            @keydown.escape="cancelInlineEdit" @click.stop>
+                        </template>
+                        <span v-else class="pr-editable-text">{{ r.local || '—' }}</span>
+                      </td>
+                      <td class="pr-cell-editable" @click.stop="startInlineEdit(r, 'orador', $event)">
+                        <template v-if="editingCell && editingCell.name===r.name && editingCell.field==='orador'">
+                          <input class="pr-inline-input" type="text" v-model="editingValue"
+                            list="pr-orador-list-inline" autocomplete="off"
+                            @blur="commitInlineEdit(r)" @keydown.enter.prevent="commitInlineEdit(r)"
+                            @keydown.escape="cancelInlineEdit" @click.stop>
+                        </template>
+                        <span v-else class="pr-editable-text">{{ r.orador || '—' }}</span>
+                      </td>
                       <td>
                         <span :class="['estado-badge', 'estado-' + r.estado]"
                           @click.stop="cycleEstado(r)"
@@ -364,7 +411,6 @@ function createPlanoRetiroApp() {
                         <a class="btn-icon" :href="printUrl(r.name)" target="_blank" title="Imprimir">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                         </a>
-                        <button class="btn-icon" @click="openEdit(r)" title="Editar">✏️</button>
                         <button class="btn-icon danger" @click="deleteRetiro(r)" title="Eliminar">🗑</button>
                       </td>
                     </tr>
@@ -862,6 +908,60 @@ function createPlanoRetiroApp() {
         expandedName.value = expandedName.value === r.name ? null : r.name;
       }
 
+      // ── Inline cell editing ──────────────────────────────────────────────────
+      const editingCell  = ref(null);  // { name, field }
+      const editingValue = ref('');
+
+      function startInlineEdit(r, field, e) {
+        e.stopPropagation();
+        if (editingCell.value?.name === r.name && editingCell.value?.field === field) return;
+        editingCell.value  = { name: r.name, field };
+        editingValue.value = field === 'data'
+          ? (r.data ? String(r.data).substring(0, 10) : '')
+          : (r[field] || '');
+        nextTick(() => {
+          const inp = document.querySelector('.pr-inline-input');
+          if (inp) inp.focus();
+        });
+      }
+
+      async function commitInlineEdit(r) {
+        if (!editingCell.value || editingCell.value.name !== r.name) return;
+        const { field } = editingCell.value;
+        editingCell.value = null;
+
+        const rawNew  = editingValue.value.trim();
+        const oldNorm = field === 'data'
+          ? (r.data ? String(r.data).substring(0, 10) : '')
+          : (r[field] || '');
+        if (rawNew === oldNorm) return;
+
+        const prevVal = r[field];
+        r[field] = rawNew || null;
+
+        try {
+          const payload = {
+            titulo: r.titulo,
+            data:   r.data ? String(r.data).substring(0, 10) : null,
+            estado: r.estado,
+            fase_1: r.fase_1  || null, fase_2: r.fase_2 || null,
+            local:  r.local   || null, orador: r.orador || null,
+            tema:   r.tema    || null,
+            valor_de_contribuicao: r.valor_de_contribuicao || null,
+            ano_lectivo: anoLectivo.value,
+          };
+          const result = await api('update_retiro', { name: r.name, data_json: JSON.stringify(payload) });
+          Object.assign(r, result);
+        } catch(e) {
+          r[field] = prevVal;
+          frappe.msgprint({ title: 'Erro', message: String(e), indicator: 'red' });
+        }
+      }
+
+      function cancelInlineEdit() {
+        editingCell.value = null;
+      }
+
       async function loadRetiros() {
         if (!anoLectivo.value) return;
         loading.value = true;
@@ -1060,6 +1160,7 @@ function createPlanoRetiroApp() {
         EXPORT_FIELD_LABELS,
         loadRetiros, toggleExpand, openCreate, openEdit, closeModal, saveRetiro,
         cycleEstado, deleteRetiro, duplicateRetiro, nextEstado, estadoIcon, fmtDate, fmtCurrency,
+        editingCell, editingValue, startInlineEdit, commitInlineEdit, cancelInlineEdit,
         clearSearch, clearFilters, setSort, exportExcel, printRetiros,
       };
     },
