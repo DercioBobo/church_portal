@@ -99,7 +99,7 @@ function createPlanoRetiroApp() {
 
         <!-- ── Print-only layout (hidden on screen, visible when printing) ─────── -->
         <div class="pr-print-only">
-          <div class="pr-print-header">
+          <div v-if="printLetterhead" class="pr-print-header">
             <div class="pr-print-header-inner">
               <div class="pr-print-title">Plano de Retiros</div>
               <div class="pr-print-subtitle">{{ anoLectivo }}</div>
@@ -449,6 +449,33 @@ function createPlanoRetiroApp() {
                     <input type="checkbox" v-model="exportFields[key]" :disabled="key === 'titulo'">
                     <span>{{ label }}</span>
                   </label>
+                </div>
+
+                <p class="pr-export-section-label" style="margin-top:24px;">Impressão</p>
+                <div class="pr-export-print-opts">
+                  <div class="pr-export-opt-row">
+                    <span class="pr-export-opt-label">Orientação</span>
+                    <div class="pr-seg-group">
+                      <button :class="['pr-seg-btn', { active: printOrientation === 'portrait' }]"
+                        @click="printOrientation = 'portrait'">
+                        <svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor"><rect x="0.5" y="0.5" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+                        Retrato
+                      </button>
+                      <button :class="['pr-seg-btn', { active: printOrientation === 'landscape' }]"
+                        @click="printOrientation = 'landscape'">
+                        <svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><rect x="0.5" y="0.5" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+                        Paisagem
+                      </button>
+                    </div>
+                  </div>
+                  <div class="pr-export-opt-row">
+                    <span class="pr-export-opt-label">Cabeçalho</span>
+                    <label class="pr-toggle">
+                      <input type="checkbox" v-model="printLetterhead">
+                      <span class="pr-toggle-track"><span class="pr-toggle-thumb"></span></span>
+                      <span class="pr-toggle-label">{{ printLetterhead ? 'Com cabeçalho' : 'Sem cabeçalho' }}</span>
+                    </label>
+                  </div>
                 </div>
 
                 <p class="pr-export-section-label" style="margin-top:24px;">Formato de saída</p>
@@ -1092,8 +1119,19 @@ function createPlanoRetiroApp() {
         return `${d.getDate()} ${MESES_PT[d.getMonth()]} ${d.getFullYear()}`;
       });
 
+      const printOrientation = ref('portrait');
+      const printLetterhead  = ref(true);
+
       function printRetiros() {
         showExportPanel.value = false;
+        // Inject dynamic @page orientation rule
+        let style = document.getElementById('pr-page-style');
+        if (!style) {
+          style = document.createElement('style');
+          style.id = 'pr-page-style';
+          document.head.appendChild(style);
+        }
+        style.textContent = `@media print { @page { size: A4 ${printOrientation.value}; } }`;
         setTimeout(() => window.print(), 80);
       }
 
@@ -1156,7 +1194,7 @@ function createPlanoRetiroApp() {
         toasts, printUrl, deskUrl,
         showRealizados, activeRetiros, realizadosList,
         oradorOptions, localOptions,
-        exporting, showExportPanel, exportFields, printDate,
+        exporting, showExportPanel, exportFields, printDate, printOrientation, printLetterhead,
         EXPORT_FIELD_LABELS,
         loadRetiros, toggleExpand, openCreate, openEdit, closeModal, saveRetiro,
         cycleEstado, deleteRetiro, duplicateRetiro, nextEstado, estadoIcon, fmtDate, fmtCurrency,
