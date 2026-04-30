@@ -280,8 +280,11 @@ function createPlanoRetiroApp() {
                     <span style="font-weight:600; color:#111827;">{{ r.titulo }}</span>
                   </td>
                   <td>
-                    <span v-if="r.fase_1" class="fase-pill">{{ r.fase_1 }}</span>
-                    <span v-if="r.fase_2" class="fase-pill" style="margin-left:4px;">{{ r.fase_2 }}</span>
+                    <div class="fase-pills-wrap">
+                      <span v-if="r.fase_1" class="fase-pill">{{ r.fase_1 }}</span>
+                      <span v-if="r.fase_2" class="fase-pill">{{ r.fase_2 }}</span>
+                      <span v-if="!r.fase_1 && !r.fase_2" style="color:#9ca3af;">—</span>
+                    </div>
                   </td>
                   <td style="font-size:12px; color:#374151;">{{ fmtDate(r.data) }}</td>
                   <td style="font-size:12px; color:#6b7280;">{{ r.local || '—' }}</td>
@@ -340,8 +343,11 @@ function createPlanoRetiroApp() {
                         <span style="font-weight:600; color:#111827;">{{ r.titulo }}</span>
                       </td>
                       <td>
-                        <span v-if="r.fase_1" class="fase-pill">{{ r.fase_1 }}</span>
-                        <span v-if="r.fase_2" class="fase-pill" style="margin-left:4px;">{{ r.fase_2 }}</span>
+                        <div class="fase-pills-wrap">
+                          <span v-if="r.fase_1" class="fase-pill">{{ r.fase_1 }}</span>
+                          <span v-if="r.fase_2" class="fase-pill">{{ r.fase_2 }}</span>
+                          <span v-if="!r.fase_1 && !r.fase_2" style="color:#9ca3af;">—</span>
+                        </div>
                       </td>
                       <td style="font-size:12px; color:#374151;">{{ fmtDate(r.data) }}</td>
                       <td style="font-size:12px; color:#6b7280;">{{ r.local || '—' }}</td>

@@ -66,14 +66,22 @@
 .estado-Cancelado { background:#fee2e2; color:#991b1b; }
 
 /* ── Fase pills ────────────────────────────────────────────────────────────── */
+.fase-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: center;
+}
 .fase-pill {
   display: inline-block;
   background: #ede9fe;
   color: #5b21b6;
-  border-radius: 20px;
-  font-size: 11px;
+  border-radius: 4px;
+  font-size: 10.5px;
   font-weight: 600;
-  padding: 2px 9px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
 /* ── Action buttons ────────────────────────────────────────────────────────── */
@@ -623,7 +631,6 @@
 
 /* ── Print-only layout (hidden on screen) ───────────────────────────────────── */
 .pr-print-only { display: none; }
-.pr-screen-only { display: revert; }
 
 .pr-print-header {
   display: flex;
