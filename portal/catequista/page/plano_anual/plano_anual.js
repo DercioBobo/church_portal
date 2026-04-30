@@ -103,6 +103,18 @@ const EMPTY_FORM = () => ({
   ano_lectivo: '', data: '', data_fim: '', orador: '', local: '', orcamento: '', notas_execucao: '',
 });
 
+const EXPORT_FIELD_LABELS_PA = {
+  actividade:    'Actividade',
+  tipologia:     'Tipologia',
+  data:          'Data',
+  data_original: 'Data Original',
+  orador:        'Orador',
+  local:         'Local',
+  orcamento:     'Orçamento',
+  estado:        'Estado',
+  notas_execucao:'Notas',
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // App
 // ─────────────────────────────────────────────────────────────────────────────
@@ -112,6 +124,57 @@ function createPlanoAnualApp() {
   return createApp({
     template: `
 <div id="plano-anual-app">
+
+  <!-- ── Print-only layout ─────────────────────────────────────────────── -->
+  <div class="pa-print-only">
+    <div class="pa-print-header">
+      <div class="pa-print-header-inner">
+        <div class="pa-print-title">Plano Anual da Catequese</div>
+        <div class="pa-print-subtitle">{{ selectedAno }}</div>
+      </div>
+      <div class="pa-print-meta">
+        {{ paExportTotal }} actividade(s)
+        <template v-if="hasFilters"> &middot; filtrado</template>
+        &middot; {{ printDate }}
+      </div>
+    </div>
+    <table class="pa-print-table">
+      <thead>
+        <tr>
+          <th class="pa-pt-n">N</th>
+          <th v-if="exportFields.actividade">Actividade</th>
+          <th v-if="exportFields.tipologia">Tipologia</th>
+          <th v-if="exportFields.data">Data</th>
+          <th v-if="exportFields.data_original">Data Orig.</th>
+          <th v-if="exportFields.orador">Orador</th>
+          <th v-if="exportFields.local">Local</th>
+          <th v-if="exportFields.orcamento">Orçamento</th>
+          <th v-if="exportFields.estado">Estado</th>
+          <th v-if="exportFields.notas_execucao">Notas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template v-for="group in filteredGroups" :key="group.key">
+          <tr class="pa-pt-month-row">
+            <td colspan="10">{{ group.label }} <span style="font-weight:400;opacity:0.6;">({{ group.items.length }})</span></td>
+          </tr>
+          <tr v-for="(act, i) in group.items" :key="act.name">
+            <td class="pa-pt-n">{{ i + 1 }}</td>
+            <td v-if="exportFields.actividade" class="pa-pt-bold">{{ act.actividade }}</td>
+            <td v-if="exportFields.tipologia">{{ act.tipologia || '—' }}</td>
+            <td v-if="exportFields.data" class="pa-pt-nowrap">{{ formatDate(act.data) }}</td>
+            <td v-if="exportFields.data_original" class="pa-pt-nowrap">{{ act.data_original ? formatDate(act.data_original) : '—' }}</td>
+            <td v-if="exportFields.orador">{{ act.orador || '—' }}</td>
+            <td v-if="exportFields.local">{{ act.local || '—' }}</td>
+            <td v-if="exportFields.orcamento" class="pa-pt-num">{{ act.orcamento || '—' }}</td>
+            <td v-if="exportFields.estado"><span class="pa-pt-estado" :class="'pa-pt-' + (act.estado||'').replace(' ','').toLowerCase()">{{ act.estado }}</span></td>
+            <td v-if="exportFields.notas_execucao">{{ act.notas_execucao || '—' }}</td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+    <div class="pa-print-footer">Catequese &mdash; {{ selectedAno }}</div>
+  </div>
 
   <!-- ── Toolbar ─────────────────────────────────────────────────────── -->
   <div class="pa-toolbar">
@@ -187,20 +250,14 @@ function createPlanoAnualApp() {
         <svg class="pa-actions-caret" :class="{ open: actionsOpen }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div v-if="actionsOpen" class="pa-actions-panel">
-        <button class="pa-actions-item" @click="exportExcel(); actionsOpen = false" :disabled="exporting">
-          <div v-if="exporting" class="pa-spinner" style="width:13px;height:13px;flex-shrink:0"></div>
-          <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="18"/><line x1="15" y1="15" x2="12" y2="18"/></svg>
-          Exportar Excel
+        <button class="pa-actions-item pa-actions-export-btn" @click="showExportPanel = true; actionsOpen = false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar...
           <span v-if="hasFilters" class="pa-actions-badge">filtrado</span>
         </button>
         <button class="pa-actions-item" @click="openCopyYearModal(); actionsOpen = false">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copiar ano anterior
-        </button>
-        <div class="pa-actions-sep"></div>
-        <button class="pa-actions-item" @click="printView(); actionsOpen = false">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Imprimir
         </button>
       </div>
     </div>
@@ -1082,6 +1139,47 @@ function createPlanoAnualApp() {
       <button v-if="t.undo" class="pa-toast-undo" @click="t.undo()">Desfazer</button>
     </div>
   </div>
+
+  <!-- ── Export panel ──────────────────────────────────────────────── -->
+  <Transition name="pr-drawer">
+    <div v-if="showExportPanel" class="pa-export-overlay" @click.self="showExportPanel = false">
+      <div class="pa-export-drawer">
+        <div class="pa-export-drawer-header">
+          <h3>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar
+          </h3>
+          <button class="pa-export-close" @click="showExportPanel = false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="pa-export-body">
+          <p class="pa-export-section-label">Campos a incluir</p>
+          <div class="pa-export-fields-grid">
+            <label v-for="(label, key) in EXPORT_FIELD_LABELS_PA" :key="key" class="pa-export-field-row">
+              <input type="checkbox" v-model="exportFields[key]" :disabled="key === 'actividade'">
+              <span>{{ label }}</span>
+            </label>
+          </div>
+          <p class="pa-export-section-label" style="margin-top:24px;">Formato de saída</p>
+          <div class="pa-export-actions">
+            <button class="pa-export-action-btn pa-export-print" @click="printView">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Imprimir / PDF
+            </button>
+            <button class="pa-export-action-btn pa-export-excel" @click="exportExcel" :disabled="exporting">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              {{ exporting ? 'A exportar...' : 'Excel (.xlsx)' }}
+            </button>
+          </div>
+          <div class="pa-export-note">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Serão exportadas {{ paExportTotal }} actividade(s){{ hasFilters ? ' (filtrado)' : '' }}.
+          </div>
+        </div>
+      </div>
+    </div>
+  </Transition>
 
   <!-- ── Dot hover tooltip ──────────────────────────────────────────── -->
   <teleport to="body">
@@ -2087,7 +2185,32 @@ function createPlanoAnualApp() {
         }
       }
 
-      function printView() { window.print(); }
+      const showExportPanel = ref(false);
+      const exportFields = ref({
+        actividade:    true,
+        tipologia:     true,
+        data:          true,
+        data_original: false,
+        orador:        true,
+        local:         true,
+        orcamento:     false,
+        estado:        true,
+        notas_execucao: false,
+      });
+
+      const printDate = computed(() => {
+        const d = new Date();
+        return `${d.getDate()} ${MESES_PT[d.getMonth()]} ${d.getFullYear()}`;
+      });
+
+      const paExportTotal = computed(() =>
+        filteredGroups.value.reduce((s, g) => s + g.items.length, 0)
+      );
+
+      function printView() {
+        showExportPanel.value = false;
+        setTimeout(() => window.print(), 80);
+      }
 
       const exporting = ref(false);
 
@@ -2102,21 +2225,20 @@ function createPlanoAnualApp() {
             month:          filterMonth.value   || '',
             search:         search.value        || '',
             show_retiros:   showRetiros.value ? '1' : '0',
+            fields_json:    JSON.stringify(exportFields.value),
             csrf_token:     frappe.csrf_token,
           });
           const url = `/api/method/portal.catequista.page.plano_anual.plano_anual.export_actividades?${params}`;
-          // Trigger download via hidden link (avoids popup blockers)
           const a = document.createElement('a');
           a.href = url;
           a.style.display = 'none';
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-          toast('A descarregar Excel…', 'success');
+          toast('A descarregar Excel...', 'success');
         } catch (e) {
           toast('Erro ao exportar: ' + e.message, 'error');
         } finally {
-          // Give the browser a moment to start the download before re-enabling
           setTimeout(() => { exporting.value = false; }, 2000);
         }
       }
@@ -2205,6 +2327,7 @@ function createPlanoAnualApp() {
         onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, justMovedCard,
         clearSearch,
         printView, exporting, exportExcel,
+        showExportPanel, exportFields, printDate, paExportTotal, EXPORT_FIELD_LABELS_PA,
         cardStyle, tipologiaChipStyle, tipologiaColor, calActStyle,
         openNewActivityOnDay,
         statusClass, statusChipClass,

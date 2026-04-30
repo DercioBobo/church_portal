@@ -170,7 +170,7 @@ def save_programa(retiro_name, items_json):
 
 
 @frappe.whitelist()
-def export_retiros(ano_lectivo, estado="", fase="", search=""):
+def export_retiros(ano_lectivo, estado="", fase="", search="", fields_json=""):
     _assert_coordenador()
 
     try:
@@ -235,9 +235,9 @@ def export_retiros(ano_lectivo, estado="", fase="", search=""):
     BODY_FONT   = Font(name="Calibri", size=9,  color="1F2937")
     MUTED_FONT  = Font(name="Calibri", size=9,  color="6B7280")
 
-    TITLE_FILL  = _fill("7C3AED")
-    META_FILL   = _fill("F5F3FF")
-    HEADER_FILL = _fill("EDE9FE")
+    TITLE_FILL  = _fill("9A7020")
+    META_FILL   = _fill("FEF9EC")
+    HEADER_FILL = _fill("F5DFA0")
 
     STATUS_DATA = {
         "Planeado":  (_fill("DBEAFE"), Font(name="Calibri", size=9, bold=True, color="1D4ED8")),
@@ -245,24 +245,44 @@ def export_retiros(ano_lectivo, estado="", fase="", search=""):
         "Cancelado": (_fill("FEE2E2"), Font(name="Calibri", size=9, bold=True, color="991B1B")),
     }
 
-    COLS    = ["N", "Título", "Orador", "Fases", "Data", "Local", "Contribuição (MZN)", "Estado", "Notas"]
-    WIDTHS  = [5,   40,       20,       15,      15,     20,      18,                   12,       35]
+    # Parse selected fields (default all enabled)
+    try:
+        fields = json.loads(fields_json) if fields_json else {}
+    except Exception:
+        fields = {}
+
+    FIELD_META = [
+        ("titulo",       "Título",            35, "text"),
+        ("orador",       "Orador",            20, "text"),
+        ("fases",        "Fases",             15, "text"),
+        ("data",         "Data",              15, "text"),
+        ("local",        "Local",             20, "text"),
+        ("contribuicao", "Contribuição (MZN)", 18, "num"),
+        ("estado",       "Estado",            12, "status"),
+        ("tema",         "Tema",              25, "text"),
+        ("notas",        "Notas",             35, "text"),
+    ]
+    active_cols = [(k, lbl, w, ct) for k, lbl, w, ct in FIELD_META if fields.get(k, True)]
+    COLS   = ["N"] + [lbl for _, lbl, _, _ in active_cols]
+    WIDTHS = [5]   + [w   for _, _,   w, _ in active_cols]
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Plano de Retiros"
 
+    nc = len(COLS)
+
     # Title row
-    ws.merge_cells(f"A1:{get_column_letter(len(COLS))}1")
+    ws.merge_cells(f"A1:{get_column_letter(nc)}1")
     tc = ws["A1"]
     tc.value = f"Plano de Retiros — {ano_lectivo}"
-    tc.font = TITLE_FONT
-    tc.fill = TITLE_FILL
+    tc.font  = TITLE_FONT
+    tc.fill  = TITLE_FILL
     tc.alignment = Alignment(horizontal="left", vertical="center", indent=1)
     ws.row_dimensions[1].height = 26
 
     # Meta row
-    ws.merge_cells(f"A2:{get_column_letter(len(COLS))}2")
+    ws.merge_cells(f"A2:{get_column_letter(nc)}2")
     mc = ws["A2"]
     filters_desc = []
     if estado: filters_desc.append(f"Estado: {estado}")
@@ -272,12 +292,11 @@ def export_retiros(ano_lectivo, estado="", fase="", search=""):
     if filters_desc:
         meta_text += "  |  Filtros: " + ", ".join(filters_desc)
     meta_text += f"  |  Exportado em {_date.today().strftime('%d/%m/%Y')}"
-    mc.value = mc.value = meta_text
-    mc.font  = META_FONT
-    mc.fill  = META_FILL
+    mc.value     = meta_text
+    mc.font      = Font(name="Calibri", size=9, color="7A5A18", italic=True)
+    mc.fill      = META_FILL
     mc.alignment = Alignment(horizontal="left", vertical="center", indent=1)
     ws.row_dimensions[2].height = 18
-
     ws.row_dimensions[3].height = 4
 
     # Header row
@@ -285,7 +304,7 @@ def export_retiros(ano_lectivo, estado="", fase="", search=""):
     for ci, (col_name, width) in enumerate(zip(COLS, WIDTHS), 1):
         cell = ws.cell(row=HR, column=ci)
         cell.value = col_name
-        cell.font  = HEADER_FONT
+        cell.font  = Font(name="Calibri", bold=True, size=9, color="7A5A18")
         cell.fill  = HEADER_FILL
         cell.alignment = Alignment(horizontal="center" if ci == 1 else "left", vertical="center")
         cell.border = _border()
@@ -295,43 +314,47 @@ def export_retiros(ano_lectivo, estado="", fase="", search=""):
 
     # Data rows
     for ri, row in enumerate(rows, 1):
-        rn = HR + ri
-        fases_str = " + ".join(filter(None, [row.fase_1, row.fase_2]))
+        rn  = HR + ri
+        alt = ri % 2 == 0
+        fases_str    = " + ".join(filter(None, [row.fase_1, row.fase_2]))
         contribuicao = f"{float(row.valor_de_contribuicao):.2f}" if row.valor_de_contribuicao else "—"
         s_fill, s_font = STATUS_DATA.get(row.estado, (_fill("F9FAFB"), BODY_FONT))
 
-        values = [
-            ri,
-            row.titulo   or "",
-            row.orador   or "",
-            fases_str,
-            fmt_date(row.data),
-            row.local    or "",
-            contribuicao,
-            row.estado   or "",
-            row.notas    or "",
-        ]
+        FIELD_VALUES = {
+            "titulo":       row.titulo or "",
+            "orador":       row.orador or "",
+            "fases":        fases_str,
+            "data":         fmt_date(row.data),
+            "local":        row.local  or "",
+            "contribuicao": contribuicao,
+            "estado":       row.estado or "",
+            "tema":         row.tema   or "",
+            "notas":        row.notas  or "",
+        }
 
-        alt = ri % 2 == 0
-        for ci, val in enumerate(values, 1):
+        # N column
+        n_cell = ws.cell(row=rn, column=1)
+        n_cell.value     = ri
+        n_cell.font      = MUTED_FONT
+        n_cell.alignment = Alignment(horizontal="center", vertical="center")
+        n_cell.border    = Border(bottom=Side(style="thin", color="E5E7EB"))
+        if alt: n_cell.fill = _fill("FFFDF5")
+
+        for ci, (key, _, _, ctype) in enumerate(active_cols, 2):
             cell = ws.cell(row=rn, column=ci)
-            cell.value  = val
+            cell.value  = FIELD_VALUES[key]
             cell.border = Border(bottom=Side(style="thin", color="E5E7EB"))
-            if ci == 8:
+            if ctype == "status":
                 cell.font      = s_font
                 cell.fill      = s_fill
                 cell.alignment = Alignment(horizontal="center", vertical="center")
-            elif ci == 7:
+            elif ctype == "num":
                 cell.font      = MUTED_FONT
                 cell.alignment = Alignment(horizontal="right", vertical="center")
-                if alt: cell.fill = _fill("F9FAFB")
-            elif ci == 1:
-                cell.font      = MUTED_FONT
-                cell.alignment = Alignment(horizontal="center", vertical="center")
-                if alt: cell.fill = _fill("F9FAFB")
+                if alt: cell.fill = _fill("FFFDF5")
             else:
                 cell.font = BODY_FONT
-                if alt: cell.fill = _fill("F9FAFB")
+                if alt: cell.fill = _fill("FFFDF5")
         ws.row_dimensions[rn].height = 16
 
     buf = io.BytesIO()

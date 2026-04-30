@@ -15,6 +15,7 @@ frappe.pages['plano-retiro'].on_page_load = function (wrapper) {
 
   function _mountApp() {
     const mount = document.createElement('div');
+    mount.id = 'plano-retiro-app';
     wrapper.querySelector('.page-content').appendChild(mount);
     createPlanoRetiroApp().mount(mount);
   }
@@ -52,6 +53,18 @@ function fmtCurrency(v) {
   return Number(v).toFixed(2);
 }
 
+const EXPORT_FIELD_LABELS = {
+  titulo:       'Título',
+  orador:       'Orador',
+  fases:        'Fases',
+  data:         'Data',
+  local:        'Local',
+  contribuicao: 'Contribuição',
+  estado:       'Estado',
+  tema:         'Tema',
+  notas:        'Notas',
+};
+
 function api(method, args) {
   return new Promise((resolve, reject) => {
     frappe.call({
@@ -84,15 +97,61 @@ function createPlanoRetiroApp() {
     template: `
       <div style="padding:16px 0; min-height:300px;">
 
+        <!-- ── Print-only layout (hidden on screen, visible when printing) ─────── -->
+        <div class="pr-print-only">
+          <div class="pr-print-header">
+            <div class="pr-print-header-inner">
+              <div class="pr-print-title">Plano de Retiros</div>
+              <div class="pr-print-subtitle">{{ anoLectivo }}</div>
+            </div>
+            <div class="pr-print-meta">
+              {{ filteredRetiros.length }} retiro(s)
+              <template v-if="filterEstado || filterFase || searchRaw"> &middot; filtrado</template>
+              &middot; {{ printDate }}
+            </div>
+          </div>
+          <table class="pr-print-table">
+            <thead>
+              <tr>
+                <th class="pr-pt-n">N</th>
+                <th v-if="exportFields.titulo">Título</th>
+                <th v-if="exportFields.orador">Orador</th>
+                <th v-if="exportFields.fases">Fases</th>
+                <th v-if="exportFields.data">Data</th>
+                <th v-if="exportFields.local">Local</th>
+                <th v-if="exportFields.contribuicao">Contribuição</th>
+                <th v-if="exportFields.estado">Estado</th>
+                <th v-if="exportFields.tema">Tema</th>
+                <th v-if="exportFields.notas">Notas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, i) in filteredRetiros" :key="r.name" :class="{ 'pr-pt-realizado': r.estado === 'Realizado' }">
+                <td class="pr-pt-n">{{ i + 1 }}</td>
+                <td v-if="exportFields.titulo" class="pr-pt-bold">{{ r.titulo }}</td>
+                <td v-if="exportFields.orador">{{ r.orador || '—' }}</td>
+                <td v-if="exportFields.fases">{{ [r.fase_1, r.fase_2].filter(Boolean).join(' + ') || '—' }}</td>
+                <td v-if="exportFields.data" class="pr-pt-nowrap">{{ fmtDate(r.data) }}</td>
+                <td v-if="exportFields.local">{{ r.local || '—' }}</td>
+                <td v-if="exportFields.contribuicao" class="pr-pt-num">{{ fmtCurrency(r.valor_de_contribuicao) }}</td>
+                <td v-if="exportFields.estado"><span class="pr-pt-estado" :class="'pr-pt-' + r.estado.toLowerCase()">{{ r.estado }}</span></td>
+                <td v-if="exportFields.tema">{{ r.tema || '—' }}</td>
+                <td v-if="exportFields.notas">{{ r.notas || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pr-print-footer">Catequese &mdash; {{ anoLectivo }}</div>
+        </div>
+
         <!-- Toolbar -->
-        <div class="pr-toolbar">
+        <div class="pr-toolbar pr-screen-only">
           <select v-model="anoLectivo" @change="loadRetiros" class="pr-select">
             <option v-for="a in anos" :key="a" :value="a">{{ a }}</option>
           </select>
 
-          <button class="pr-sort-btn" @click="exportExcel" :disabled="exporting" title="Exportar para Excel">
+          <button class="pr-sort-btn pr-export-open-btn" @click="showExportPanel = true">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            {{ exporting ? 'A exportar...' : 'Excel' }}
+            Exportar
           </button>
 
           <!-- Search -->
@@ -111,7 +170,7 @@ function createPlanoRetiroApp() {
         </div>
 
         <!-- Filter bar -->
-        <div class="pr-filter-bar" v-if="!loading">
+        <div class="pr-filter-bar pr-screen-only" v-if="!loading">
           <span class="pr-filter-label">Estado</span>
           <span class="pr-chip pr-chip-total" :class="{ active: !filterEstado }" @click="filterEstado = ''">
             Todos <span class="pr-chip-count">({{ stats.total }})</span>
@@ -318,6 +377,50 @@ function createPlanoRetiroApp() {
             </tbody>
           </table>
         </div>
+
+        <!-- ── Export panel ──────────────────────────────────────────────────── -->
+        <Transition name="pr-drawer">
+          <div v-if="showExportPanel" class="retiro-drawer-overlay" @click.self="showExportPanel = false">
+            <div class="retiro-drawer pr-export-drawer">
+              <div class="retiro-drawer-header pr-export-drawer-header">
+                <h3>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Exportar
+                </h3>
+                <button class="btn-icon" @click="showExportPanel = false" style="border:none; padding:6px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+
+              <div class="retiro-drawer-body">
+                <p class="pr-export-section-label">Campos a incluir</p>
+                <div class="pr-export-fields-grid">
+                  <label v-for="(label, key) in EXPORT_FIELD_LABELS" :key="key" class="pr-export-field-row">
+                    <input type="checkbox" v-model="exportFields[key]" :disabled="key === 'titulo'">
+                    <span>{{ label }}</span>
+                  </label>
+                </div>
+
+                <p class="pr-export-section-label" style="margin-top:24px;">Formato de saída</p>
+                <div class="pr-export-actions">
+                  <button class="pr-export-action-btn pr-export-print" @click="printRetiros">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    Imprimir / PDF
+                  </button>
+                  <button class="pr-export-action-btn pr-export-excel" @click="exportExcel" :disabled="exporting">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                    {{ exporting ? 'A exportar...' : 'Excel (.xlsx)' }}
+                  </button>
+                </div>
+
+                <div class="pr-export-preview-note">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Serão exportados {{ filteredRetiros.length }} retiro(s){{ hasActiveFilters ? ' (filtrado)' : '' }}.
+                </div>
+              </div>
+            </div>
+          </div>
+        </Transition>
 
         <!-- Create / Edit Slide-over -->
         <Transition name="pr-drawer">
@@ -870,6 +973,29 @@ function createPlanoRetiroApp() {
         }
       }
 
+      const showExportPanel = ref(false);
+      const exportFields = ref({
+        titulo:       true,
+        orador:       true,
+        fases:        true,
+        data:         true,
+        local:        true,
+        contribuicao: true,
+        estado:       true,
+        tema:         false,
+        notas:        false,
+      });
+
+      const printDate = computed(() => {
+        const d = new Date();
+        return `${d.getDate()} ${MESES_PT[d.getMonth()]} ${d.getFullYear()}`;
+      });
+
+      function printRetiros() {
+        showExportPanel.value = false;
+        setTimeout(() => window.print(), 80);
+      }
+
       const exporting = ref(false);
 
       async function exportExcel() {
@@ -877,11 +1003,12 @@ function createPlanoRetiroApp() {
         exporting.value = true;
         try {
           const params = new URLSearchParams({
-            ano_lectivo: anoLectivo.value,
-            estado:      filterEstado.value || '',
-            fase:        filterFase.value   || '',
-            search:      search.value       || '',
-            csrf_token:  frappe.csrf_token,
+            ano_lectivo:  anoLectivo.value,
+            estado:       filterEstado.value || '',
+            fase:         filterFase.value   || '',
+            search:       search.value       || '',
+            fields_json:  JSON.stringify(exportFields.value),
+            csrf_token:   frappe.csrf_token,
           });
           const url = `/api/method/portal.catequista.page.plano_retiro.plano_retiro.export_retiros?${params}`;
           const a = document.createElement('a');
@@ -928,10 +1055,11 @@ function createPlanoRetiroApp() {
         toasts, printUrl, deskUrl,
         showRealizados, activeRetiros, realizadosList,
         oradorOptions, localOptions,
-        exporting,
+        exporting, showExportPanel, exportFields, printDate,
+        EXPORT_FIELD_LABELS,
         loadRetiros, toggleExpand, openCreate, openEdit, closeModal, saveRetiro,
         cycleEstado, deleteRetiro, duplicateRetiro, nextEstado, estadoIcon, fmtDate, fmtCurrency,
-        clearSearch, clearFilters, setSort, exportExcel,
+        clearSearch, clearFilters, setSort, exportExcel, printRetiros,
       };
     },
   });

@@ -192,7 +192,7 @@ def update_estado(name, estado):
 
 
 @frappe.whitelist()
-def export_actividades(ano_lectivo, estado="", tipologias_json="", month="", search="", show_retiros="1"):
+def export_actividades(ano_lectivo, estado="", tipologias_json="", month="", search="", show_retiros="1", fields_json=""):
     """
     Exports the activities plan to a styled .xlsx file.
     Respects the same filters the UI has active.
@@ -318,18 +318,16 @@ def export_actividades(ano_lectivo, estado="", tipologias_json="", month="", sea
         return Border(bottom=_side("thin", color))
 
     TITLE_FONT   = Font(name="Calibri", bold=True, size=14, color="FFFFFF")
-    HEADER_FONT  = Font(name="Calibri", bold=True, size=9,  color="374151")
-    MONTH_FONT   = Font(name="Calibri", bold=True, size=9,  color="374151")
     BODY_FONT    = Font(name="Calibri", size=9,    color="1F2937")
     MUTED_FONT   = Font(name="Calibri", size=8,    color="9CA3AF", italic=True)
     NOTE_FONT    = Font(name="Calibri", size=8,    color="6B7280", italic=True)
 
-    TITLE_FILL   = _fill("4F46E5")
-    META_FILL    = _fill("EEF2FF")
-    HEADER_FILL  = _fill("F1F5F9")
-    MONTH_FILL   = _fill("E2E8F0")
-    MONTH_CURR   = _fill("E0E7FF")
-    ROW_ALT_FILL = _fill("F9FAFB")
+    TITLE_FILL   = _fill("9A7020")
+    META_FILL    = _fill("FEF9EC")
+    HEADER_FILL  = _fill("F5DFA0")
+    MONTH_FILL   = _fill("F5DFA0")
+    MONTH_CURR   = _fill("E8C464")
+    ROW_ALT_FILL = _fill("FFFDF5")
 
     STATUS_FILLS = {
         "Pendente":     (_fill("F3F4F6"), Font(name="Calibri", size=9, color="6B7280")),
@@ -339,9 +337,28 @@ def export_actividades(ano_lectivo, estado="", tipologias_json="", month="", sea
         "Adiada":       (_fill("FEF3C7"), Font(name="Calibri", size=9, color="92400E")),
     }
 
-    center = Alignment(horizontal="center", vertical="center", wrap_text=False)
-    left   = Alignment(horizontal="left",   vertical="top",    wrap_text=True)
-    left_mid = Alignment(horizontal="left", vertical="center", wrap_text=False)
+    center   = Alignment(horizontal="center", vertical="center", wrap_text=False)
+    left_mid = Alignment(horizontal="left",   vertical="center", wrap_text=False)
+
+    # ── Parse selected fields ──────────────────────────────────────────────
+    try:
+        fields = json.loads(fields_json) if fields_json else {}
+    except Exception:
+        fields = {}
+
+    FIELD_META = [
+        ("actividade",    "Actividade",          42, "text"),
+        ("tipologia",     "Tipologia",           18, "text"),
+        ("data",          "Data",                12, "date"),
+        ("data_original", "Data Original",       14, "date_orig"),
+        ("orador",        "Orador / Responsável", 24, "text"),
+        ("local",         "Local",               26, "wrap"),
+        ("orcamento",     "Orçamento (MZN)",     14, "currency"),
+        ("estado",        "Estado",              14, "status"),
+        ("notas_execucao","Notas de Execução",   38, "notes"),
+    ]
+    active_cols = [(k, h, w, ct) for k, h, w, ct in FIELD_META if fields.get(k, True)]
+    nc = 1 + len(active_cols)   # +1 for N column
 
     # ── Workbook ───────────────────────────────────────────────────────────
     wb = Workbook()
@@ -349,44 +366,45 @@ def export_actividades(ano_lectivo, estado="", tipologias_json="", month="", sea
     ws.title = "Plano Anual"
     ws.sheet_view.showGridLines = False
 
-    # Column widths: A(#) B(Actividade) C(Tipologia) D(Data) E(Orador) F(Local) G(Orçamento) H(Estado) I(Notas)
-    col_widths = [4, 42, 18, 12, 24, 26, 14, 14, 38]
-    for i, w in enumerate(col_widths, 1):
-        ws.column_dimensions[get_column_letter(i)].width = w
+    ws.column_dimensions["A"].width = 4
+    for ci, (_, _, w, _) in enumerate(active_cols, 2):
+        ws.column_dimensions[get_column_letter(ci)].width = w
+
+    last_col = get_column_letter(nc)
 
     # ── Title row ──────────────────────────────────────────────────────────
     ws.row_dimensions[1].height = 32
-    ws.merge_cells("A1:I1")
-    title_cell = ws["A1"]
-    title_cell.value        = f"📅  Plano Anual da Catequese — {ano_lectivo}"
-    title_cell.font         = TITLE_FONT
-    title_cell.fill         = TITLE_FILL
-    title_cell.alignment    = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.merge_cells(f"A1:{last_col}1")
+    tc = ws["A1"]
+    tc.value     = f"Plano Anual da Catequese — {ano_lectivo}"
+    tc.font      = TITLE_FONT
+    tc.fill      = TITLE_FILL
+    tc.alignment = Alignment(horizontal="left", vertical="center", indent=1)
 
-    # ── Meta row (filters applied) ─────────────────────────────────────────
+    # ── Meta row ──────────────────────────────────────────────────────────
     ws.row_dimensions[2].height = 16
-    ws.merge_cells("A2:I2")
+    ws.merge_cells(f"A2:{last_col}2")
     meta_parts = [f"Exportado em {_date.today().strftime('%d/%m/%Y')}"]
-    if estado:       meta_parts.append(f"Estado: {estado}")
-    if tip_list:     meta_parts.append(f"Tipologia: {', '.join(tip_list)}")
-    if month:        meta_parts.append(f"Mês: {month_label(month)}")
-    meta_cell = ws["A2"]
-    meta_cell.value     = "   ".join(meta_parts)
-    meta_cell.font      = MUTED_FONT
-    meta_cell.fill      = META_FILL
-    meta_cell.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    if estado:   meta_parts.append(f"Estado: {estado}")
+    if tip_list: meta_parts.append(f"Tipologia: {', '.join(tip_list)}")
+    if month:    meta_parts.append(f"Mês: {month_label(month)}")
+    mc = ws["A2"]
+    mc.value     = "   ".join(meta_parts)
+    mc.font      = Font(name="Calibri", size=8, color="7A5A18", italic=True)
+    mc.fill      = META_FILL
+    mc.alignment = Alignment(horizontal="left", vertical="center", indent=1)
 
     # ── Column headers ─────────────────────────────────────────────────────
     ws.row_dimensions[3].height = 20
-    headers = ["#", "Actividade", "Tipologia", "Data", "Orador / Responsável",
-               "Local", "Orçamento", "Estado", "Notas de Execução"]
+    header_font = Font(name="Calibri", bold=True, size=9, color="7A5A18")
+    headers = ["#"] + [h for _, h, _, _ in active_cols]
     for col, h in enumerate(headers, 1):
         c = ws.cell(row=3, column=col, value=h)
-        c.font      = HEADER_FONT
+        c.font      = header_font
         c.fill      = HEADER_FILL
         c.alignment = center if col == 1 else left_mid
-        c.border    = Border(bottom=_side("medium", "CBD5E1"),
-                             top=_side("thin", "E2E8F0"))
+        c.border    = Border(bottom=_side("medium", "D4A843"),
+                             top=_side("thin",   "E8C464"))
 
     # ── Data rows ──────────────────────────────────────────────────────────
     current_row = 4
@@ -398,17 +416,17 @@ def export_actividades(ano_lectivo, estado="", tipologias_json="", month="", sea
 
         # Month separator
         ws.row_dimensions[current_row].height = 18
-        ws.merge_cells(f"A{current_row}:I{current_row}")
+        ws.merge_cells(f"A{current_row}:{last_col}{current_row}")
         mc = ws[f"A{current_row}"]
         mc.value     = f"  {label}  ·  {len(group_rows)} actividade{'s' if len(group_rows) != 1 else ''}"
         mc.font      = Font(name="Calibri", bold=True, size=9,
-                            color="4338CA" if is_curr else "475569")
+                            color="7A5A18" if is_curr else "7A5A18")
         mc.fill      = MONTH_CURR if is_curr else MONTH_FILL
         mc.alignment = Alignment(horizontal="left", vertical="center", indent=1)
-        for col in range(1, 10):
+        for col in range(1, nc + 1):
             ws.cell(current_row, col).border = Border(
-                top=_side("medium", "C7D2FE" if is_curr else "CBD5E1"),
-                bottom=_side("thin",   "C7D2FE" if is_curr else "CBD5E1"),
+                top=_side("medium", "D4A843"),
+                bottom=_side("thin", "E8C464"),
             )
         current_row += 1
 
@@ -427,52 +445,52 @@ def export_actividades(ano_lectivo, estado="", tipologias_json="", month="", sea
                 return c
 
             _cell(1, idx + 1, font=MUTED_FONT, align=center)
-            _cell(2, row.actividade or "")
-            _cell(3, row.tipologia  or "")
-            date_val = str(row.data)[:10] if row.data else ""
-            orig_val = str(row.data_original)[:10] if row.data_original else ""
-            date_display = date_val
-            if orig_val:
-                date_display = f"{date_val}\n(orig: {orig_val})"
-                ws.row_dimensions[current_row].height = 24
-            _cell(4, date_display, align=Alignment(horizontal="center", vertical="center", wrap_text=bool(orig_val)))
-            _cell(5, row.orador or "")
-            _cell(6, row.local  or "", align=Alignment(horizontal="left", vertical="top", wrap_text=True))
-            if row.orcamento:
-                c = _cell(7, float(row.orcamento), align=Alignment(horizontal="right", vertical="center"))
-                c.number_format = '#,##0.00 "MZN"'
-            else:
-                _cell(7, "")
 
-            # Status — colour-coded
-            st_fill, st_font = STATUS_FILLS.get(row.estado or "Pendente",
-                                                STATUS_FILLS["Pendente"])
-            sc = ws.cell(row=current_row, column=8, value=row.estado or "Pendente")
-            sc.font      = st_font
-            sc.fill      = st_fill
-            sc.alignment = center
-            sc.border    = _border_bottom()
-            if fill: sc.fill = st_fill  # status colour always wins
-
-            _cell(9, row.notas_execucao or "", font=NOTE_FONT,
-                  align=Alignment(horizontal="left", vertical="top", wrap_text=True))
+            for ci, (key2, _, _, ctype) in enumerate(active_cols, 2):
+                if ctype == "text":
+                    _cell(ci, getattr(row, key2) or "")
+                elif ctype == "wrap":
+                    _cell(ci, getattr(row, key2) or "",
+                          align=Alignment(horizontal="left", vertical="top", wrap_text=True))
+                elif ctype == "date":
+                    _cell(ci, str(row.data)[:10] if row.data else "",
+                          align=Alignment(horizontal="center", vertical="center"))
+                elif ctype == "date_orig":
+                    _cell(ci, str(row.data_original)[:10] if row.data_original else "",
+                          align=Alignment(horizontal="center", vertical="center"))
+                elif ctype == "currency":
+                    if row.orcamento:
+                        c = _cell(ci, float(row.orcamento),
+                                  align=Alignment(horizontal="right", vertical="center"))
+                        c.number_format = '#,##0.00 "MZN"'
+                    else:
+                        _cell(ci, "")
+                elif ctype == "status":
+                    st_fill, st_font = STATUS_FILLS.get(row.estado or "Pendente",
+                                                        STATUS_FILLS["Pendente"])
+                    sc = ws.cell(row=current_row, column=ci, value=row.estado or "Pendente")
+                    sc.font = st_font; sc.fill = st_fill
+                    sc.alignment = center; sc.border = _border_bottom()
+                elif ctype == "notes":
+                    _cell(ci, row.notas_execucao or "", font=NOTE_FONT,
+                          align=Alignment(horizontal="left", vertical="top", wrap_text=True))
 
             current_row += 1
 
-    # Freeze panes below header + col A
+    # Freeze panes
     ws.freeze_panes = "B4"
 
     # ── Totals footer ──────────────────────────────────────────────────────
-    current_row += 1  # blank spacer
+    current_row += 1
     ws.row_dimensions[current_row].height = 15
-    ws.merge_cells(f"A{current_row}:G{current_row}")
+    ws.merge_cells(f"A{current_row}:{last_col}{current_row}")
     fc = ws[f"A{current_row}"]
     fc.value     = f"Total: {len(rows)} actividade{'s' if len(rows) != 1 else ''}"
-    fc.font      = Font(name="Calibri", bold=True, size=9, color="6B7280")
+    fc.font      = Font(name="Calibri", bold=True, size=9, color="7A5A18")
     fc.alignment = Alignment(horizontal="right", vertical="center")
-    fc.border    = Border(top=_side("medium", "E5E7EB"))
-    for col in range(2, 9):
-        ws.cell(current_row, col).border = Border(top=_side("medium", "E5E7EB"))
+    fc.border    = Border(top=_side("medium", "D4A843"))
+    for col in range(2, nc + 1):
+        ws.cell(current_row, col).border = Border(top=_side("medium", "D4A843"))
 
     # ── Serialize ──────────────────────────────────────────────────────────
     buf = io.BytesIO()
