@@ -43,6 +43,19 @@ def get_tipologias():
 
 
 @frappe.whitelist()
+def get_letter_heads():
+    _assert_coordenador()
+    try:
+        rows = frappe.db.sql(
+            "SELECT name, content, footer FROM `tabLetter Head` WHERE disabled = 0 ORDER BY is_default DESC, name ASC",
+            as_dict=True,
+        )
+        return rows
+    except Exception:
+        return []
+
+
+@frappe.whitelist()
 def create_tipologia(nome, cor="", icone=""):
     _assert_coordenador()
     nome = (nome or "").strip()

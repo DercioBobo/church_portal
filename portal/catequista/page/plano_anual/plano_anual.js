@@ -127,6 +127,7 @@ function createPlanoAnualApp() {
 
   <!-- ── Print-only layout ─────────────────────────────────────────────── -->
   <div class="pa-print-only">
+    <div v-if="selectedLetterHeadObj" class="pa-letterhead-wrap" v-html="selectedLetterHeadObj.content"></div>
     <div class="pa-print-header">
       <div class="pa-print-header-inner">
         <div class="pa-print-title">Plano Anual da Catequese</div>
@@ -1161,6 +1162,32 @@ function createPlanoAnualApp() {
               <span>{{ label }}</span>
             </label>
           </div>
+          <p class="pa-export-section-label" style="margin-top:24px;">Impressão</p>
+          <div class="pa-export-print-opts">
+            <div class="pa-export-opt-row">
+              <span class="pa-export-opt-label">Orientação</span>
+              <div class="pa-seg-group">
+                <button :class="['pa-seg-btn', { active: printOrientation === 'portrait' }]"
+                  @click="printOrientation = 'portrait'">
+                  <svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor"><rect x="0.5" y="0.5" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+                  Retrato
+                </button>
+                <button :class="['pa-seg-btn', { active: printOrientation === 'landscape' }]"
+                  @click="printOrientation = 'landscape'">
+                  <svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><rect x="0.5" y="0.5" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+                  Paisagem
+                </button>
+              </div>
+            </div>
+            <div class="pa-export-opt-row">
+              <span class="pa-export-opt-label">Cabeçalho</span>
+              <select class="pa-lh-select" v-model="selectedLetterHead">
+                <option value="">— Sem cabeçalho —</option>
+                <option v-for="lh in letterHeads" :key="lh.name" :value="lh.name">{{ lh.name }}</option>
+              </select>
+            </div>
+          </div>
+
           <p class="pa-export-section-label" style="margin-top:24px;">Formato de saída</p>
           <div class="pa-export-actions">
             <button class="pa-export-action-btn pa-export-print" @click="printView">
@@ -1548,13 +1575,16 @@ function createPlanoAnualApp() {
       async function init() {
         loading.value = true;
         try {
-          const [anosResp, anoAtual, tipResp] = await Promise.all([
+          const [anosResp, anoAtual, tipResp, lhData] = await Promise.all([
             api('get_anos_lectivos', {}),
             api('get_ano_lectivo_atual', {}),
             api('get_tipologias', {}),
+            api('get_letter_heads', {}),
           ]);
           anos.value       = anosResp || [];
           tipologias.value = tipResp  || [];
+          letterHeads.value = lhData || [];
+          if (letterHeads.value.length) selectedLetterHead.value = letterHeads.value[0].name;
           selectedAno.value = anoAtual || (anosResp && anosResp[0]) || '';
           if (selectedAno.value) await loadActividades();
         } catch (e) {
@@ -2186,6 +2216,12 @@ function createPlanoAnualApp() {
       }
 
       const showExportPanel = ref(false);
+      const printOrientation = ref('portrait');
+      const letterHeads         = ref([]);
+      const selectedLetterHead  = ref('');
+      const selectedLetterHeadObj = computed(() =>
+        letterHeads.value.find(lh => lh.name === selectedLetterHead.value) || null
+      );
       const exportFields = ref({
         actividade:    true,
         tipologia:     true,
@@ -2209,6 +2245,13 @@ function createPlanoAnualApp() {
 
       function printView() {
         showExportPanel.value = false;
+        let style = document.getElementById('pa-page-style');
+        if (!style) {
+          style = document.createElement('style');
+          style.id = 'pa-page-style';
+          document.head.appendChild(style);
+        }
+        style.textContent = `@media print { @page { size: A4 ${printOrientation.value}; } }`;
         setTimeout(() => window.print(), 80);
       }
 
@@ -2328,6 +2371,7 @@ function createPlanoAnualApp() {
         clearSearch,
         printView, exporting, exportExcel,
         showExportPanel, exportFields, printDate, paExportTotal, EXPORT_FIELD_LABELS_PA,
+        printOrientation, letterHeads, selectedLetterHead, selectedLetterHeadObj,
         cardStyle, tipologiaChipStyle, tipologiaColor, calActStyle,
         openNewActivityOnDay,
         statusClass, statusChipClass,

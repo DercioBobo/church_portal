@@ -1366,6 +1366,36 @@
   border-radius: 8px; font-size: 12px; color: #7a5a18;
 }
 
+/* ── Print options (orientation + letterhead) ───────────────────────────────── */
+.pa-export-print-opts { display: flex; flex-direction: column; gap: 10px; }
+.pa-export-opt-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.pa-export-opt-label {
+  font-size: 12px; font-weight: 600; color: #374151;
+  white-space: nowrap; min-width: 80px;
+}
+.pa-seg-group {
+  display: flex; border: 1.5px solid #e5e7eb; border-radius: 8px; overflow: hidden;
+}
+.pa-seg-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; font-size: 12px; font-weight: 500;
+  color: #6b7280; background: #fff; border: none; cursor: pointer;
+  font-family: inherit; transition: background 0.12s, color 0.12s;
+  border-right: 1.5px solid #e5e7eb;
+}
+.pa-seg-btn:last-child { border-right: none; }
+.pa-seg-btn.active { background: #fef9ec; color: #9a7020; font-weight: 700; }
+.pa-seg-btn:hover:not(.active) { background: #f9fafb; }
+.pa-lh-select {
+  flex: 1; border: 1.5px solid #e5e7eb; border-radius: 8px;
+  padding: 5px 8px; font-size: 12px; color: #374151;
+  font-family: inherit; background: #fff; outline: none; cursor: pointer;
+}
+.pa-lh-select:focus { border-color: #9a7020; }
+.pa-letterhead-wrap { width: 100%; margin-bottom: 8px; }
+
 /* ── Print-only layout ───────────────────────────────────────────────────── */
 .pa-print-only { display: none; }
 
