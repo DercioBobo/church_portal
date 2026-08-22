@@ -600,17 +600,18 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — above the mobile bottom tab bar (z-[60]) so it can't be tapped through */}
       <div
-        className={`fixed inset-0 bg-navy-900/40 z-40 transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-navy-900/40 z-[65] transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={handleClose}
       />
 
-      {/* Panel — right drawer on desktop, bottom sheet on mobile */}
+      {/* Panel — right drawer on desktop, bottom sheet on mobile.
+          z-[70] keeps the footer/Guardar button above the mobile bottom tab bar (z-[60]). */}
       <div
         ref={panelRef}
         className={[
-          'fixed z-50 bg-white shadow-2xl flex flex-col',
+          'fixed z-[70] bg-white shadow-2xl flex flex-col',
           // Only animate via CSS when not being dragged manually
           isPulling ? '' : 'transition-transform duration-300 ease-in-out',
           // Mobile: bottom sheet
@@ -1141,7 +1142,7 @@ function AvisoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-900/70 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-navy-900/70 backdrop-blur-sm">
       <div
         className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fade-up
           ${isUrgente ? 'bg-rose-50 border-2 border-rose-300' : 'bg-white border border-cream-200'}`}
@@ -1346,13 +1347,13 @@ function BirthdayPanel({
   return (
     <>
       <div
-        className={`fixed inset-0 bg-navy-900/40 z-40 transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-navy-900/40 z-[65] transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
       <div
         ref={bdPanelRef}
         className={[
-          'fixed z-50 bg-white shadow-2xl flex flex-col',
+          'fixed z-[70] bg-white shadow-2xl flex flex-col',
           bdIsPulling ? '' : 'transition-transform duration-300 ease-in-out',
           'inset-x-0 bottom-0 h-[85dvh] rounded-t-2xl overflow-hidden',
           'md:top-0 md:bottom-0 md:right-0 md:left-auto md:h-auto md:rounded-none md:overflow-visible',
