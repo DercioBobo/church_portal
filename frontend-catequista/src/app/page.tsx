@@ -686,16 +686,74 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
                 </div>
               )}
 
-              <button
-                onClick={handleClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 transition-colors shrink-0 self-start"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              {/* Save + Close — kept in the header (always visible, never depends on
+                  scroll/viewport height or the mobile bottom tab bar) */}
+              <div className="flex items-center gap-1.5 shrink-0 self-start">
+                {fieldConfig.some(f => f.editable) && (
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || saved}
+                    title={saving ? 'A guardar...' : saved ? 'Guardado!' : 'Guardar'}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold transition-all disabled:cursor-default ${
+                      saved
+                        ? 'bg-emerald-600'
+                        : 'bg-navy-900 hover:bg-navy-800 disabled:opacity-50'
+                    }`}
+                  >
+                    {saving ? (
+                      <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    ) : saved ? (
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    ) : (
+                      <Save className="w-3.5 h-3.5" />
+                    )}
+                    {saving ? 'A guardar...' : saved ? 'Guardado!' : 'Guardar'}
+                  </button>
+                )}
+                <button
+                  onClick={handleClose}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 transition-colors shrink-0"
+                  aria-label="Fechar"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
+
+            {/* Unsaved-changes confirmation — sticky at the top of the body so it's
+                always visible regardless of scroll position or mobile viewport quirks */}
+            {confirmClose && (
+              <div className="sticky top-0 z-10 px-5 py-3 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center gap-2 shrink-0">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 flex-1 min-w-[10rem]">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  Tem alterações não guardadas. Deseja sair?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setConfirmClose(false)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-navy-900 text-white hover:bg-navy-800 transition-colors"
+                  >
+                    Continuar a editar
+                  </button>
+                  <button
+                    onClick={() => { setConfirmClose(false); onClose(); }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 border border-rose-200 hover:bg-rose-50 transition-colors"
+                  >
+                    Sair
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Body — scrollable */}
             <div className="overflow-y-auto flex-1 min-h-0 px-5 pt-4 pb-8 space-y-6">
+              {error && (
+                <div className="flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-lg px-3.5 py-3">
+                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                  <p className="text-sm text-rose-700">{error}</p>
+                </div>
+              )}
+
               {/* Section quick-jump pills (mobile only, shown when there are 2+ sections) */}
               {sections.length > 1 && (
                 <div className="md:hidden -mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -771,69 +829,6 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
                 );
               })}
 
-              {error && (
-                <div className="flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-lg px-3.5 py-3">
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                  <p className="text-sm text-rose-700">{error}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="px-5 py-4 border-t border-cream-200 shrink-0">
-              {confirmClose ? (
-                /* Unsaved-changes confirmation */
-                <div>
-                  <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 mb-3">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    Tem alterações não guardadas. Deseja sair?
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setConfirmClose(false)}
-                      className="flex-1 py-2 rounded-lg text-sm font-semibold bg-navy-900 text-white hover:bg-navy-800 transition-colors"
-                    >
-                      Continuar a editar
-                    </button>
-                    <button
-                      onClick={() => { setConfirmClose(false); onClose(); }}
-                      className="flex-1 py-2 rounded-lg text-sm font-medium text-rose-600 border border-rose-200 hover:bg-rose-50 transition-colors"
-                    >
-                      Descartar e sair
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* Normal footer */
-                <div className="flex items-center justify-end gap-3">
-                  <button
-                    onClick={handleClose}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-cream-100 transition-colors"
-                  >
-                    Fechar
-                  </button>
-                  {fieldConfig.some(f => f.editable) && (
-                    <button
-                      onClick={handleSave}
-                      disabled={saving || saved}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-semibold transition-all disabled:cursor-default ${
-                        saved
-                          ? 'bg-emerald-600'
-                          : 'bg-navy-900 hover:bg-navy-800 disabled:opacity-50'
-                      }`}
-                    >
-                      {saving ? (
-                        <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      ) : saved ? (
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      ) : (
-                        <Save className="w-4 h-4" />
-                      )}
-                      {saving ? 'A guardar...' : saved ? 'Guardado!' : 'Guardar'}
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
           </>
         )}
