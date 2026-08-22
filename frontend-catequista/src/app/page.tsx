@@ -615,7 +615,7 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
           // Only animate via CSS when not being dragged manually
           isPulling ? '' : 'transition-transform duration-300 ease-in-out',
           // Mobile: bottom sheet
-          'inset-x-0 bottom-0 h-[90dvh] rounded-t-2xl overflow-hidden',
+          'inset-x-0 bottom-0 sheet-h-90 rounded-t-2xl overflow-hidden',
           // Desktop: full-height right drawer
           'md:top-0 md:bottom-0 md:right-0 md:left-auto md:h-auto md:rounded-none md:overflow-visible',
           'md:w-[42%] md:max-w-2xl',
@@ -1355,7 +1355,7 @@ function BirthdayPanel({
         className={[
           'fixed z-[70] bg-white shadow-2xl flex flex-col',
           bdIsPulling ? '' : 'transition-transform duration-300 ease-in-out',
-          'inset-x-0 bottom-0 h-[85dvh] rounded-t-2xl overflow-hidden',
+          'inset-x-0 bottom-0 sheet-h-85 rounded-t-2xl overflow-hidden',
           'md:top-0 md:bottom-0 md:right-0 md:left-auto md:h-auto md:rounded-none md:overflow-visible',
           'md:w-[380px]',
           open

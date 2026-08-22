@@ -59,6 +59,20 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Mobile bottom-sheet heights: vh fallback for browsers without dvh
+   support (common on older Android WebViews). Without the fallback,
+   `height: X dvh` is simply dropped, the sheet falls back to `auto`
+   (content height), and grows past the screen with no way to scroll
+   down to its footer. Two declarations = the second (dvh) wins where
+   supported; the invalid one is ignored elsewhere, keeping the vh value. */
+/* Scoped below Tailwind's `md` breakpoint so it never fights the
+   `md:h-auto` desktop override (this file's plain CSS is emitted after
+   @tailwind utilities, so an unscoped rule would win at all widths). */
+@media not all and (min-width: 768px) {
+  .sheet-h-90 { height: 90vh; height: 90dvh; }
+  .sheet-h-85 { height: 85vh; height: 85dvh; }
+}
+
 /* ── Hide scrollbar (used for horizontal pill rows on mobile) ─── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
