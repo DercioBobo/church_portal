@@ -4,7 +4,7 @@
 //  • Sections are cards: rename inline, pick an icon, drag to reorder, delete
 //  • Fields are rows inside their section: drag to move/reorder, rename inline, and
 //    one-click toggles for Tabela / Editável / Cabeçalho / ½ largura
-//  • "Fora do painel" holds fields that are only table columns or turma header items
+//  • "Só na tabela / cabeçalho" holds fields that are only table columns or turma header items
 //  • "+ Campos" opens a picker over Catecúmeno, Turma › linha do catecúmeno and Turma
 // The raw child tables stay available (collapsed) under "Avançado"; edits in either place
 // keep each other in sync. Nothing is saved until the form is saved (Ctrl+S).
@@ -87,27 +87,36 @@
 		// After any model change: mark dirty (unless the change came from the grid, which already
 		// did), refresh the grids and the section dropdown, and re-render the editor.
 		changed(frm, { silent = false } = {}) {
+			// Set the dropdown options before the grids redraw, so they pick them up.
+			// Each step is isolated: a failure in one must never leave the editor frozen.
+			try { this.refresh_section_options(frm); } catch (e) { console.error(e); }
 			if (!silent) {
 				frm.dirty();
 				frm.refresh_field('sections');
 				frm.refresh_field('field_config');
 			}
-			this.refresh_section_options(frm);
-			this.render(frm);
+			try { this.render(frm); } catch (e) { console.error(e); }
 		},
 
-		// "Secção no Painel" dropdown in the grid = defined sections + any value already in use
+		// "Secção no Painel" dropdown in the grid = defined sections + any value already in use.
+		// Written straight onto every copy of the docfield (meta, grid, each rendered row) instead of
+		// grid.update_docfield_property, which throws once the grid has rows without rendered docfields
+		// (e.g. right after a save) and used to abort the editor's re-render.
 		refresh_section_options(frm) {
 			const keys = this.section_keys(frm);
 			const extra = (frm.doc.field_config || []).map(f => f.panel_section).filter(k => k && !keys.includes(k));
 			const options = ['', ...keys, ...new Set(extra)].join('\n');
+
+			const set = docfields => (docfields || []).forEach(df => {
+				if (df.fieldname === 'panel_section') df.options = options;
+			});
+			const df = frappe.meta.get_docfield('Catequista Portal Field', 'panel_section', frm.doc.name);
+			if (df) df.options = options;
+
 			const grid = frm.fields_dict.field_config && frm.fields_dict.field_config.grid;
-			if (grid && grid.update_docfield_property) {
-				grid.update_docfield_property('panel_section', 'options', options);
-			} else {
-				const df = frappe.meta.get_docfield('Catequista Portal Field', 'panel_section', frm.doc.name);
-				if (df) df.options = options;
-			}
+			if (!grid) return;
+			set(grid.docfields);
+			(grid.grid_rows || []).forEach(row => set(row.docfields));
 		},
 
 		// Renames a section; its key follows the label and fields pointing at it follow too
@@ -239,7 +248,7 @@
 							<div class="pe-label-title">${__('Painel do catecúmeno')}</div>
 							<div class="pe-sections">${cards || `<div class="pe-muted pe-pad">${__('Ainda não há secções.')}</div>`}</div>
 							${extra_cards}
-							${this.zone_card_html(frm, OUT, __('Fora do painel'),
+							${this.zone_card_html(frm, OUT, __('Só na tabela / cabeçalho'),
 								__('Não aparecem no painel; podem ser colunas da tabela ou estar no cabeçalho da turma.'), out)}
 						</div>
 						<div class="pe-summary">
@@ -299,15 +308,6 @@
 			const toggle = (prop, label, title, on) =>
 				`<button class="pe-toggle ${on ? 'on' : ''}" data-row="${esc(f.name)}" data-prop="${prop}" title="${esc(title)}">${esc(label)}</button>`;
 
-			const zone = this.zone_of(frm, f);
-			const keys = this.section_keys(frm);
-			const zone_options = [
-				...keys.map(k => [k, k]),
-				...(!keys.includes(zone) && zone !== '' && zone !== OUT ? [[zone, zone]] : []),
-				['', __('Sem secção')],
-				[OUT, __('Fora do painel')],
-			].map(([v, l]) => `<option value="${esc(v)}" ${v === zone ? 'selected' : ''}>${esc(l)}</option>`).join('');
-
 			const widths = TABLE_WIDTHS.map(([v, l]) =>
 				`<option value="${v}" ${v === (f.column_width || 'sm') ? 'selected' : ''}>${esc(l)}</option>`).join('');
 
@@ -322,7 +322,6 @@
 							${is_name ? `<span class="pe-badge">${__('Título do painel')}</span>` : ''}
 						</div>
 						<div class="pe-line pe-controls">
-							${is_name ? '' : `<select class="pe-zone-select" data-row="${esc(f.name)}" title="${__('Mover para')}">${zone_options}</select>`}
 							${toggle('show_in_table', __('Tabela'), __('Mostrar como coluna na lista de catecúmenos'), f.show_in_table)}
 							${f.show_in_table ? `<select class="pe-width" data-row="${esc(f.name)}" title="${__('Largura da coluna')}">${widths}</select>` : ''}
 							${!is_turma && !is_name ? toggle('editable', __('Editável'), __('O catequista pode alterar este campo'), f.editable) : ''}
@@ -415,8 +414,6 @@
 				else f[prop] = f[prop] ? 0 : 1;
 				this.changed(frm);
 			});
-
-			$w.on('change.pe', '.pe-zone-select', e => this.move_field(frm, e.target.dataset.row, e.target.value, null));
 
 			$w.on('change.pe', '.pe-width', e => {
 				const f = field_row(e.target.dataset.row);
@@ -539,7 +536,7 @@
 							{ value: SUGGESTED, label: __('Secção sugerida para cada campo') },
 							...this.section_keys(frm).map(k => ({ value: k, label: k })),
 							{ value: '', label: __('Sem secção') },
-							{ value: OUT, label: __('Fora do painel') },
+							{ value: OUT, label: __('Só na tabela / cabeçalho') },
 							{ value: NEW_SECTION, label: __('+ Nova secção...') },
 						],
 						default: zone == null ? SUGGESTED : zone,
@@ -665,7 +662,7 @@
 				.pe-note { padding: 0 10px 6px; }
 				.pe-sec-label { flex: 1; min-width: 120px; font-weight: 600; border: 1px solid transparent; border-radius: 6px; padding: 3px 6px; background: transparent; color: var(--text-color); }
 				.pe-sec-label:hover, .pe-sec-label:focus { border-color: var(--border-color); background: var(--control-bg); outline: none; }
-				.pe-sec-icon, .pe-zone-select, .pe-width { border: 1px solid var(--border-color); border-radius: 6px; background: var(--control-bg); color: var(--text-color); font-size: 12px; padding: 2px 4px; height: 26px; }
+				.pe-sec-icon, .pe-width { border: 1px solid var(--border-color); border-radius: 6px; background: var(--control-bg); color: var(--text-color); font-size: 12px; padding: 2px 4px; height: 26px; }
 				.pe-zone { padding: 6px; min-height: 44px; }
 				.pe-empty { color: var(--text-muted); font-size: 12px; text-align: center; padding: 10px; border: 1px dashed var(--border-color); border-radius: 8px; }
 				.pe-field { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: 8px; border: 1px solid transparent; }
