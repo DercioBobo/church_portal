@@ -32,6 +32,9 @@
 	const NEW_SECTION = '__new__';  // picker target: create a section
 
 	const esc = s => frappe.utils.escape_html(s == null ? '' : String(s));
+	// Child rows use autoincrement naming: names are strings ("new-...") until the first save,
+	// then numbers. The DOM always hands names back as strings, so compare as strings.
+	const same = (a, b) => a != null && b != null && String(a) === String(b);
 
 	frappe.ui.form.on('Catequista Portal Settings', {
 		refresh(frm) {
@@ -84,18 +87,26 @@
 			rows.forEach((r, i) => { r.idx = i + 1; });
 		},
 
-		// After any model change: mark dirty (unless the change came from the grid, which already
-		// did), refresh the grids and the section dropdown, and re-render the editor.
+		// After any model change: re-render the editor first, then mark the form dirty and redraw
+		// the "Avançado" grids (unless the change came from a grid, which already did both).
+		// Every step is isolated so a failure in one can never leave the editor frozen.
 		changed(frm, { silent = false } = {}) {
-			// Set the dropdown options before the grids redraw, so they pick them up.
-			// Each step is isolated: a failure in one must never leave the editor frozen.
-			try { this.refresh_section_options(frm); } catch (e) { console.error(e); }
-			if (!silent) {
-				frm.dirty();
-				frm.refresh_field('sections');
-				frm.refresh_field('field_config');
+			this.safely(() => this.refresh_section_options(frm));
+			this.safely(() => this.render(frm));
+			if (silent) return;
+			this.safely(() => frm.dirty());
+			this.safely(() => frm.refresh_field('sections'));
+			this.safely(() => frm.refresh_field('field_config'));
+		},
+
+		// Runs fn, reporting any error on screen (and in the console) instead of throwing
+		safely(fn) {
+			try {
+				return fn();
+			} catch (e) {
+				console.error('[Portal Settings editor]', e);
+				frappe.show_alert({ message: __('Erro no editor: {0}', [esc(e && e.message || e)]), indicator: 'red' }, 10);
 			}
-			try { this.render(frm); } catch (e) { console.error(e); }
 		},
 
 		// "Secção no Painel" dropdown in the grid = defined sections + any value already in use.
@@ -164,7 +175,7 @@
 		// placing it before `before_name`, or after the zone's last field
 		move_field(frm, name, zone, before_name) {
 			const rows = frm.doc.field_config || [];
-			const f = rows.find(r => r.name === name);
+			const f = rows.find(r => same(r.name, name));
 			if (!f || f.fieldname === 'name') return;
 
 			if (zone === OUT) {
@@ -175,7 +186,7 @@
 			}
 
 			rows.splice(rows.indexOf(f), 1);
-			let pos = before_name ? rows.findIndex(r => r.name === before_name) : -1;
+			let pos = before_name ? rows.findIndex(r => same(r.name, before_name)) : -1;
 			if (pos < 0) {
 				const members = rows.filter(r => this.zone_of(frm, r) === zone);
 				pos = members.length ? rows.indexOf(members[members.length - 1]) + 1 : rows.length;
@@ -187,10 +198,10 @@
 
 		move_section(frm, name, before_name) {
 			const rows = frm.doc.sections || [];
-			const s = rows.find(r => r.name === name);
-			if (!s || name === before_name) return;
+			const s = rows.find(r => same(r.name, name));
+			if (!s || same(name, before_name)) return;
 			rows.splice(rows.indexOf(s), 1);
-			const pos = before_name ? rows.findIndex(r => r.name === before_name) : -1;
+			const pos = before_name ? rows.findIndex(r => same(r.name, before_name)) : -1;
 			rows.splice(pos < 0 ? rows.length : pos, 0, s);
 			this.renumber(rows);
 			this.changed(frm);
@@ -238,8 +249,8 @@
 				<div class="pe">
 					<div class="pe-toolbar">
 						<input type="search" class="form-control input-sm pe-search" placeholder="${__('Procurar campo...')}" value="${esc(frm.__pe_query || '')}">
-						<button class="btn btn-default btn-sm pe-add-fields" data-zone="${SUGGESTED}">+ ${__('Campos')}</button>
-						<button class="btn btn-default btn-sm pe-add-section">+ ${__('Secção')}</button>
+						<button type="button" class="btn btn-default btn-sm pe-add-fields" data-zone="${SUGGESTED}">+ ${__('Campos')}</button>
+						<button type="button" class="btn btn-default btn-sm pe-add-section">+ ${__('Secção')}</button>
 						${frm.is_dirty() ? `<span class="pe-dirty">${__('Alterações por guardar (Ctrl+S)')}</span>` : ''}
 					</div>
 					<div class="pe-hint">${__('Arraste ⋮⋮ para mover campos e secções. Clique nos botões de cada campo para ligar ou desligar.')}</div>
@@ -273,8 +284,8 @@
 						<input class="pe-sec-label" data-section="${esc(s.name)}" value="${esc(s.label || s.section_key)}" title="${__('Nome da secção')}">
 						<select class="pe-sec-icon" data-section="${esc(s.name)}" title="${__('Ícone')}">${icons}</select>
 						<span class="pe-count">${__('{0} campo(s)', [fields.length])}</span>
-						<button class="btn btn-xs btn-default pe-add-fields" data-zone="${esc(s.section_key)}">+ ${__('Campo')}</button>
-						<button class="btn btn-xs btn-default pe-del-section" data-section="${esc(s.name)}" title="${__('Remover secção')}">✕</button>
+						<button type="button" class="btn btn-xs btn-default pe-add-fields" data-zone="${esc(s.section_key)}">+ ${__('Campo')}</button>
+						<button type="button" class="btn btn-xs btn-default pe-del-section" data-section="${esc(s.name)}" title="${__('Remover secção')}">✕</button>
 					</div>
 					${this.zone_html(frm, s.section_key, fields)}
 				</div>`;
@@ -286,8 +297,8 @@
 					<div class="pe-card-head">
 						<strong class="pe-card-title">${esc(title)}</strong>
 						<span class="pe-count">${__('{0} campo(s)', [fields.length])}</span>
-						${can_define ? `<button class="btn btn-xs btn-default pe-define-section" data-zone="${esc(zone)}">${__('Criar esta secção')}</button>` : ''}
-						${zone === OUT ? `<button class="btn btn-xs btn-default pe-add-fields" data-zone="${OUT}">+ ${__('Campo')}</button>` : ''}
+						${can_define ? `<button type="button" class="btn btn-xs btn-default pe-define-section" data-zone="${esc(zone)}">${__('Criar esta secção')}</button>` : ''}
+						${zone === OUT ? `<button type="button" class="btn btn-xs btn-default pe-add-fields" data-zone="${OUT}">+ ${__('Campo')}</button>` : ''}
 					</div>
 					<div class="pe-note">${esc(note)}</div>
 					${this.zone_html(frm, zone, fields)}
@@ -306,7 +317,7 @@
 			const is_turma = f.source === 'turma';
 			const in_panel = this.zone_of(frm, f) !== OUT;
 			const toggle = (prop, label, title, on) =>
-				`<button class="pe-toggle ${on ? 'on' : ''}" data-row="${esc(f.name)}" data-prop="${prop}" title="${esc(title)}">${esc(label)}</button>`;
+				`<button type="button" class="pe-toggle ${on ? 'on' : ''}" data-row="${esc(f.name)}" data-prop="${prop}" title="${esc(title)}">${esc(label)}</button>`;
 
 			const widths = TABLE_WIDTHS.map(([v, l]) =>
 				`<option value="${v}" ${v === (f.column_width || 'sm') ? 'selected' : ''}>${esc(l)}</option>`).join('');
@@ -314,22 +325,22 @@
 			return `
 				<div class="pe-field" data-row="${esc(f.name)}" data-search="${esc(`${f.label} ${f.fieldname}`.toLowerCase())}">
 					${is_name ? '<span class="pe-handle pe-handle-off">⋮⋮</span>' : `<span class="pe-handle" title="${__('Arrastar para mover')}">⋮⋮</span>`}
-					<div class="pe-field-main">
+					<div class="pe-field-info">
+						<input class="pe-field-label" data-row="${esc(f.name)}" value="${esc(f.label)}" title="${__('Etiqueta mostrada no portal')}">
 						<div class="pe-line">
-							<input class="pe-field-label" data-row="${esc(f.name)}" value="${esc(f.label)}" title="${__('Etiqueta mostrada no portal')}">
 							<span class="pe-meta">${esc(f.fieldname)} · ${esc(f.fieldtype || 'Data')}</span>
 							${SOURCE_BADGES[f.source] ? `<span class="pe-badge">${esc(SOURCE_BADGES[f.source])}</span>` : ''}
 							${is_name ? `<span class="pe-badge">${__('Título do painel')}</span>` : ''}
 						</div>
-						<div class="pe-line pe-controls">
-							${toggle('show_in_table', __('Tabela'), __('Mostrar como coluna na lista de catecúmenos'), f.show_in_table)}
-							${f.show_in_table ? `<select class="pe-width" data-row="${esc(f.name)}" title="${__('Largura da coluna')}">${widths}</select>` : ''}
-							${!is_turma && !is_name ? toggle('editable', __('Editável'), __('O catequista pode alterar este campo'), f.editable) : ''}
-							${is_turma ? toggle('show_in_header', __('Cabeçalho'), __('Mostrar no cabeçalho da turma'), f.show_in_header) : ''}
-							${in_panel && !is_name ? toggle('col_span', __('½ largura'), __('Ocupa meia largura no painel (dois campos por linha)'), String(f.col_span) === '1') : ''}
-						</div>
 					</div>
-					${is_name ? '' : `<button class="pe-remove" data-row="${esc(f.name)}" title="${__('Remover do portal')}">✕</button>`}
+					<div class="pe-controls">
+						${toggle('show_in_table', __('Tabela'), __('Mostrar como coluna na lista de catecúmenos'), f.show_in_table)}
+						${f.show_in_table ? `<select class="pe-width" data-row="${esc(f.name)}" title="${__('Largura da coluna')}">${widths}</select>` : ''}
+						${!is_turma && !is_name ? toggle('editable', __('Editável'), __('O catequista pode alterar este campo'), f.editable) : ''}
+						${is_turma ? toggle('show_in_header', __('Cabeçalho'), __('Mostrar no cabeçalho da turma'), f.show_in_header) : ''}
+						${in_panel && !is_name ? toggle('col_span', __('½ largura'), __('Ocupa meia largura no painel (dois campos por linha)'), String(f.col_span) === '1') : ''}
+					</div>
+					${is_name ? '' : `<button type="button" class="pe-remove" data-row="${esc(f.name)}" title="${__('Remover do portal')}">✕</button>`}
 				</div>`;
 		},
 
@@ -341,20 +352,21 @@
 		// ── Interaction ──────────────────────────────────────────────────────────
 		bind(frm, $w) {
 			$w.off('.pe');
-			const field_row = name => (frm.doc.field_config || []).find(r => r.name === name);
-			const section_row = name => (frm.doc.sections || []).find(r => r.name === name);
+			const on = (event, selector, fn) => $w.on(event, selector, e => this.safely(() => fn(e)));
+			const field_row = name => (frm.doc.field_config || []).find(r => same(r.name, name));
+			const section_row = name => (frm.doc.sections || []).find(r => same(r.name, name));
 
-			$w.on('input.pe', '.pe-search', e => {
+			on('input.pe', '.pe-search', e => {
 				frm.__pe_query = e.target.value;
 				this.apply_search($w, frm.__pe_query);
 			});
 
-			$w.on('click.pe', '.pe-add-fields', e => {
+			on('click.pe', '.pe-add-fields', e => {
 				e.preventDefault();
 				this.open_field_picker(frm, e.currentTarget.dataset.zone);
 			});
 
-			$w.on('click.pe', '.pe-add-section', e => {
+			on('click.pe', '.pe-add-section', e => {
 				e.preventDefault();
 				const key = this.add_section(frm);
 				this.changed(frm);
@@ -362,24 +374,24 @@
 				$input.trigger('focus').trigger('select');
 			});
 
-			$w.on('click.pe', '.pe-define-section', e => {
+			on('click.pe', '.pe-define-section', e => {
 				e.preventDefault();
 				this.add_section(frm, e.currentTarget.dataset.zone);
 				this.changed(frm);
 			});
 
-			$w.on('change.pe', '.pe-sec-label', e => {
+			on('change.pe', '.pe-sec-label', e => {
 				const s = section_row(e.target.dataset.section);
 				if (s && this.rename_section(frm, s, e.target.value)) this.changed(frm);
 				else this.render(frm);
 			});
 
-			$w.on('change.pe', '.pe-sec-icon', e => {
+			on('change.pe', '.pe-sec-icon', e => {
 				const s = section_row(e.target.dataset.section);
 				if (s) { s.icon = e.target.value; this.changed(frm); }
 			});
 
-			$w.on('click.pe', '.pe-del-section', e => {
+			on('click.pe', '.pe-del-section', e => {
 				e.preventDefault();
 				const s = section_row(e.currentTarget.dataset.section);
 				if (!s) return;
@@ -395,17 +407,17 @@
 				);
 			});
 
-			$w.on('keydown.pe', '.pe-sec-label, .pe-field-label', e => {
+			on('keydown.pe', '.pe-sec-label, .pe-field-label', e => {
 				if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
 			});
 
-			$w.on('change.pe', '.pe-field-label', e => {
+			on('change.pe', '.pe-field-label', e => {
 				const f = field_row(e.target.dataset.row);
 				const label = e.target.value.trim();
 				if (f && label) { f.label = label; this.changed(frm); } else this.render(frm);
 			});
 
-			$w.on('click.pe', '.pe-toggle', e => {
+			on('click.pe', '.pe-toggle', e => {
 				e.preventDefault();
 				const f = field_row(e.currentTarget.dataset.row);
 				if (!f) return;
@@ -415,12 +427,12 @@
 				this.changed(frm);
 			});
 
-			$w.on('change.pe', '.pe-width', e => {
+			on('change.pe', '.pe-width', e => {
 				const f = field_row(e.target.dataset.row);
 				if (f) { f.column_width = e.target.value; this.changed(frm); }
 			});
 
-			$w.on('click.pe', '.pe-remove', e => {
+			on('click.pe', '.pe-remove', e => {
 				e.preventDefault();
 				const f = field_row(e.currentTarget.dataset.row);
 				if (f) this.remove_row(frm, f.doctype, f.name, 'field_config');
@@ -432,6 +444,7 @@
 		// Native drag & drop. Rows only become draggable while their ⋮⋮ handle is held,
 		// so the inputs and buttons inside them keep working normally.
 		bind_drag(frm, $w) {
+			const on = (event, selector, fn) => $w.on(event, selector, e => this.safely(() => fn(e)));
 			const ph = document.createElement('div');
 			ph.className = 'pe-placeholder';
 			let drag = null;
@@ -452,14 +465,14 @@
 				return el;
 			};
 
-			$w.on('mousedown.pe', '.pe-handle:not(.pe-handle-off)', e => {
+			on('mousedown.pe', '.pe-handle:not(.pe-handle-off)', e => {
 				$(e.currentTarget).closest('.pe-field, .pe-card[data-section]').attr('draggable', 'true');
 			});
-			$w.on('mouseup.pe', '.pe-handle', e => {
+			on('mouseup.pe', '.pe-handle', e => {
 				$(e.currentTarget).closest('[draggable]').removeAttr('draggable');
 			});
 
-			$w.on('dragstart.pe', '[draggable="true"]', e => {
+			on('dragstart.pe', '[draggable="true"]', e => {
 				e.stopPropagation();
 				const el = e.currentTarget;
 				const is_section = el.classList.contains('pe-card');
@@ -469,20 +482,20 @@
 				setTimeout(() => el.classList.add('pe-dragging'));
 			});
 
-			$w.on('dragend.pe', '[draggable]', e => {
+			on('dragend.pe', '[draggable]', e => {
 				e.currentTarget.removeAttribute('draggable');
 				e.currentTarget.classList.remove('pe-dragging');
 				ph.remove();
 				drag = null;
 			});
 
-			$w.on('dragover.pe', '.pe-zone', e => {
+			on('dragover.pe', '.pe-zone', e => {
 				if (!drag || drag.kind !== 'field') return;
 				e.preventDefault();
 				e.stopPropagation();
 				insert_at(e.currentTarget, '.pe-field', e.originalEvent.clientY);
 			});
-			$w.on('drop.pe', '.pe-zone', e => {
+			on('drop.pe', '.pe-zone', e => {
 				if (!drag || drag.kind !== 'field') return;
 				e.preventDefault();
 				e.stopPropagation();
@@ -492,12 +505,12 @@
 				this.move_field(frm, name, e.currentTarget.dataset.zone, next ? next.dataset.row : null);
 			});
 
-			$w.on('dragover.pe', '.pe-sections', e => {
+			on('dragover.pe', '.pe-sections', e => {
 				if (!drag || drag.kind !== 'section') return;
 				e.preventDefault();
 				insert_at(e.currentTarget, '.pe-card', e.originalEvent.clientY);
 			});
-			$w.on('drop.pe', '.pe-sections', e => {
+			on('drop.pe', '.pe-sections', e => {
 				if (!drag || drag.kind !== 'section') return;
 				e.preventDefault();
 				const next = next_after_placeholder('.pe-card');
@@ -665,14 +678,15 @@
 				.pe-sec-icon, .pe-width { border: 1px solid var(--border-color); border-radius: 6px; background: var(--control-bg); color: var(--text-color); font-size: 12px; padding: 2px 4px; height: 26px; }
 				.pe-zone { padding: 6px; min-height: 44px; }
 				.pe-empty { color: var(--text-muted); font-size: 12px; text-align: center; padding: 10px; border: 1px dashed var(--border-color); border-radius: 8px; }
-				.pe-field { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: 8px; border: 1px solid transparent; }
+				.pe-field { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; border: 1px solid transparent; }
 				.pe-field:hover { background: var(--control-bg); border-color: var(--border-color); }
 				.pe-field + .pe-field { margin-top: 2px; }
 				.pe-handle { cursor: grab; color: var(--text-muted); user-select: none; padding: 4px 2px; line-height: 1; letter-spacing: -2px; }
 				.pe-handle-off { cursor: default; opacity: .3; }
-				.pe-field-main { flex: 1; min-width: 0; }
+				.pe-field-info { flex: 1; min-width: 160px; }
+				.pe-field-info .pe-line { margin-top: 1px; }
 				.pe-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-				.pe-controls { margin-top: 4px; }
+				.pe-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; }
 				.pe-field-label { font-weight: 500; border: 1px solid transparent; border-radius: 6px; padding: 2px 6px; margin-left: -6px; background: transparent; color: var(--text-color); min-width: 80px; max-width: 100%; }
 				.pe-field-label:hover, .pe-field-label:focus { border-color: var(--border-color); background: var(--fg-color); outline: none; }
 				.pe-badge { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--bg-blue, #e0f2fe); color: var(--text-on-blue, #075985); }
