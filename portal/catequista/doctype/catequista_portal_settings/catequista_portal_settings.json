@@ -2,54 +2,35 @@
  "creation": "2024-01-01 00:00:00.000000",
  "doctype": "DocType",
  "field_order": [
-  "preview_section",
+  "editor_section",
   "layout_preview",
-  "sections_section",
-  "add_section_button",
+  "advanced_section",
   "sections",
-  "fields_section",
-  "sync_button",
   "field_config"
  ],
  "fields": [
   {
-   "fieldname": "preview_section",
+   "fieldname": "editor_section",
    "fieldtype": "Section Break",
-   "label": "Pré-visualização do Painel",
-   "collapsible": 1
+   "label": "Editor do Portal"
   },
   {
    "fieldname": "layout_preview",
    "fieldtype": "HTML",
-   "label": "Pré-visualização"
+   "label": "Editor"
   },
   {
-   "fieldname": "sections_section",
+   "fieldname": "advanced_section",
    "fieldtype": "Section Break",
-   "label": "Secções do Painel",
-   "description": "Ordem, nome e ícone de cada secção do painel lateral do catecúmeno. Arraste as linhas para mudar a ordem."
-  },
-  {
-   "fieldname": "add_section_button",
-   "fieldtype": "Button",
-   "label": "Nova Secção"
+   "label": "Avançado: tabelas de configuração",
+   "collapsible": 1,
+   "description": "Os mesmos dados do editor acima, em formato de tabela."
   },
   {
    "fieldname": "sections",
    "fieldtype": "Table",
-   "label": "Secções",
+   "label": "Secções do Painel",
    "options": "Catequista Portal Section"
-  },
-  {
-   "fieldname": "fields_section",
-   "fieldtype": "Section Break",
-   "label": "Campos",
-   "description": "Campos do Catecúmeno, da Turma e da linha do catecúmeno na Turma que aparecem no portal."
-  },
-  {
-   "fieldname": "sync_button",
-   "fieldtype": "Button",
-   "label": "Escolher Campos"
   },
   {
    "fieldname": "field_config",
@@ -60,7 +41,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-01 10:00:00.000000",
+ "modified": "2026-10-01 11:00:00.000000",
  "modified_by": "Administrator",
  "module": "Catequista",
  "name": "Catequista Portal Settings",
