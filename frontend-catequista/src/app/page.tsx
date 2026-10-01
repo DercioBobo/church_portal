@@ -634,89 +634,66 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
               <div className="w-12 h-1.5 rounded-full bg-cream-300" />
             </div>
 
-            {/* Header */}
-            <div className="flex items-start justify-between gap-2 px-4 py-3.5 border-b border-cream-200 shrink-0">
-              <div className="min-w-0 flex-1">
-                <h3 className="font-display font-bold text-navy-900 text-base leading-tight truncate flex items-center gap-2">
-                  {cat.name}
+            {/* Header — two rows: [name · prev/next · close] and [chips], so
+                every control stays visible on narrow phones without squeezing the name */}
+            <div className="px-4 py-3 border-b border-cream-200 shrink-0 space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="min-w-0 flex-1 font-display font-bold text-navy-900 text-base leading-tight flex items-center gap-2">
+                  <span className="truncate">{cat.name}</span>
                   {isDirty && !saved && (
                     <span className="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0" title="Alterações não guardadas" />
                   )}
                 </h3>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  <PhaseChip fase={cat.fase} />
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    cat.status === 'Activo'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-cream-200 text-slate-600'
-                  }`}>
-                    {cat.status}
-                  </span>
-                </div>
-              </div>
 
-              {/* Mobile: prev/next navigator */}
-              {allCatecumenos.length > 1 && (
-                <div className="md:hidden flex items-center gap-0.5 shrink-0 self-center">
-                  <button
-                    onClick={() => {
-                      if (isDirty) { setError('Guarde as alterações antes de navegar.'); return; }
-                      if (catIndex > 0) onNavigate(allCatecumenos[catIndex - 1], catIndex - 1);
-                    }}
-                    disabled={catIndex === 0}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 disabled:opacity-25 transition-colors"
-                    aria-label="Anterior"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <span className="text-xs text-slate-400 tabular-nums min-w-[2.6rem] text-center select-none">
-                    {catIndex + 1}/{allCatecumenos.length}
-                  </span>
-                  <button
-                    onClick={() => {
-                      if (isDirty) { setError('Guarde as alterações antes de navegar.'); return; }
-                      if (catIndex < allCatecumenos.length - 1) onNavigate(allCatecumenos[catIndex + 1], catIndex + 1);
-                    }}
-                    disabled={catIndex === allCatecumenos.length - 1}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 disabled:opacity-25 transition-colors"
-                    aria-label="Próximo"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-
-              {/* Save + Close — kept in the header (always visible, never depends on
-                  scroll/viewport height or the mobile bottom tab bar) */}
-              <div className="flex items-center gap-1.5 shrink-0 self-start">
-                {fieldConfig.some(f => f.editable) && (
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || saved}
-                    title={saving ? 'A guardar...' : saved ? 'Guardado!' : 'Guardar'}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold transition-all disabled:cursor-default ${
-                      saved
-                        ? 'bg-emerald-600'
-                        : 'bg-navy-900 hover:bg-navy-800 disabled:opacity-50'
-                    }`}
-                  >
-                    {saving ? (
-                      <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                    ) : saved ? (
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    ) : (
-                      <Save className="w-3.5 h-3.5" />
-                    )}
-                    {saving ? 'A guardar...' : saved ? 'Guardado!' : 'Guardar'}
-                  </button>
+                {/* Mobile: prev/next navigator */}
+                {allCatecumenos.length > 1 && (
+                  <div className="md:hidden flex items-center gap-0.5 shrink-0 self-center">
+                    <button
+                      onClick={() => {
+                        if (isDirty) { setError('Guarde as alterações antes de navegar.'); return; }
+                        if (catIndex > 0) onNavigate(allCatecumenos[catIndex - 1], catIndex - 1);
+                      }}
+                      disabled={catIndex === 0}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 disabled:opacity-25 transition-colors"
+                      aria-label="Anterior"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs text-slate-400 tabular-nums min-w-[2.6rem] text-center select-none">
+                      {catIndex + 1}/{allCatecumenos.length}
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (isDirty) { setError('Guarde as alterações antes de navegar.'); return; }
+                        if (catIndex < allCatecumenos.length - 1) onNavigate(allCatecumenos[catIndex + 1], catIndex + 1);
+                      }}
+                      disabled={catIndex === allCatecumenos.length - 1}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 disabled:opacity-25 transition-colors"
+                      aria-label="Próximo"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
+
                 <button
                   onClick={handleClose}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 transition-colors shrink-0"
+                  className="p-1.5 -mr-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-cream-100 transition-colors shrink-0"
                   aria-label="Fechar"
                 >
                   <X className="w-5 h-5" />
                 </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-hidden">
+                <PhaseChip fase={cat.fase} />
+                <span className={`shrink-0 whitespace-nowrap text-xs px-2 py-0.5 rounded-full font-medium ${
+                  cat.status === 'Activo'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-cream-200 text-slate-600'
+                }`}>
+                  {cat.status}
+                </span>
               </div>
             </div>
 
@@ -830,6 +807,37 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
               })}
 
             </div>
+
+            {/* Footer — pinned below the scrollable body. The panel sits above the
+                mobile bottom tab bar (z-[70] vs z-[60]), so this is always visible. */}
+            {fieldConfig.some(f => f.editable) && (
+              <div className="shrink-0 flex gap-3 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-cream-200 bg-white md:justify-end">
+                <button
+                  onClick={handleClose}
+                  className="flex-1 md:flex-none px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 border border-cream-300 hover:bg-cream-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving || saved}
+                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold transition-all disabled:cursor-default ${
+                    saved
+                      ? 'bg-emerald-600'
+                      : 'bg-navy-900 hover:bg-navy-800 disabled:opacity-50'
+                  }`}
+                >
+                  {saving ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  ) : saved ? (
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {saving ? 'A guardar...' : saved ? 'Guardado!' : 'Guardar'}
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

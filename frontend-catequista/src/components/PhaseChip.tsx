@@ -10,7 +10,7 @@ export default function PhaseChip({ fase }: { fase: string | null }) {
   if (!fase) return null;
   const style = PHASE_STYLES[fase] ?? 'bg-cream-200 text-slate-600 ring-1 ring-cream-300';
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide ${style}`}>
+    <span className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide ${style}`}>
       {fase}
     </span>
   );
