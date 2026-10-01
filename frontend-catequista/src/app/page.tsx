@@ -325,6 +325,28 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
     );
   }
 
+  if (field.fieldtype === 'Check') {
+    const on = Number(value) === 1;
+    const opt = (label: string, active: boolean, v: number) => (
+      <button
+        type="button"
+        onClick={() => onChange(v)}
+        aria-pressed={active}
+        className={`flex-1 py-2 text-sm font-medium transition-colors ${
+          active ? 'bg-navy-900 text-white' : 'bg-cream-50 text-slate-600 hover:bg-cream-100'
+        }`}
+      >
+        {label}
+      </button>
+    );
+    return (
+      <div className="flex rounded-lg border border-cream-300 overflow-hidden divide-x divide-cream-300">
+        {opt('Sim', on, 1)}
+        {opt('Não', !on, 0)}
+      </div>
+    );
+  }
+
   if (field.fieldtype === 'Int' || field.fieldtype === 'Float') {
     const num = typeof value === 'number' ? value : (parseInt(String(value), 10) || 0);
     return (
@@ -474,7 +496,9 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
     fieldConfig.forEach(f => {
       if (f.source === 'turma') return;
       const raw = getCatValue(cat, f.fieldname);
-      if (f.fieldtype === 'Int' || f.fieldtype === 'Float') {
+      if (f.fieldtype === 'Check') {
+        initial[f.fieldname] = Number(raw) === 1 ? 1 : 0;
+      } else if (f.fieldtype === 'Int' || f.fieldtype === 'Float') {
         initial[f.fieldname] = raw !== null && raw !== undefined ? Number(raw) : 0;
       } else {
         initial[f.fieldname] = raw !== null && raw !== undefined ? String(raw) : '';
@@ -496,6 +520,9 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
       if (!f.editable || f.source === 'turma') return false;
       const raw     = getCatValue(cat, f.fieldname);
       const current = form[f.fieldname];
+      if (f.fieldtype === 'Check') {
+        return (Number(raw) === 1 ? 1 : 0) !== (Number(current) === 1 ? 1 : 0);
+      }
       if (f.fieldtype === 'Int' || f.fieldtype === 'Float') {
         return (raw !== null && raw !== undefined ? Number(raw) : 0) !==
                (current !== null && current !== undefined ? Number(current) : 0);

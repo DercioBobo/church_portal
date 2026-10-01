@@ -888,7 +888,9 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
         if field not in editable_cat:
             continue
         meta_field = cat_meta_map.get(field)
-        if meta_field and meta_field.fieldtype in ("Int", "Float"):
+        if meta_field and meta_field.fieldtype == "Check":
+            cat_updates[field] = 1 if cint(value) else 0
+        elif meta_field and meta_field.fieldtype in ("Int", "Float"):
             cat_updates[field] = cint(value) if value not in (None, "") else None
         else:
             cat_updates[field] = value if value != "" else None
@@ -933,7 +935,9 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
             if field not in submitted or submitted[field] in (None, ""):
                 continue
             fobj = next((f for f in tc_meta_obj.fields if f.fieldname == field), None)
-            if fobj and fobj.fieldtype in ("Int", "Float"):
+            if fobj and fobj.fieldtype == "Check":
+                row_updates[field] = 1 if cint(submitted[field]) else 0
+            elif fobj and fobj.fieldtype in ("Int", "Float"):
                 row_updates[field] = cint(submitted[field])
             else:
                 row_updates[field] = submitted[field]
