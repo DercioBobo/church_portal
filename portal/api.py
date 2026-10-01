@@ -529,23 +529,23 @@ def get_catecumeno_field_config():
     }
 
 
-@frappe.whitelist()
-def sync_catecumeno_fields():
+_PORTAL_FIELD_SOURCES = [
+    # (source key, DocType, label shown in the Settings picker)
+    ("catecumeno",        "Catecumeno",        "Catecúmeno"),
+    ("turma_catecumenos", "Turma Catecumenos", "Turma › linha do catecúmeno"),
+    ("turma",             "Turma",             "Turma"),
+]
+
+
+def _portal_field_candidates():
     """
-    Scans Catecumeno and Turma Catecumenos meta and adds any fields not yet in
-    Catequista Portal Settings. Existing rows are never overwritten.
-    Called from the Sync button on the Settings desk form.
+    Every field the portal can display, per source, with the row values a new
+    Catequista Portal Field should get by default. Shared by the Settings field
+    picker and sync_catecumeno_fields so both stay consistent.
+
+    Each candidate carries `auto`: whether sync_catecumeno_fields adds it
+    unattended (some Turma fields are only added when picked explicitly).
     """
-    if frappe.session.user == "Guest":
-        frappe.throw(_("Não autenticado"), frappe.AuthenticationError)
-
-    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
-        doc = frappe.get_doc("Catequista Portal Settings")
-    else:
-        doc = frappe.new_doc("Catequista Portal Settings")
-
-    existing = {row.fieldname for row in doc.field_config}
-
     SKIP_TYPES = {
         "Section Break", "Column Break", "Tab Break", "HTML",
         "Heading", "Button", "Table", "Table MultiSelect", "Image",
@@ -583,50 +583,41 @@ def sync_catecumeno_fields():
         ft = FIELDTYPE_MAP.get(ft, ft)
         return ft if ft in ALLOWED_TYPES else "Data"
 
-    added = 0
+    def _candidate(source, f, **row):
+        ft = _normalize_ft(f.fieldtype or "Data")
+        base = {
+            "source":         source,
+            "fieldname":      f.fieldname,
+            "label":          f.label or f.fieldname,
+            "fieldtype":      ft,
+            "options":        (f.options or "") if ft == "Select" else "",
+            "show_in_table":  0,
+            "show_in_panel":  1,
+            "show_in_header": 0,
+            "editable":       0,
+            "column_width":   "sm",
+            "panel_section":  "",
+            "col_span":       "2",
+            "auto":           True,
+        }
+        base.update(row)
+        return base
 
-    # Add name pseudo-field first if missing
-    if "name" not in existing:
-        doc.append("field_config", {
-            "fieldname": "name",
-            "label": "Nome",
-            "fieldtype": "Data",
-            "options": "",
-            "show_in_table": 1,
-            "show_in_panel": 1,
-            "editable": 0,
-            "column_width": "lg",
-            "panel_section": "",
-            "source": "catecumeno",
-        })
-        existing.add("name")
-        added += 1
+    candidates = []
 
-    # Catecumeno fields
-    cat_meta = frappe.get_meta("Catecumeno")
-    for f in cat_meta.fields:
+    # ── Catecumeno ─────────────────────────────────────────────────────────────
+    # `name` is a pseudo-field (the document name = full name)
+    candidates.append({
+        "source": "catecumeno", "fieldname": "name", "label": "Nome", "fieldtype": "Data",
+        "options": "", "show_in_table": 1, "show_in_panel": 1, "show_in_header": 0,
+        "editable": 0, "column_width": "lg", "panel_section": "", "col_span": "2", "auto": True,
+    })
+    for f in frappe.get_meta("Catecumeno").fields:
         if f.fieldname in SKIP_FIELDS or f.fieldtype in SKIP_TYPES:
             continue
-        if f.fieldname in existing:
-            continue
-        normalized_ft = _normalize_ft(f.fieldtype or "Data")
-        doc.append("field_config", {
-            "fieldname": f.fieldname,
-            "label": f.label or f.fieldname,
-            "fieldtype": normalized_ft,
-            "options": f.options or "" if normalized_ft == "Select" else "",
-            "show_in_table": 0,
-            "show_in_panel": 1,
-            "editable": 0,
-            "column_width": "sm",
-            "panel_section": "",
-            "source": "catecumeno",
-            "col_span": "2",
-        })
-        existing.add(f.fieldname)
-        added += 1
+        candidates.append(_candidate("catecumeno", f))
 
-    # ── Turma Catecumenos (lista_catecumenos) — all fields ────────────────────
+    # ── Turma Catecumenos (lista_catecumenos) ──────────────────────────────────
     tc_meta = frappe.get_meta("Turma Catecumenos")
     tc_fieldnames = {f.fieldname for f in tc_meta.fields}
 
@@ -635,61 +626,28 @@ def sync_catecumeno_fields():
     FALTA_CANDIDATES    = ["total_faltas", "nr_de_faltas"]
     handled_tc_actuals  = set()
 
-    for group, alias, section in [
-        (PRESENCA_CANDIDATES, "total_presencas", "Presenças"),
-        (FALTA_CANDIDATES,    "total_faltas",    "Presenças"),
-    ]:
+    for group, alias in [(PRESENCA_CANDIDATES, "total_presencas"), (FALTA_CANDIDATES, "total_faltas")]:
         actual = next((c for c in group if c in tc_fieldnames), None)
         if actual is None:
             continue
         handled_tc_actuals.add(actual)
-        if alias not in existing:
-            fobj = next((x for x in tc_meta.fields if x.fieldname == actual), None)
-            doc.append("field_config", {
-                "fieldname": alias,
-                "label": fobj.label if fobj else alias,
-                "fieldtype": _normalize_ft((fobj.fieldtype if fobj else "Int") or "Int"),
-                "options": "",
-                "show_in_table": 1,
-                "show_in_panel": 1,
-                "editable": 1,
-                "column_width": "xs",
-                "panel_section": section,
-                "source": "turma_catecumenos",
-                "col_span": "1",
-            })
-            existing.add(alias)
-            added += 1
+        fobj = next(x for x in tc_meta.fields if x.fieldname == actual)
+        candidates.append(_candidate(
+            "turma_catecumenos", fobj,
+            fieldname=alias, show_in_table=1, editable=1,
+            column_width="xs", panel_section="Presenças", col_span="1",
+        ))
 
-    # Remaining TC fields (direct fieldnames, no alias needed)
     for f in tc_meta.fields:
-        if f.fieldname in SKIP_FIELDS or f.fieldtype in SKIP_TYPES:
+        if f.fieldname in SKIP_FIELDS or f.fieldtype in SKIP_TYPES or f.fieldname in handled_tc_actuals:
             continue
-        if f.fieldname in handled_tc_actuals or f.fieldname in existing:
-            continue
-        normalized_ft = _normalize_ft(f.fieldtype or "Data")
-        doc.append("field_config", {
-            "fieldname": f.fieldname,
-            "label": f.label or f.fieldname,
-            "fieldtype": normalized_ft,
-            "options": f.options or "" if normalized_ft == "Select" else "",
-            "show_in_table": 0,
-            "show_in_panel": 1,
-            "editable": 0,
-            "column_width": "sm",
-            "panel_section": "Presenças",
-            "source": "turma_catecumenos",
-            "col_span": "2",
-        })
-        existing.add(f.fieldname)
-        added += 1
+        candidates.append(_candidate("turma_catecumenos", f, panel_section="Presenças"))
 
-    # ── Turma fields ───────────────────────────────────────────────────────────
+    # ── Turma ──────────────────────────────────────────────────────────────────
     # show_in_header = shown in TurmaHeader banner
     # show_in_panel  = shown as read-only section in the catecumeno side panel
-    turma_meta = frappe.get_meta("Turma")
-    SKIP_TURMA_FIELDS = SKIP_FIELDS | {"name", "fase", "status", "catequista",
-                                        "catequista_adj", "ano_lectivo", "total_catecumenos"}
+    # Fields the frontend already shows elsewhere — offered in the picker, never auto-synced
+    MANUAL_ONLY_TURMA = {"fase", "status", "catequista", "catequista_adj", "ano_lectivo", "total_catecumenos"}
     # Sensible defaults for known turma fields
     TURMA_DEFAULTS = {
         "local":          {"show_in_header": 1, "show_in_panel": 0, "column_width": "md"},
@@ -699,28 +657,69 @@ def sync_catecumeno_fields():
         "catequista_adj": {"show_in_header": 0, "show_in_panel": 0, "column_width": "md"},
         "ano_lectivo":    {"show_in_header": 0, "show_in_panel": 0, "column_width": "sm"},
     }
-    for f in turma_meta.fields:
-        if f.fieldname in SKIP_TURMA_FIELDS or f.fieldtype in SKIP_TYPES:
+    for f in frappe.get_meta("Turma").fields:
+        if f.fieldname in SKIP_FIELDS or f.fieldtype in SKIP_TYPES:
             continue
-        if f.fieldname in existing:
+        row = {"show_in_panel": 0, "panel_section": "Turma", "auto": f.fieldname not in MANUAL_ONLY_TURMA}
+        row.update(TURMA_DEFAULTS.get(f.fieldname, {}))
+        candidates.append(_candidate("turma", f, **row))
+
+    return candidates
+
+
+def _portal_row_from_candidate(c):
+    """Strip picker-only keys so the dict can be appended as a Catequista Portal Field row."""
+    return {k: v for k, v in c.items() if k != "auto"}
+
+
+@frappe.whitelist()
+def get_portal_field_candidates():
+    """
+    Lists the fields of Catecumeno, Turma Catecumenos and Turma that can be added
+    to the portal, grouped by source. Used by the field picker on the Settings form,
+    which adds the chosen rows client-side (the user then saves the form).
+    """
+    frappe.only_for("System Manager")
+
+    configured = set()
+    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
+        configured = {row.fieldname for row in frappe.get_doc("Catequista Portal Settings").field_config}
+
+    by_source = {key: [] for key, _doctype, _label in _PORTAL_FIELD_SOURCES}
+    for c in _portal_field_candidates():
+        c = _portal_row_from_candidate(c)
+        # Fieldnames are unique across sources in the config (the frontend keys values by fieldname)
+        c["configured"] = c["fieldname"] in configured
+        by_source[c["source"]].append(c)
+
+    return [
+        {"source": key, "doctype": doctype, "label": label, "fields": by_source[key]}
+        for key, doctype, label in _PORTAL_FIELD_SOURCES
+    ]
+
+
+@frappe.whitelist()
+def sync_catecumeno_fields():
+    """
+    Adds every portal field candidate not yet in Catequista Portal Settings, with
+    its default visibility. Existing rows are never overwritten.
+    The Settings form uses the field picker instead; kept for bench/scripts:
+        bench execute portal.api.sync_catecumeno_fields
+    """
+    frappe.only_for("System Manager")
+
+    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
+        doc = frappe.get_doc("Catequista Portal Settings")
+    else:
+        doc = frappe.new_doc("Catequista Portal Settings")
+
+    existing = {row.fieldname for row in doc.field_config}
+    added = 0
+    for c in _portal_field_candidates():
+        if not c["auto"] or c["fieldname"] in existing:
             continue
-        normalized_ft = _normalize_ft(f.fieldtype or "Data")
-        defaults = TURMA_DEFAULTS.get(f.fieldname, {})
-        doc.append("field_config", {
-            "fieldname": f.fieldname,
-            "label": f.label or f.fieldname,
-            "fieldtype": normalized_ft,
-            "options": f.options or "" if normalized_ft == "Select" else "",
-            "show_in_table": 0,
-            "show_in_panel": defaults.get("show_in_panel", 0),
-            "show_in_header": defaults.get("show_in_header", 0),
-            "editable": 0,
-            "column_width": defaults.get("column_width", "sm"),
-            "panel_section": "Turma",
-            "source": "turma",
-            "col_span": defaults.get("col_span", "2"),
-        })
-        existing.add(f.fieldname)
+        doc.append("field_config", _portal_row_from_candidate(c))
+        existing.add(c["fieldname"])
         added += 1
 
     doc.save(ignore_permissions=True)
