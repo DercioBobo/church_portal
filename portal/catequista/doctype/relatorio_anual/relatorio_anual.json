@@ -1,0 +1,402 @@
+{
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ano_lectivo",
+  "estado",
+  "data_actualizacao",
+  "cb_cab",
+  "lema",
+  "local",
+  "data_assinatura",
+  "sec_cabecalho",
+  "paroquia",
+  "comunidades",
+  "ministerio",
+  "sec_intro",
+  "taxa_realizacao",
+  "resumo_actividades",
+  "cb_intro",
+  "introducao",
+  "sec_meses",
+  "meses",
+  "sec_ano",
+  "incluir_resumo_retiros",
+  "resumo_retiros",
+  "ao_longo_do_ano",
+  "cb_ano",
+  "extraordinarias",
+  "sec_desafios",
+  "desafios",
+  "incluir_nao_realizadas",
+  "nao_realizadas",
+  "cb_desafios",
+  "propostas",
+  "sec_catequistas",
+  "catequistas_enviados",
+  "catequistas_activos",
+  "catequistas_desistencias",
+  "catequistas_sem_data",
+  "cb_catequistas",
+  "texto_catequistas",
+  "sec_catequizandos",
+  "catequizandos_inscritos",
+  "catequizandos_turmas",
+  "catequizandos_desistencias",
+  "cb_catequizandos",
+  "catequizandos_transferencias",
+  "catequizandos_trocas",
+  "catequizandos_media_faltas",
+  "cb_catequizandos2",
+  "texto_catequizandos",
+  "incluir_fases",
+  "sec_estatistica",
+  "estatistica",
+  "sec_documento",
+  "incluir_financas",
+  "cb_doc",
+  "modelo_docx"
+ ],
+ "fields": [
+  {
+   "fieldname": "ano_lectivo",
+   "fieldtype": "Link",
+   "label": "Ano Lectivo",
+   "options": "Ano Lectivo",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "estado",
+   "fieldtype": "Select",
+   "label": "Estado",
+   "options": "Rascunho\nFinal",
+   "default": "Rascunho",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "data_actualizacao",
+   "fieldtype": "Datetime",
+   "label": "Dados actualizados em",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb_cab",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lema",
+   "fieldtype": "Small Text",
+   "label": "Lema do ano"
+  },
+  {
+   "fieldname": "local",
+   "fieldtype": "Data",
+   "label": "Local da assinatura",
+   "default": "Matola"
+  },
+  {
+   "fieldname": "data_assinatura",
+   "fieldtype": "Date",
+   "label": "Data da assinatura",
+   "description": "Vazio = data de geração do documento."
+  },
+  {
+   "fieldname": "sec_cabecalho",
+   "fieldtype": "Section Break",
+   "label": "Cabeçalho do documento",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "paroquia",
+   "fieldtype": "Data",
+   "label": "Paróquia",
+   "default": "PARÓQUIA NOSSA SENHORA DA ASSUNÇÃO - LIBERDADE"
+  },
+  {
+   "fieldname": "comunidades",
+   "fieldtype": "Data",
+   "label": "Comunidades",
+   "default": "COMUNIDADE SEDE E SANTA ANA – MASTRONG"
+  },
+  {
+   "fieldname": "ministerio",
+   "fieldtype": "Data",
+   "label": "Ministério",
+   "default": "MINISTÉRIO DA CATEQUESE E FORMAÇÃO PERMANENTE"
+  },
+  {
+   "fieldname": "sec_intro",
+   "fieldtype": "Section Break",
+   "label": "Introdução"
+  },
+  {
+   "fieldname": "taxa_realizacao",
+   "fieldtype": "Percent",
+   "label": "Actividades realizadas (%)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "resumo_actividades",
+   "fieldtype": "Small Text",
+   "label": "Resumo do plano anual",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_intro",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "introducao",
+   "fieldtype": "Text",
+   "label": "Introdução",
+   "description": "Vazio = texto automático com a percentagem de actividades realizadas."
+  },
+  {
+   "fieldname": "sec_meses",
+   "fieldtype": "Section Break",
+   "label": "Actividades por mês",
+   "description": "\"Actualizar dados\" acrescenta as actividades realizadas do Plano Anual e as celebrações das Preparações do Sacramento. Pode editar o texto, desmarcar \"Incluir\" ou acrescentar linhas manuais — as alterações são mantidas."
+  },
+  {
+   "fieldname": "meses",
+   "fieldtype": "Table",
+   "label": "Actividades",
+   "options": "Relatorio Anual Mes"
+  },
+  {
+   "fieldname": "sec_ano",
+   "fieldtype": "Section Break",
+   "label": "Ao longo do ano e actividades extraordinárias"
+  },
+  {
+   "fieldname": "incluir_resumo_retiros",
+   "fieldtype": "Check",
+   "label": "Incluir resumo dos retiros",
+   "default": "1"
+  },
+  {
+   "fieldname": "resumo_retiros",
+   "fieldtype": "Small Text",
+   "label": "Resumo dos retiros (automático)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ao_longo_do_ano",
+   "fieldtype": "Text",
+   "label": "Ao longo do ano",
+   "description": "Um ponto por linha."
+  },
+  {
+   "fieldname": "cb_ano",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "extraordinarias",
+   "fieldtype": "Text",
+   "label": "Actividades extraordinárias",
+   "description": "Um ponto por linha."
+  },
+  {
+   "fieldname": "sec_desafios",
+   "fieldtype": "Section Break",
+   "label": "Desafios e Propostas"
+  },
+  {
+   "fieldname": "desafios",
+   "fieldtype": "Text",
+   "label": "Desafios",
+   "description": "Um ponto por linha."
+  },
+  {
+   "fieldname": "incluir_nao_realizadas",
+   "fieldtype": "Check",
+   "label": "Incluir actividades não realizadas nos desafios",
+   "default": "1"
+  },
+  {
+   "fieldname": "nao_realizadas",
+   "fieldtype": "Small Text",
+   "label": "Actividades não realizadas (automático)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_desafios",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "propostas",
+   "fieldtype": "Text",
+   "label": "Propostas",
+   "description": "Um ponto por linha. \"Importar propostas do ano anterior\" copia as do ano passado."
+  },
+  {
+   "fieldname": "sec_catequistas",
+   "fieldtype": "Section Break",
+   "label": "Estatística — Catequistas (comunidade sede)"
+  },
+  {
+   "fieldname": "catequistas_enviados",
+   "fieldtype": "Int",
+   "label": "Catequistas enviados"
+  },
+  {
+   "fieldname": "catequistas_activos",
+   "fieldtype": "Int",
+   "label": "Catequistas activos no fim do ano",
+   "read_only": 1
+  },
+  {
+   "fieldname": "catequistas_desistencias",
+   "fieldtype": "Int",
+   "label": "Desistências no ano",
+   "read_only": 1,
+   "description": "Pela data em que o catequista foi marcado como Inactivo (histórico de alterações)."
+  },
+  {
+   "fieldname": "catequistas_sem_data",
+   "fieldtype": "Int",
+   "label": "Inactivos sem data registada",
+   "read_only": 1,
+   "description": "Inactivos sem histórico de alteração — assume-se que saíram antes deste ano."
+  },
+  {
+   "fieldname": "cb_catequistas",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "texto_catequistas",
+   "fieldtype": "Text",
+   "label": "Texto sobre os catequistas",
+   "description": "Vazio = texto automático."
+  },
+  {
+   "fieldname": "sec_catequizandos",
+   "fieldtype": "Section Break",
+   "label": "Estatística — Catequizandos (comunidade sede)"
+  },
+  {
+   "fieldname": "catequizandos_inscritos",
+   "fieldtype": "Int",
+   "label": "Inscritos",
+   "read_only": 1
+  },
+  {
+   "fieldname": "catequizandos_turmas",
+   "fieldtype": "Int",
+   "label": "Turmas",
+   "read_only": 1
+  },
+  {
+   "fieldname": "catequizandos_desistencias",
+   "fieldtype": "Int",
+   "label": "Desistências",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_catequizandos",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "catequizandos_transferencias",
+   "fieldtype": "Int",
+   "label": "Transferências",
+   "read_only": 1
+  },
+  {
+   "fieldname": "catequizandos_trocas",
+   "fieldtype": "Int",
+   "label": "Trocas de turma",
+   "read_only": 1
+  },
+  {
+   "fieldname": "catequizandos_media_faltas",
+   "fieldtype": "Float",
+   "label": "Média de faltas (activos)",
+   "read_only": 1,
+   "precision": "1"
+  },
+  {
+   "fieldname": "cb_catequizandos2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "texto_catequizandos",
+   "fieldtype": "Text",
+   "label": "Texto sobre os catequizandos",
+   "description": "Vazio = texto automático."
+  },
+  {
+   "fieldname": "incluir_fases",
+   "fieldtype": "Check",
+   "label": "Incluir tabela por fase",
+   "default": "1"
+  },
+  {
+   "fieldname": "sec_estatistica",
+   "fieldtype": "Section Break",
+   "label": "Tabela de estatística",
+   "description": "Sede é preenchida pelo sistema. Santa Ana é preenchida pelo sistema quando os registos a identificam; caso contrário introduza manualmente."
+  },
+  {
+   "fieldname": "estatistica",
+   "fieldtype": "Table",
+   "label": "Estatística",
+   "options": "Relatorio Anual Estatistica"
+  },
+  {
+   "fieldname": "sec_documento",
+   "fieldtype": "Section Break",
+   "label": "Documento"
+  },
+  {
+   "fieldname": "incluir_financas",
+   "fieldtype": "Check",
+   "label": "Incluir resumo financeiro",
+   "default": "0"
+  },
+  {
+   "fieldname": "cb_doc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "modelo_docx",
+   "fieldtype": "Attach",
+   "label": "Modelo Word personalizado",
+   "description": "Opcional. Vazio = modelo padrão. \"Descarregar modelo\" obtém o modelo para editar no Word."
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Relatorio Anual",
+ "owner": "Administrator",
+ "states": [],
+ "autoname": "format:Relatório {ano_lectivo}",
+ "title_field": "ano_lectivo",
+ "sort_field": "ano_lectivo",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Coordenador Catequese",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ],
+ "search_fields": "ano_lectivo,estado"
+}

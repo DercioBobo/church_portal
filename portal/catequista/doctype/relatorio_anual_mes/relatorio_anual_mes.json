@@ -1,0 +1,72 @@
+{
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "mes",
+  "texto",
+  "incluir",
+  "origem",
+  "data",
+  "referencia"
+ ],
+ "fields": [
+  {
+   "fieldname": "mes",
+   "fieldtype": "Select",
+   "label": "Mês",
+   "options": "Janeiro\nFevereiro\nMarço\nAbril\nMaio\nJunho\nJulho\nAgosto\nSetembro\nOutubro\nNovembro\nDezembro",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "texto",
+   "fieldtype": "Small Text",
+   "label": "Texto",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 5
+  },
+  {
+   "fieldname": "incluir",
+   "fieldtype": "Check",
+   "label": "Incluir",
+   "default": "1",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "origem",
+   "fieldtype": "Select",
+   "label": "Origem",
+   "options": "Manual\nPlano Anual\nSacramento",
+   "default": "Manual",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "data",
+   "fieldtype": "Date",
+   "label": "Data"
+  },
+  {
+   "fieldname": "referencia",
+   "fieldtype": "Data",
+   "label": "Referência",
+   "read_only": 1,
+   "hidden": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Relatorio Anual Mes",
+ "owner": "Administrator",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1,
+ "permissions": []
+}

@@ -1,0 +1,85 @@
+{
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "indicador",
+  "sede",
+  "santa_ana",
+  "total",
+  "ano_anterior",
+  "manual",
+  "detalhe",
+  "chave"
+ ],
+ "fields": [
+  {
+   "fieldname": "indicador",
+   "fieldtype": "Data",
+   "label": "Indicador",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "sede",
+   "fieldtype": "Int",
+   "label": "Assunção (Sede)",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "santa_ana",
+   "fieldtype": "Int",
+   "label": "Santa Ana",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "total",
+   "fieldtype": "Int",
+   "label": "Total",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "ano_anterior",
+   "fieldtype": "Int",
+   "label": "Sede ano anterior",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "manual",
+   "fieldtype": "Check",
+   "label": "Fixar",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Marcado: \"Actualizar dados\" não altera os valores desta linha."
+  },
+  {
+   "fieldname": "detalhe",
+   "fieldtype": "Small Text",
+   "label": "Nota (aparece abaixo da tabela)"
+  },
+  {
+   "fieldname": "chave",
+   "fieldtype": "Data",
+   "label": "Chave",
+   "read_only": 1,
+   "hidden": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Relatorio Anual Estatistica",
+ "owner": "Administrator",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1,
+ "permissions": []
+}
