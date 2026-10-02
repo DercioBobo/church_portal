@@ -43,7 +43,8 @@ def contexto(doc):
         r.idx,
     )):
         if row.incluir and (row.texto or "").strip():
-            por_mes.setdefault(row.mes, []).append(row.texto.strip())
+            # notas com várias linhas → um só parágrafo (cada linha do mês é um ponto)
+            por_mes.setdefault(row.mes, []).append(" ".join(row.texto.split()))
     meses = [{"nome": m, "itens": por_mes[m]} for m in dados.MESES if m in por_mes]
 
     ao_longo = ([doc.resumo_retiros] if doc.incluir_resumo_retiros and doc.resumo_retiros else []) \

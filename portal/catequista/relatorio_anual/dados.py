@@ -228,7 +228,8 @@ def baptismos(ano_lectivo):
         "sede": len(sede),
         "santa_ana": len(livro) - len(sede),
         "detalhe": (
-            f"inclui {esporadicos} baptismos fora das celebrações programadas (comunidade sede)"
+            f"inclui {esporadicos} {'baptismo' if esporadicos == 1 else 'baptismos'} "
+            "fora das celebrações programadas (comunidade sede)"
             if esporadicos else ""
         ),
     }
