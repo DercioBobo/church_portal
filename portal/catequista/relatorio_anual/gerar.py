@@ -6,8 +6,11 @@ build_modelo.py a partir do relatório de 2025). Cada Relatório Anual pode
 anexar o seu próprio modelo em `modelo_docx`.
 """
 
+import html
 import io
 import os
+import re
+import zipfile
 
 import frappe
 from frappe import _
@@ -155,13 +158,45 @@ def _caminho_modelo(doc):
 
 
 def render(doc):
-    from docxtpl import DocxTemplate
+    caminho, ctx = _caminho_modelo(doc), contexto(doc)
+    try:
+        from docxtpl import DocxTemplate
+    except ImportError:
+        return render_simples(caminho, ctx)
 
-    tpl = DocxTemplate(_caminho_modelo(doc))
-    tpl.render(contexto(doc), autoescape=True)
+    tpl = DocxTemplate(caminho)
+    tpl.render(ctx, autoescape=True)
     buf = io.BytesIO()
     tpl.save(buf)
     return buf.getvalue()
+
+
+# Parágrafo / linha de tabela que contém {%p ... %} / {%tr ... %} → só a etiqueta Jinja
+_RE_P = re.compile(r"<w:p\b[^>]*>(?:(?!</w:p>).)*?\{%p\s+(.*?)\s*%\}(?:(?!</w:p>).)*?</w:p>", re.S)
+_RE_TR = re.compile(r"<w:tr\b[^>]*>(?:(?!</w:tr>).)*?\{%tr\s+(.*?)\s*%\}(?:(?!</w:tr>).)*?</w:tr>", re.S)
+
+
+def render_simples(caminho, ctx):
+    """
+    Renderizador sem dependências (usa o Jinja do Frappe) para quando o docxtpl
+    não está instalado. Suporta o que o modelo padrão usa: {{ }}, {%p %} e {%tr %}
+    com cada etiqueta num único run — modelos editados no Word que partam as
+    etiquetas precisam do docxtpl.
+    """
+    import jinja2
+
+    env = jinja2.Environment(autoescape=True, undefined=jinja2.ChainableUndefined)
+    src = io.BytesIO()
+    with zipfile.ZipFile(caminho) as zin, zipfile.ZipFile(src, "w", zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename == "word/document.xml":
+                xml = data.decode("utf-8")
+                xml = _RE_TR.sub(lambda m: "{% " + html.unescape(m.group(1)) + " %}", xml)
+                xml = _RE_P.sub(lambda m: "{% " + html.unescape(m.group(1)) + " %}", xml)
+                data = env.from_string(xml).render(ctx).encode("utf-8")
+            zout.writestr(item, data)
+    return src.getvalue()
 
 
 def gerar(doc):
