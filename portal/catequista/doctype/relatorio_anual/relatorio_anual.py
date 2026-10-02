@@ -8,7 +8,8 @@ from portal.catequista.relatorio_anual import dados, gerar
 # (chave, indicador) — linhas fixas da tabela de estatística
 INDICADORES = [
     ("catequizandos", "Catequizandos"),
-    ("baptismo", "Baptismos"),
+    ("baptismo", "Baptismos (catecúmenos)"),
+    ("baptismo_criancas", "Baptismos (crianças)"),   # manual — não há registo no sistema
     ("eucaristia", "Eucaristia"),
     ("crisma", "Crisma"),
     ("profissao_fe", "Profissão de Fé"),
@@ -123,6 +124,12 @@ class RelatorioAnual(Document):
         for chave, indicador in INDICADORES:
             if chave not in linhas:
                 linhas[chave] = self.append("estatistica", {"chave": chave, "indicador": indicador})
+
+        # Ordem fixa dos indicadores; linhas acrescentadas à mão ficam no fim
+        ordem = [c for c, _ in INDICADORES]
+        self.estatistica.sort(key=lambda r: ordem.index(r.chave) if r.chave in ordem else len(ordem))
+        for i, r in enumerate(self.estatistica, 1):
+            r.idx = i
 
         for chave, r in linhas.items():
             r.ano_anterior = ant.get(chave) or 0

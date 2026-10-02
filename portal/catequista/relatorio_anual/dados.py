@@ -22,9 +22,6 @@ SANTA_ANA = "Santa Ana"
 # Artigo usado em "o Sacramento do/da ..."
 SACRAMENTO_ARTIGO = {"Baptismo": "do", "Eucaristia": "da", "Crisma": "do"}
 
-# Idade (no dia do baptismo) abaixo da qual o baptizado conta como criança
-IDADE_CRIANCA = 7
-
 
 def ano_int(ano_lectivo):
     return int(str(ano_lectivo).strip()[:4])
@@ -204,21 +201,14 @@ def itens_sacramentos(ano_lectivo):
     return itens
 
 
-def _idade(nasc, em):
-    if not nasc or not em:
-        return None
-    nasc, em = getdate(nasc), getdate(em)
-    return em.year - nasc.year - ((em.month, em.day) < (nasc.month, nasc.day))
-
-
 def baptismos(ano_lectivo):
     """
-    Baptismos do Livro de Baptismo. Devolve contagens sede/Santa Ana e o
-    detalhe da sede (crianças vs catecúmenos, programados vs esporádicos).
+    Baptismos de catecúmenos do Livro de Baptismo (programados + esporádicos).
+    Os baptismos de crianças não estão no livro — têm linha própria, manual.
     Se o livro não tiver registos para o ano, usa os candidatos da preparação.
     """
     livro = frappe.db.sql("""
-        SELECT nome_completo, comunidade, data_do_baptismo, data_de_nascimento
+        SELECT nome_completo, comunidade
         FROM `tabLivro de Baptismo`
         WHERE ano = %s
     """, (ano_lectivo,), as_dict=True)
@@ -233,24 +223,14 @@ def baptismos(ano_lectivo):
 
     programados = {c.catecumeno for c in _candidatos(ano_lectivo, "Baptismo")}
     sede = [r for r in livro if not _e_santa_ana(r.comunidade)]
-    criancas = 0
-    esporadicos = 0
-    for r in sede:
-        idade = _idade(r.data_de_nascimento, r.data_do_baptismo)
-        if idade is not None and idade < IDADE_CRIANCA:
-            criancas += 1
-        if r.nome_completo not in programados:
-            esporadicos += 1
-
-    partes = []
-    if criancas:
-        partes.append(f"{criancas} crianças e {len(sede) - criancas} catecúmenos (adolescentes, jovens e adultos)")
-    if esporadicos:
-        partes.append(f"{esporadicos} baptismos fora das celebrações programadas")
+    esporadicos = sum(1 for r in sede if r.nome_completo not in programados)
     return {
         "sede": len(sede),
         "santa_ana": len(livro) - len(sede),
-        "detalhe": "; ".join(partes),
+        "detalhe": (
+            f"inclui {esporadicos} baptismos fora das celebrações programadas (comunidade sede)"
+            if esporadicos else ""
+        ),
     }
 
 
