@@ -436,9 +436,10 @@ class TestDefinicoesEAno(BaseCatequese):
     def test_definicao_usa_padrao_quando_vazia(self):
         from portal.catequese.utils import PADROES, definicao
 
-        self.definir(tamanho_ideal=0)
+        # define os três tamanhos: outros testes da classe podem ter deixado valores diferentes
+        self.definir(tamanho_minimo=0, tamanho_ideal=0, tamanho_maximo=0)
         self.assertEqual(definicao("tamanho_ideal"), PADROES["tamanho_ideal"])
-        self.definir(tamanho_ideal=22)
+        self.definir(tamanho_minimo=20, tamanho_ideal=22, tamanho_maximo=30)
         self.assertEqual(definicao("tamanho_ideal"), 22)
 
     def test_tamanhos_incoerentes_sao_recusados(self):
