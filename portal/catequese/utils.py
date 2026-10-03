@@ -22,13 +22,17 @@ PADROES = {
 }
 
 
+# Campos numéricos em que 0 significa "não preenchido" (o Frappe grava Int vazio como 0)
+ZERO_E_VAZIO = {"tamanho_minimo", "tamanho_ideal", "tamanho_maximo", "link_validade_dias"}
+
+
 def definicao(campo):
     """Valor de uma definição, com o padrão quando está vazia."""
     try:
         valor = frappe.get_cached_doc("Catequese Settings").get(campo)
     except frappe.DoesNotExistError:
         valor = None
-    if valor in (None, ""):
+    if valor in (None, "") or (campo in ZERO_E_VAZIO and not valor):
         return PADROES.get(campo)
     return valor
 
