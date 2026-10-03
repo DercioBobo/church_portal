@@ -1,0 +1,26 @@
+[
+ {
+  "abreviatura": "BTM",
+  "doctype": "Sacramento",
+  "documentos": "<div class=\"ql-editor read-mode\"><ol><li data-list=\"bullet\"><span class=\"ql-ui\" contenteditable=\"false\"></span>Ficha de Baptismo</li><li data-list=\"bullet\"><span class=\"ql-ui\" contenteditable=\"false\"></span>D. Idoniedade</li><li data-list=\"bullet\"><span class=\"ql-ui\" contenteditable=\"false\"></span>D. Núcleo</li><li data-list=\"bullet\"><span class=\"ql-ui\" contenteditable=\"false\"></span>C. Baptismo</li><li data-list=\"bullet\"><span class=\"ql-ui\" contenteditable=\"false\"></span>C. Crisma</li><li data-list=\"bullet\"><span class=\"ql-ui\" contenteditable=\"false\"></span>C. Casamento</li></ol></div>",
+  "modified": "2025-04-05 01:27:06.862676",
+  "name": "Baptismo",
+  "nome_do_sacramento": "Baptismo"
+ },
+ {
+  "abreviatura": "CR",
+  "doctype": "Sacramento",
+  "documentos": "<div class=\"ql-editor read-mode\"><p><br></p></div>",
+  "modified": "2025-04-04 13:13:18.785505",
+  "name": "Crisma",
+  "nome_do_sacramento": "Crisma"
+ },
+ {
+  "abreviatura": "EUC",
+  "doctype": "Sacramento",
+  "documentos": "<div class=\"ql-editor read-mode\"><p>FIcha de 1a Comunhão</p><p>Certidão de Baptismo do Candidato</p></div>",
+  "modified": "2025-04-25 03:17:31.687720",
+  "name": "Eucaristia",
+  "nome_do_sacramento": "Eucaristia"
+ }
+]

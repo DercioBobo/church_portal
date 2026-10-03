@@ -1,0 +1,546 @@
+[
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[],\"fields\":[[\"name\",\"Preparacao do Sacramento\"],[\"docstatus\",\"Preparacao do Sacramento\"],[\"catecumeno\",\"Candidatos ao Sacramento Table\"],[\"turma\",\"Candidatos ao Sacramento Table\"]],\"order_by\":\"`tabPreparacao do Sacramento`.`modified` desc\",\"add_totals_row\":true,\"page_length\":100,\"column_widths\":{\"name\":120,\"docstatus\":120,\"Candidatos ao Sacramento Table:catecumeno\":319,\"Candidatos ao Sacramento Table:turma\":120},\"group_by\":null}",
+  "modified": "2026-07-10 12:23:56.387020",
+  "module": "Catequese",
+  "name": "Candidatos",
+  "prepared_report": 0,
+  "ref_doctype": "Preparacao do Sacramento",
+  "report_name": "Candidatos",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[],\"fields\":[[\"name\",\"Preparacao do Sacramento\"],[\"catecumeno\",\"Candidatos ao Sacramento Table\"],[\"encarregado\",\"Candidatos ao Sacramento Table\"],[\"contacto_encarregado\",\"Candidatos ao Sacramento Table\"],[\"padrinhos\",\"Candidatos ao Sacramento Table\"],[\"contacto_padrinhos\",\"Candidatos ao Sacramento Table\"],[\"obs\",\"Candidatos ao Sacramento Table\"],[\"ficha\",\"Candidatos ao Sacramento Table\"],[\"documentos_padrinhos\",\"Candidatos ao Sacramento Table\"]],\"order_by\":\"`tabPreparacao do Sacramento`.`modified` desc\",\"add_totals_row\":true,\"page_length\":2500,\"column_widths\":{\"name\":120,\"Candidatos ao Sacramento Table:catecumeno\":120,\"Candidatos ao Sacramento Table:encarregado\":205,\"Candidatos ao Sacramento Table:contacto_encarregado\":120,\"Candidatos ao Sacramento Table:padrinhos\":200,\"Candidatos ao Sacramento Table:contacto_padrinhos\":120,\"Candidatos ao Sacramento Table:obs\":120,\"Candidatos ao Sacramento Table:ficha\":120,\"Candidatos ao Sacramento Table:documentos_padrinhos\":120},\"group_by\":null}",
+  "modified": "2026-03-04 07:49:50.879673",
+  "module": "Catequese",
+  "name": "Candidatos e Padrinhos",
+  "prepared_report": 0,
+  "ref_doctype": "Preparacao do Sacramento",
+  "report_name": "Candidatos e Padrinhos",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "modified": "2025-05-13 13:02:01.554134",
+  "module": "Catequese",
+  "name": "Catecumenos Aniversariantes da Semana",
+  "prepared_report": 0,
+  "query": "SELECT\r\n    c.name AS \"Nome do Catecúmeno:Link/Catecumeno:200\",\r\n    t.catequista AS \"Catequista:Data:200\",\r\n    DATE(CONCAT(YEAR(CURDATE()), '-', MONTH(c.data_de_nascimento), '-', DAY(c.data_de_nascimento))) AS \"Aniversário em 2025:Date:150\",\r\n    c.idade + 1 AS \"Idade Nova:Int:80\",\r\n    c.contacto AS \"Contacto:Data:120\",\r\n    t.local AS \"Local:Data:150\",\r\n    t.hora AS \"Hora:Data:100\",\r\n    c.fase AS \"Fase:Data:120\"\r\nFROM\r\n    `tabCatecumeno` c\r\nLEFT JOIN\r\n    `tabTurma` t ON c.turma = t.name\r\nWHERE\r\n    WEEK(DATE(CONCAT(YEAR(CURDATE()), '-', MONTH(c.data_de_nascimento), '-', DAY(c.data_de_nascimento))), 3)\r\n        = WEEK(CURDATE(), 3)\r\nORDER BY\r\n    t.local ASC, t.catequista ASC, c.data_de_nascimento ASC, c.name ASC\r\n",
+  "ref_doctype": "Catecumeno",
+  "report_name": "Catecumenos Aniversariantes da Semana",
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "modified": "2025-04-30 04:17:56.244131",
+  "module": "Catequese",
+  "name": "Catecumenos Aniversariantes de Hoje",
+  "prepared_report": 0,
+  "query": "SELECT\r\n    c.name AS \"Nome do Catecúmeno:Link/Catecumeno:200\",\r\n    c.data_de_nascimento AS \"Data de Nascimento:Date:120\",\r\n    c.idade AS \"Idade:Int:80\",\r\n    c.contacto AS \"Contacto:Data:120\",\r\n    c.encarregado AS \"Encarregado:Data:150\",\r\n    c.turma AS \"Turma:Link/Turma:120\",\r\n    t.local AS \"Local:Data:150\",\r\n    t.catequista AS \"Catequista:Data:180\",\r\n    c.fase AS \"Fase:Data:120\"\r\nFROM\r\n    `tabCatecumeno` c\r\nLEFT JOIN\r\n    `tabTurma` t ON c.turma = t.name\r\nWHERE\r\n    DAY(c.data_de_nascimento) = DAY(CURDATE())\r\n    AND MONTH(c.data_de_nascimento) = MONTH(CURDATE())\r\nORDER BY\r\n    c.name ASC\r\n",
+  "ref_doctype": "Catecumeno",
+  "report_name": "Catecumenos Aniversariantes de Hoje",
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 1,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "letter_head": "PNSA",
+  "modified": "2026-04-23 05:02:03.720824",
+  "module": "Catequese",
+  "name": "Catecumenos Sem Renovacao",
+  "prepared_report": 0,
+  "query": "SELECT \r\n    tc_activa.catecumeno AS \"Catecúmeno:Link/Catecumeno:200\",\r\n    t_activa.name AS \"Turma Activa:Link/Turma:200\",\r\n    t_activa.fase AS \"Fase Activa:Data:120\",\r\n    t_inactiva.name AS \"Turma Anterior:Link/Turma:200\",\r\n    t_inactiva.fase AS \"Fase Anterior:Data:120\",\r\n    COALESCE(NULLIF(tc_inactiva.renovacao, ''), 'Não Preenchido') AS \"Renovação:Data:120\"\r\n\r\nFROM \r\n    `tabTurma Catecumenos` tc_activa\r\nINNER JOIN \r\n    `tabTurma` t_activa ON tc_activa.parent = t_activa.name\r\n    AND t_activa.status = 'Activo'\r\nINNER JOIN \r\n    `tabTurma Catecumenos` tc_inactiva ON tc_inactiva.catecumeno = tc_activa.catecumeno\r\nINNER JOIN \r\n    `tabTurma` t_inactiva ON tc_inactiva.parent = t_inactiva.name\r\n    AND t_inactiva.status = 'Inactivo'\r\n    AND t_inactiva.ano_lectivo = t_activa.ano_lectivo - 1\r\n\r\nWHERE \r\n    (tc_inactiva.renovacao != 'Sim' OR tc_inactiva.renovacao IS NULL)\r\n\r\nORDER BY \r\n    tc_inactiva.renovacao ASC,\r\n    tc_activa.catecumeno ASC",
+  "ref_doctype": "Turma",
+  "report_name": "Catecumenos Sem Renovacao",
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[[\"Turma\",\"status\",\"=\",\"Activo\"]],\"fields\":[[\"name\",\"Turma\"],[\"catecumeno\",\"Turma Catecumenos\"],[\"idade\",\"Turma Catecumenos\"],[\"contacto\",\"Turma Catecumenos\"],[\"dia\",\"Turma\"],[\"hora\",\"Turma\"],[\"local\",\"Turma\"],[\"fase\",\"Turma\"],[\"catequistas\",\"Turma\"],[\"ficha_de_catecumeno\",\"Turma Catecumenos\"],[\"renovacao\",\"Turma Catecumenos\"],[\"pre_avaliacao\",\"Turma Catecumenos\"],[\"observacoes\",\"Turma Catecumenos\"]],\"order_by\":\"`tabTurma`.`modified` desc\",\"add_totals_row\":0,\"page_length\":2500,\"column_widths\":{\"name\":120,\"Turma Catecumenos:catecumeno\":120,\"Turma Catecumenos:idade\":120,\"Turma Catecumenos:contacto\":120,\"dia\":120,\"hora\":120,\"local\":151,\"fase\":150,\"catequistas\":120,\"Turma Catecumenos:ficha_de_catecumeno\":120,\"Turma Catecumenos:renovacao\":120,\"Turma Catecumenos:pre_avaliacao\":120,\"Turma Catecumenos:observacoes\":120},\"group_by\":null}",
+  "modified": "2026-08-01 02:27:34.060531",
+  "module": "Catequese",
+  "name": "Catecumenos nas Turmas",
+  "prepared_report": 0,
+  "ref_doctype": "Turma",
+  "report_name": "Catecumenos nas Turmas",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[[\"Turma Catecumenos\",\"ficha_de_catecumeno\",\"=\",0,false],[\"Turma\",\"status\",\"=\",\"Activo\"]],\"fields\":[[\"name\",\"Turma\"],[\"docstatus\",\"Turma\"],[\"catecumeno\",\"Turma Catecumenos\"],[\"idade\",\"Turma Catecumenos\"],[\"contacto\",\"Turma Catecumenos\"],[\"dia\",\"Turma\"],[\"hora\",\"Turma\"],[\"local\",\"Turma\"],[\"fase\",\"Turma\"],[\"catequistas\",\"Turma\"],[\"ficha_de_catecumeno\",\"Turma Catecumenos\"],[\"renovacao\",\"Turma Catecumenos\"],[\"pre_avaliacao\",\"Turma Catecumenos\"]],\"order_by\":\"`tabTurma`.`modified` desc\",\"add_totals_row\":0,\"page_length\":2500,\"column_widths\":{\"name\":120,\"Turma Catecumenos:catecumeno\":189,\"Turma Catecumenos:idade\":120,\"Turma Catecumenos:contacto\":120,\"dia\":120,\"hora\":120,\"local\":151,\"fase\":150,\"catequistas\":120,\"Turma Catecumenos:ficha_de_catecumeno\":120,\"Turma Catecumenos:renovacao\":120,\"Turma Catecumenos:pre_avaliacao\":120},\"group_by\":null}",
+  "letter_head": "PNSA",
+  "modified": "2026-04-23 04:15:38.333900",
+  "module": "Catequese",
+  "name": "Catecumenos sem Ficha",
+  "prepared_report": 0,
+  "ref_doctype": "Turma",
+  "report_name": "Catecumenos sem Ficha",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "letter_head": "PNSA",
+  "modified": "2026-02-12 09:15:44.534037",
+  "module": "Catequese",
+  "name": "Catecúmenos Duplicados em Turmas",
+  "prepared_report": 0,
+  "query": "SELECT \r\n    tc.catecumeno AS \"Catecúmeno:Link/Catecumeno:200\",\r\n    COUNT(tc.catecumeno) AS \"Nº Turmas:Int:100\",\r\n    GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ', ') AS \"Turmas:Data:300\",\r\n    GROUP_CONCAT(DISTINCT t.fase ORDER BY t.fase SEPARATOR ', ') AS \"Fases:Data:150\",\r\n    GROUP_CONCAT(DISTINCT t.ano_lectivo ORDER BY t.ano_lectivo SEPARATOR ', ') AS \"Anos Lectivos:Data:120\",\r\n    c.nome_completo AS \"Nome Completo:Data:250\",\r\n    c.encarregado AS \"Encarregado:Data:200\"\r\nFROM \r\n    `tabTurma Catecumenos` tc\r\nINNER JOIN \r\n    `tabTurma` t ON tc.parent = t.name\r\nLEFT JOIN\r\n    `tabCatecumeno` c ON tc.catecumeno = c.name\r\nWHERE \r\n    t.status = 'Activo'\r\nGROUP BY \r\n    tc.catecumeno\r\nHAVING \r\n    COUNT(tc.catecumeno) > 1\r\nORDER BY \r\n    COUNT(tc.catecumeno) DESC,\r\n    tc.catecumeno ASC",
+  "ref_doctype": "Turma",
+  "report_name": "Catecúmenos Duplicados em Turmas",
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "modified": "2025-09-13 02:08:38.694455",
+  "module": "Catequese",
+  "name": "Catequista e Nucleo",
+  "prepared_report": 0,
+  "query": "SELECT\r\n    n.name AS `Núcleo:Link/Nucleo:180`,\r\n    COUNT(c.name) AS `Nr Catequistas:Int:100`,\r\n    GROUP_CONCAT(\r\n        CASE\r\n            WHEN c.obs = 'Confirmado' THEN CONCAT(c.nome_completo, ' ✅')\r\n            ELSE c.nome_completo\r\n        END\r\n        SEPARATOR ', '\r\n    ) AS `Catequistas:Data:300`,\r\n    CASE\r\n        WHEN SUM(CASE WHEN c.obs = 'Confirmado' THEN 1 ELSE 0 END) > 0 THEN 'Confirmado'\r\n        WHEN COUNT(c.name) = 0 THEN 'Sem Catequista'\r\n        ELSE 'Sem Confirmação'\r\n    END AS `Estado:Data:200`\r\nFROM\r\n    `tabNucleo` n\r\nLEFT JOIN\r\n    `tabCatequista` c ON c.nucleo = n.name\r\nGROUP BY\r\n    n.name\r\nORDER BY\r\n    n.name\r\n",
+  "ref_doctype": "Catequista",
+  "report_name": "Catequista e Nucleo",
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "modified": "2025-05-02 02:12:45.118997",
+  "module": "Catequese",
+  "name": "Catequistas Aniversariantes da Semana",
+  "prepared_report": 0,
+  "query": "SELECT\r\n    c.name AS \"Nome Completo:Link/Catequista:200\",\r\n    c.contacto_1 AS \"Contacto:Data:150\",\r\n    c.data_de_nascimento AS \"Data de Nascimento:Date:120\",\r\n    TIMESTAMPDIFF(YEAR, c.data_de_nascimento, CURDATE()) + 1 AS \"Idade Nova:Int:80\"\r\nFROM\r\n    `tabCatequista` c\r\nWHERE\r\n    WEEK(DATE(CONCAT(YEAR(CURDATE()), '-', MONTH(c.data_de_nascimento), '-', DAY(c.data_de_nascimento))), 3)\r\n        = WEEK(CURDATE(), 3)\r\nORDER BY\r\n    c.data_de_nascimento ASC, c.name ASC\r\n",
+  "ref_doctype": "Catequista",
+  "report_name": "Catequistas Aniversariantes da Semana",
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "modified": "2025-04-30 04:26:01.830510",
+  "module": "Catequese",
+  "name": "Catequistas Aniversariantes de Hoje",
+  "prepared_report": 0,
+  "query": "SELECT\r\n    c.name AS \"Nome Completo:Link/Catequista:200\",\r\n    c.contacto AS \"Contacto:Data:150\",\r\n    c.data_de_nascimento AS \"Data de Nascimento:Date:120\",\r\n    TIMESTAMPDIFF(YEAR, c.data_de_nascimento, CURDATE()) + 1 AS \"Idade Nova:Int:80\"\r\nFROM\r\n    `tabCatequista` c\r\nWHERE\r\n    DAY(c.data_de_nascimento) = DAY(CURDATE())\r\n    AND MONTH(c.data_de_nascimento) = MONTH(CURDATE())\r\nORDER BY\r\n    c.name ASC\r\n",
+  "ref_doctype": "Catequista",
+  "report_name": "Catequistas Aniversariantes de Hoje",
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "letter_head": "PNSA",
+  "modified": "2026-02-12 11:06:27.220323",
+  "module": "Catequese",
+  "name": "Catequistas e Turmas Atribuídas",
+  "prepared_report": 0,
+  "query": "SELECT \r\n    t.fase AS \"Fase:Data:120\",\r\n    t.name AS \"Turma:Link/Turma:200\",\r\n    GROUP_CONCAT(\r\n        DISTINCT cat.name \r\n        ORDER BY \r\n            CASE WHEN t.catequista = cat.name THEN 0 ELSE 1 END\r\n        SEPARATOR ' & '\r\n    ) AS \"Catequistas:Data:300\"\r\nFROM \r\n    `tabTurma` t\r\nLEFT JOIN \r\n    `tabCatequista` cat \r\n        ON (t.catequista = cat.name OR t.catequista_adj = cat.name)\r\n        AND cat.status = 'Activo'\r\nWHERE \r\n    t.status = 'Activo'\r\nGROUP BY \r\n    t.name, t.fase\r\nORDER BY \r\n    t.fase ASC,\r\n    t.name ASC",
+  "ref_doctype": "Turma",
+  "report_name": "Catequistas e Turmas Atribuídas",
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[[\"Preparacao do Sacramento\",\"sacramento\",\"=\",\"Crisma\"]],\"fields\":[[\"name\",\"Preparacao do Sacramento\"],[\"docstatus\",\"Preparacao do Sacramento\"],[\"catecumeno\",\"Candidatos ao Sacramento Table\"],[\"comunidade\",\"Candidatos ao Sacramento Table\"],[\"padrinhos\",\"Candidatos ao Sacramento Table\"],[\"ficha\",\"Candidatos ao Sacramento Table\"],[\"documentos_padrinhos\",\"Candidatos ao Sacramento Table\"],[\"valor_accao_gracas\",\"Candidatos ao Sacramento Table\"],[\"valor_cracha\",\"Candidatos ao Sacramento Table\"],[\"valor_fotos\",\"Candidatos ao Sacramento Table\"],[\"valor_ofertorio\",\"Candidatos ao Sacramento Table\"],[\"valor_tenda\",\"Candidatos ao Sacramento Table\"],[\"obs\",\"Candidatos ao Sacramento Table\"]],\"order_by\":\"`tabPreparacao do Sacramento`.`modified` desc\",\"add_totals_row\":true,\"page_length\":2500,\"column_widths\":{\"name\":120,\"docstatus\":120,\"Candidatos ao Sacramento Table:catecumeno\":120,\"Candidatos ao Sacramento Table:comunidade\":120,\"Candidatos ao Sacramento Table:padrinhos\":120,\"Candidatos ao Sacramento Table:ficha\":120,\"Candidatos ao Sacramento Table:documentos_padrinhos\":120,\"Candidatos ao Sacramento Table:valor_accao_gracas\":120,\"Candidatos ao Sacramento Table:valor_cracha\":120,\"Candidatos ao Sacramento Table:valor_fotos\":120,\"Candidatos ao Sacramento Table:valor_ofertorio\":120,\"Candidatos ao Sacramento Table:valor_tenda\":120,\"Candidatos ao Sacramento Table:obs\":120},\"group_by\":null}",
+  "letter_head": "PNSA",
+  "modified": "2026-03-04 07:50:29.200011",
+  "module": "Catequese",
+  "name": "Crisma",
+  "prepared_report": 0,
+  "ref_doctype": "Preparacao do Sacramento",
+  "report_name": "Crisma",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[],\"fields\":[[\"name\",\"Preparacao do Sacramento\"],[\"docstatus\",\"Preparacao do Sacramento\"],[\"encarregado\",\"Candidatos ao Sacramento Table\"],[\"contacto_encarregado\",\"Candidatos ao Sacramento Table\"],[\"padrinhos\",\"Candidatos ao Sacramento Table\"],[\"contacto_padrinhos\",\"Candidatos ao Sacramento Table\"],[\"dia\",\"Candidatos ao Sacramento Table\"],[\"ficha\",\"Candidatos ao Sacramento Table\"],[\"documentos_padrinhos\",\"Candidatos ao Sacramento Table\"],[\"obs\",\"Candidatos ao Sacramento Table\"]],\"order_by\":\"`tabPreparacao do Sacramento`.`modified` desc\",\"add_totals_row\":true,\"page_length\":20,\"column_widths\":{\"name\":120,\"docstatus\":120,\"Candidatos ao Sacramento Table:encarregado\":120,\"Candidatos ao Sacramento Table:contacto_encarregado\":120,\"Candidatos ao Sacramento Table:padrinhos\":120,\"Candidatos ao Sacramento Table:contacto_padrinhos\":120,\"Candidatos ao Sacramento Table:dia\":120,\"Candidatos ao Sacramento Table:ficha\":120,\"Candidatos ao Sacramento Table:documentos_padrinhos\":120,\"Candidatos ao Sacramento Table:obs\":120},\"group_by\":null}",
+  "modified": "2026-03-04 07:51:01.719316",
+  "module": "Catequese",
+  "name": "Detalhes dos Candidatos e Padrinhos",
+  "prepared_report": 0,
+  "ref_doctype": "Preparacao do Sacramento",
+  "report_name": "Detalhes dos Candidatos e Padrinhos",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[],\"fields\":[[\"name\",\"Preparacao do Sacramento\"],[\"docstatus\",\"Preparacao do Sacramento\"],[\"catecumeno\",\"Candidatos ao Sacramento Table\"],[\"padrinhos\",\"Candidatos ao Sacramento Table\"],[\"ficha\",\"Candidatos ao Sacramento Table\"],[\"documentos_padrinhos\",\"Candidatos ao Sacramento Table\"],[\"valor_accao_gracas\",\"Candidatos ao Sacramento Table\"],[\"valor_cracha\",\"Candidatos ao Sacramento Table\"],[\"valor_fotos\",\"Candidatos ao Sacramento Table\"],[\"valor_ofertorio\",\"Candidatos ao Sacramento Table\"],[\"obs\",\"Candidatos ao Sacramento Table\"]],\"order_by\":\"`tabPreparacao do Sacramento`.`modified` desc\",\"add_totals_row\":true,\"page_length\":2500,\"column_widths\":{\"name\":120,\"docstatus\":120,\"Candidatos ao Sacramento Table:catecumeno\":120,\"Candidatos ao Sacramento Table:padrinhos\":120,\"Candidatos ao Sacramento Table:ficha\":120,\"Candidatos ao Sacramento Table:documentos_padrinhos\":120,\"Candidatos ao Sacramento Table:valor_accao_gracas\":120,\"Candidatos ao Sacramento Table:valor_cracha\":120,\"Candidatos ao Sacramento Table:valor_fotos\":120,\"Candidatos ao Sacramento Table:valor_ofertorio\":120,\"Candidatos ao Sacramento Table:obs\":120},\"group_by\":null}",
+  "modified": "2026-03-04 07:51:31.876418",
+  "module": "Catequese",
+  "name": "Docs e contri",
+  "prepared_report": 0,
+  "ref_doctype": "Preparacao do Sacramento",
+  "report_name": "Docs e contri",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[[\"Preparacao do Sacramento\",\"name\",\"like\",\"%Baptismo-2026%\"]],\"fields\":[[\"name\",\"Preparacao do Sacramento\"],[\"docstatus\",\"Preparacao do Sacramento\"],[\"catecumeno\",\"Candidatos ao Sacramento Table\"],[\"contacto_encarregado\",\"Candidatos ao Sacramento Table\"],[\"encarregado\",\"Candidatos ao Sacramento Table\"],[\"dia\",\"Candidatos ao Sacramento Table\"],[\"enc_obs\",\"Candidatos ao Sacramento Table\"],[\"contacto_padrinhos\",\"Candidatos ao Sacramento Table\"],[\"padrinhos\",\"Candidatos ao Sacramento Table\"]],\"order_by\":\"`tabPreparacao do Sacramento`.`modified` desc\",\"add_totals_row\":true,\"page_length\":500,\"column_widths\":{\"name\":120,\"docstatus\":120,\"Candidatos ao Sacramento Table:catecumeno\":120,\"Candidatos ao Sacramento Table:contacto_encarregado\":120,\"Candidatos ao Sacramento Table:encarregado\":275,\"Candidatos ao Sacramento Table:dia\":120,\"Candidatos ao Sacramento Table:enc_obs\":120,\"Candidatos ao Sacramento Table:contacto_padrinhos\":120,\"Candidatos ao Sacramento Table:padrinhos\":120},\"group_by\":null}",
+  "letter_head": "PNSA",
+  "modified": "2026-03-04 20:55:48.790527",
+  "module": "Catequese",
+  "name": "Enc Portal",
+  "prepared_report": 0,
+  "ref_doctype": "Preparacao do Sacramento",
+  "report_name": "Enc Portal",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[],\"fields\":[[\"name\",\"Turma\"],[\"dia\",\"Turma\"],[\"hora\",\"Turma\"],[\"local\",\"Turma\"],[\"fase\",\"Turma\"],[\"catequistas\",\"Turma\"]],\"order_by\":\"`tabTurma`.`modified` desc\",\"add_totals_row\":0,\"page_length\":100,\"column_widths\":{\"name\":120,\"dia\":120,\"hora\":120,\"local\":151,\"fase\":150,\"catequistas\":120},\"group_by\":null}",
+  "modified": "2025-05-09 23:50:48.929159",
+  "module": "Catequese",
+  "name": "Fase e Catequistas",
+  "prepared_report": 0,
+  "ref_doctype": "Turma",
+  "report_name": "Fase e Catequistas",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[[\"Fase\",\"fase_de_rito\",\"=\",1,false]],\"fields\":[[\"name\",\"Fase\"],[\"rito\",\"Fase\"],[\"periodo_do_rito\",\"Fase\"],[\"coordenador_de_fase\",\"Fase\"],[\"fase_de_sacramento\",\"Fase\"]],\"order_by\":\"`tabFase`.`modified` desc\",\"add_totals_row\":0,\"page_length\":20,\"column_widths\":{\"name\":120,\"rito\":120,\"periodo_do_rito\":219,\"coordenador_de_fase\":120,\"fase_de_sacramento\":120},\"group_by\":null}",
+  "modified": "2025-11-04 04:03:20.581357",
+  "module": "Catequese",
+  "name": "Ritos",
+  "prepared_report": 0,
+  "ref_doctype": "Fase",
+  "report_name": "Ritos",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[],\"fields\":[[\"name\",\"Turma\"],[\"catecumeno\",\"Turma Catecumenos\"],[\"contacto\",\"Turma Catecumenos\"],[\"hora\",\"Turma\"],[\"fase\",\"Turma\"],[\"local\",\"Turma\"],[\"dia\",\"Turma\"],[\"fase\",\"Turma Catecumenos\"],[\"turma\",\"Turma Catecumenos\"],[\"observacoes\",\"Turma Catecumenos\"]],\"order_by\":\"`tabTurma`.`modified` desc\",\"add_totals_row\":0,\"page_length\":2500,\"column_widths\":{\"name\":120,\"Turma Catecumenos:catecumeno\":120,\"Turma Catecumenos:contacto\":120,\"hora\":120,\"fase\":120,\"local\":120,\"dia\":120,\"Turma Catecumenos:fase\":120,\"Turma Catecumenos:turma\":120,\"Turma Catecumenos:observacoes\":120},\"group_by\":null}",
+  "modified": "2025-04-04 22:52:32.005767",
+  "module": "Catequese",
+  "name": "Turmas",
+  "prepared_report": 0,
+  "ref_doctype": "Turma",
+  "report_name": "Turmas",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "json": "{\"filters\":[[\"Catecumeno\",\"status\",\"=\",\"Activo\"]],\"fields\":[[\"name\",\"Catecumeno\"],[\"docstatus\",\"Catecumeno\"],[\"ficha_de_catecumeno\",\"Catecumeno\"],[\"idade\",\"Catecumeno\"],[\"sexo\",\"Catecumeno\"],[\"contacto\",\"Catecumeno\"],[\"data_de_nascimento\",\"Catecumeno\"],[\"fase\",\"Catecumeno\"]],\"order_by\":\"`tabCatecumeno`.`modified` desc\",\"add_totals_row\":0,\"page_length\":2500,\"column_widths\":{\"name\":235,\"ficha_de_catecumeno\":120,\"idade\":120,\"sexo\":120,\"contacto\":120,\"data_de_nascimento\":120,\"fase\":120},\"group_by\":null}",
+  "letter_head": "PNSA",
+  "modified": "2026-05-29 04:27:41.249368",
+  "module": "Catequese",
+  "name": "catecumenos list",
+  "prepared_report": 0,
+  "ref_doctype": "Catecumeno",
+  "report_name": "catecumenos list",
+  "report_type": "Report Builder",
+  "roles": [
+   {
+    "role": "System Manager"
+   },
+   {
+    "role": "Coordenador Catequese"
+   }
+  ],
+  "timeout": 0
+ }
+]

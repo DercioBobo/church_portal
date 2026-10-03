@@ -8,18 +8,31 @@ app_version = "0.0.1"
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 # Synced automatically on bench migrate.
-fixtures = [
-    {
-        "dt": "Custom Field",
-        "filters": [["dt", "=", "Catequista"]],
-    },
-    {
-        "dt": "Print Format",
-        "filters": [["doc_type", "=", "Plano de Retiro"]],
-    },
+# DocTypes da catequese (módulos Catequese e Paroquia) cujos scripts,
+# formatos de impressão e relatórios são versionados como fixtures.
+CATEQUESE_DOCTYPES = [
+    "Alocacao Pendente Item", "Alocacao Turma Item", "Alocacao em Massa", "Ano Lectivo",
+    "Apuramento Item", "Apuramento Novas Turmas Table", "Apuramento Turmas Table",
+    "Apuramento de Turmas", "Candidatos ao Sacramento Table", "Catecumeno", "Catequista",
+    "Fase", "Inactivar Catecumeno", "Inscricao", "Lista Catecumenos", "Livro de Baptismo",
+    "Preparacao do Sacramento", "Profissao de Fe", "Sacramento", "Transferencia de Catecumeno",
+    "Troca de Turma", "Turma", "Turma Catecumenos", "Fiel", "Nucleo",
 ]
 
-# Required apps (pnsa_app must be installed for DocTypes to exist)
+fixtures = [
+    {"dt": "Role", "filters": [["name", "in", ["Catequista", "Coordenador Catequese"]]]},
+    {"dt": "Custom Field", "filters": [["dt", "=", "Catequista"]]},
+    {"dt": "Property Setter", "filters": [["doc_type", "in", CATEQUESE_DOCTYPES]]},
+    {"dt": "Sacramento"},
+    {"dt": "Fase"},
+    {"dt": "Server Script", "filters": [["reference_doctype", "in", CATEQUESE_DOCTYPES]]},
+    {"dt": "Client Script", "filters": [["dt", "in", CATEQUESE_DOCTYPES]]},
+    {"dt": "Print Format", "filters": [["doc_type", "in", CATEQUESE_DOCTYPES + ["Plano de Retiro"]]]},
+    {"dt": "Report", "filters": [["ref_doctype", "in", CATEQUESE_DOCTYPES]]},
+]
+
+# pnsa_app continua necessário: vários Client Scripts chamam métodos pnsa_app.*
+# (não declarado em required_apps porque não é instalável a partir de um repositório público)
 # required_apps = ["pnsa_app"]
 
 # ── After install ──────────────────────────────────────────────────────────────
