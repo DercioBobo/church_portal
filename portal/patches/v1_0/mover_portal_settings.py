@@ -20,16 +20,15 @@ def execute():
         )[0][0]
         if ja_copiado:
             continue
-        colunas = [c for c in frappe.db.get_table_columns(child) if c != "name"]
-        lista = ", ".join(f"`{c}`" for c in colunas)
-        valores = ", ".join(
-            "%(novo)s" if c in ("parent", "parenttype") else f"`{c}`" for c in colunas
+        linhas = frappe.db.sql(
+            f"SELECT * FROM `tab{child}` WHERE parenttype = %s AND parentfield = %s ORDER BY idx",
+            (ANTIGO, campo), as_dict=True,
         )
-        frappe.db.sql(
-            f"INSERT INTO `tab{child}` ({lista}) SELECT {valores} FROM `tab{child}` "
-            f"WHERE parenttype = %(antigo)s AND parentfield = %(campo)s ORDER BY idx",
-            {"novo": NOVO, "antigo": ANTIGO, "campo": campo},
-        )
+        for linha in linhas:
+            # Os nomes destas tabelas são autoincrement (sequência do Frappe): o db_insert atribui um novo
+            dados = {k: v for k, v in linha.items() if k not in ("name", "creation", "modified")}
+            dados.update({"doctype": child, "parent": NOVO, "parenttype": NOVO})
+            frappe.get_doc(dados).db_insert()
 
     # Só apaga o antigo se a cópia estiver completa
     for child, campo in TABELAS:
