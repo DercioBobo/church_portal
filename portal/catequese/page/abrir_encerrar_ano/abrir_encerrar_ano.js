@@ -1,7 +1,7 @@
 /* global frappe, Vue */
 // Abrir e Encerrar Ano — Vue 3 CDN, no build step
 
-frappe.pages['ano-lectivo'].on_page_load = function (wrapper) {
+frappe.pages['abrir-encerrar-ano'].on_page_load = function (wrapper) {
   frappe.ui.make_app_page({
     parent: wrapper,
     title: __('Abrir e Encerrar Ano'),
@@ -33,7 +33,7 @@ frappe.pages['ano-lectivo'].on_page_load = function (wrapper) {
 function alApi(method, args) {
   return new Promise((resolve, reject) => {
     frappe.call({
-      method: `portal.catequese.page.ano_lectivo.ano_lectivo.${method}`,
+      method: `portal.catequese.page.abrir_encerrar_ano.abrir_encerrar_ano.${method}`,
       args,
       callback: (r) => { if (r.exc) reject(new Error(r.exc)); else resolve(r.message); },
       error: reject,

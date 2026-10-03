@@ -5,9 +5,9 @@
  "modified": "2026-10-03 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
- "name": "ano-lectivo",
+ "name": "abrir-encerrar-ano",
  "owner": "Administrator",
- "page_name": "ano-lectivo",
+ "page_name": "abrir-encerrar-ano",
  "roles": [
   {"role": "System Manager"},
   {"role": "Coordenador Catequese"}

@@ -361,7 +361,7 @@
    "is_query_report": 0,
    "label": "Abrir e Encerrar Ano",
    "link_count": 0,
-   "link_to": "ano-lectivo",
+   "link_to": "abrir-encerrar-ano",
    "link_type": "Page",
    "onboard": 0,
    "type": "Link"
@@ -530,7 +530,7 @@
   {
    "color": "Pink",
    "label": "Abrir e Encerrar Ano",
-   "link_to": "ano-lectivo",
+   "link_to": "abrir-encerrar-ano",
    "type": "Page"
   },
   {

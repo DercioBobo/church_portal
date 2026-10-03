@@ -465,7 +465,7 @@ class TestDefinicoesEAno(BaseCatequese):
         self.assertEqual((doc.tamanho_minimo, doc.tamanho_ideal, doc.tamanho_maximo), (5, 6, 7))
 
     def test_criar_ano_e_definir_actual(self):
-        from portal.catequese.page.ano_lectivo.ano_lectivo import criar_ano, definir_ano_actual
+        from portal.catequese.page.abrir_encerrar_ano.abrir_encerrar_ano import criar_ano, definir_ano_actual
         from portal.catequese.utils import ano_actual
 
         self.definir(ano_lectivo_actual=ANO)
@@ -479,7 +479,7 @@ class TestDefinicoesEAno(BaseCatequese):
         self.assertEqual(frappe.db.get_value("Ano Lectivo", ANO, "estado"), "Encerrado")
 
     def test_estado_mostra_fase_por_apurar_e_encerra_turmas(self):
-        from portal.catequese.page.ano_lectivo.ano_lectivo import encerrar_turmas, get_estado
+        from portal.catequese.page.abrir_encerrar_ano.abrir_encerrar_ano import encerrar_turmas, get_estado
 
         t = turma(fase("_Teste Estado Fase"), [catecumeno("_Teste Estado")])
         estado = get_estado(ANO)
