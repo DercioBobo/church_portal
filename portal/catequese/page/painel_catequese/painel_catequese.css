@@ -1,0 +1,95 @@
+/* ── Painel da Catequese ── variáveis de tema do Frappe (claro/escuro) */
+#pc-app {
+  --pc-bg: var(--bg-color, #f8f9fc);
+  --pc-card: var(--card-bg, #fff);
+  --pc-text: var(--text-color, #1f2937);
+  --pc-muted: var(--text-muted, #6b7280);
+  --pc-border: var(--border-color, #e5e7eb);
+  --pc-accent: #4f46e5;
+  --pc-accent-soft: rgba(79, 70, 229, 0.1);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  color: var(--pc-text);
+  background: var(--pc-bg);
+  min-height: 100vh;
+  padding: 20px 24px 48px;
+}
+#pc-app, #pc-app * { box-sizing: border-box; }
+#pc-app a { text-decoration: none; color: inherit; }
+
+.pc-loading { display: flex; justify-content: center; padding: 80px; }
+.pc-spinner {
+  width: 22px; height: 22px; border: 2px solid var(--pc-border); border-top-color: var(--pc-accent);
+  border-radius: 50%; animation: pc-spin 0.8s linear infinite;
+}
+@keyframes pc-spin { to { transform: rotate(360deg); } }
+.pc-empty { text-align: center; color: var(--pc-muted); padding: 40px; }
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+.pc-hero {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 26px 28px; border-radius: 18px; color: #fff;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.18), transparent 45%),
+    linear-gradient(135deg, #312e81 0%, #4f46e5 55%, #7c3aed 100%);
+  box-shadow: 0 10px 30px -12px rgba(79, 70, 229, 0.55);
+}
+.pc-hello { margin: 0 0 4px; font-size: 0.9rem; opacity: 0.85; }
+.pc-hero h1 { margin: 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; color: #fff; }
+.pc-sub { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.8; }
+#pc-app .pc-year {
+  display: flex; flex-direction: column; align-items: center; padding: 10px 18px; border-radius: 14px;
+  background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #fff;
+  transition: background 0.15s;
+}
+#pc-app .pc-year:hover { background: rgba(255, 255, 255, 0.25); }
+.pc-year small { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85; }
+.pc-year b { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+
+/* ── Resumo ──────────────────────────────────────────────────────────────── */
+.pc-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 18px 0 6px; }
+.pc-stat {
+  display: flex; flex-direction: column; gap: 2px; padding: 14px 18px; border-radius: 14px;
+  background: var(--pc-card); border: 1px solid var(--pc-border); transition: border-color 0.15s, transform 0.15s;
+}
+.pc-stat:hover { border-color: var(--pc-accent); transform: translateY(-1px); }
+.pc-stat-n { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--pc-text); }
+.pc-stat-l { font-size: 0.78rem; color: var(--pc-muted); }
+
+/* ── Grupos e cartões ────────────────────────────────────────────────────── */
+.pc-group { margin-top: 26px; }
+.pc-group h2 {
+  margin: 0 0 10px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--pc-muted);
+}
+.pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.pc-card {
+  display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 14px;
+  background: var(--pc-card); border: 1px solid var(--pc-border);
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.pc-card:hover { border-color: var(--pc-accent); box-shadow: 0 8px 24px -14px rgba(79, 70, 229, 0.6); transform: translateY(-2px); }
+.pc-icon {
+  flex-shrink: 0; width: 46px; height: 46px; border-radius: 12px; font-size: 1.4rem;
+  display: flex; align-items: center; justify-content: center; background: var(--pc-accent-soft);
+}
+.pc-card-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.pc-card-body b { font-size: 0.95rem; font-weight: 650; color: var(--pc-text); }
+.pc-card-body small { font-size: 0.8rem; line-height: 1.4; color: var(--pc-muted); }
+.pc-arrow { color: var(--pc-muted); font-size: 1.1rem; transition: transform 0.15s, color 0.15s; }
+.pc-card:hover .pc-arrow { color: var(--pc-accent); transform: translateX(3px); }
+
+/* ── Registos ────────────────────────────────────────────────────────────── */
+.pc-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pc-pill {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+  background: var(--pc-card); border: 1px solid var(--pc-border); font-size: 0.85rem; color: var(--pc-text);
+  transition: border-color 0.15s, color 0.15s;
+}
+.pc-pill:hover { border-color: var(--pc-accent); color: var(--pc-accent) !important; }
+
+@media (max-width: 640px) {
+  #pc-app { padding: 14px 16px 40px; }
+  .pc-hero { padding: 20px; }
+  .pc-hero h1 { font-size: 1.5rem; }
+  .pc-grid { grid-template-columns: 1fr; }
+}

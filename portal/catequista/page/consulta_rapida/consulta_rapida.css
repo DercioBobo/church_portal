@@ -84,10 +84,12 @@
 .cr-nav-row:hover { border-color: var(--cr-accent); }
 .cr-nav-row.active { border-color: var(--cr-accent); box-shadow: 0 0 0 3px var(--cr-accent-soft); }
 .cr-chev {
-  width: 22px; height: 28px; border: 0; background: none; color: var(--cr-muted);
-  font-size: 0.8rem; cursor: pointer; flex-shrink: 0; border-radius: 6px;
+  width: 28px; height: 32px; border: 0; background: none; color: var(--cr-muted);
+  font-size: 0.85rem; cursor: pointer; flex-shrink: 0; border-radius: 6px;
+  transition: transform 0.15s, background 0.15s;
 }
 .cr-chev:hover { background: var(--cr-accent-soft); color: var(--cr-accent); }
+.cr-chev.aberta { transform: rotate(90deg); color: var(--cr-accent); }
 .cr-check { width: 15px; height: 15px; margin: 0 2px; cursor: pointer; flex-shrink: 0; accent-color: var(--cr-accent); }
 .cr-check:disabled { cursor: default; opacity: 0.6; }
 .cr-nav-main {

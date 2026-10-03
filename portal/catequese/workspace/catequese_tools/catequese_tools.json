@@ -1,7 +1,7 @@
 {
  "charts": [],
- "content": "[{\"id\": \"ct001\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Catecumenos Activos\", \"col\": 3}}, {\"id\": \"ct002\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Pre-inscricoes Pendentes\", \"col\": 3}}, {\"id\": \"ct003\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Turmas Activas\", \"col\": 3}}, {\"id\": \"ct004\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Catequistas Activos\", \"col\": 3}}, {\"id\": \"ct005\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ct006\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Acesso rápido</b></span>\", \"col\": 12}}, {\"id\": \"ct007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Consulta Rápida\", \"col\": 3}}, {\"id\": \"ct008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Abrir e Encerrar Ano\", \"col\": 3}}, {\"id\": \"ct009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Nova Inscrição\", \"col\": 3}}, {\"id\": \"ct010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Turmas\", \"col\": 3}}, {\"id\": \"ct011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Catecúmenos\", \"col\": 3}}, {\"id\": \"ct012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Preparação do Sacramento\", \"col\": 3}}, {\"id\": \"ct013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Plano Anual\", \"col\": 3}}, {\"id\": \"ct014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Qualidade dos Dados\", \"col\": 3}}, {\"id\": \"ct015\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Relatório Anual\", \"col\": 3}}, {\"id\": \"ct016\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ct017\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Tudo da catequese</b></span>\", \"col\": 12}}, {\"id\": \"ct018\", \"type\": \"card\", \"data\": {\"card_name\": \"Catecúmenos\", \"col\": 4}}, {\"id\": \"ct019\", \"type\": \"card\", \"data\": {\"card_name\": \"Turmas e Fases\", \"col\": 4}}, {\"id\": \"ct020\", \"type\": \"card\", \"data\": {\"card_name\": \"Sacramentos\", \"col\": 4}}, {\"id\": \"ct021\", \"type\": \"card\", \"data\": {\"card_name\": \"Catequistas\", \"col\": 4}}, {\"id\": \"ct022\", \"type\": \"card\", \"data\": {\"card_name\": \"Planeamento\", \"col\": 4}}, {\"id\": \"ct023\", \"type\": \"card\", \"data\": {\"card_name\": \"Finanças\", \"col\": 4}}, {\"id\": \"ct024\", \"type\": \"card\", \"data\": {\"card_name\": \"Configuração\", \"col\": 4}}, {\"id\": \"ct025\", \"type\": \"card\", \"data\": {\"card_name\": \"Relatórios\", \"col\": 4}}]",
- "creation": "2026-10-03 20:52:59.000000",
+ "content": "[{\"id\": \"ct001\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Catecumenos Activos\", \"col\": 3}}, {\"id\": \"ct002\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Pre-inscricoes Pendentes\", \"col\": 3}}, {\"id\": \"ct003\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Turmas Activas\", \"col\": 3}}, {\"id\": \"ct004\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Catequistas Activos\", \"col\": 3}}, {\"id\": \"ct005\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ct006\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Acesso rápido</b></span>\", \"col\": 12}}, {\"id\": \"ct007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Painel da Catequese\", \"col\": 3}}, {\"id\": \"ct008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Consulta Rápida\", \"col\": 3}}, {\"id\": \"ct009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Abrir e Encerrar Ano\", \"col\": 3}}, {\"id\": \"ct010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Nova Inscrição\", \"col\": 3}}, {\"id\": \"ct011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Turmas\", \"col\": 3}}, {\"id\": \"ct012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Catecúmenos\", \"col\": 3}}, {\"id\": \"ct013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Preparação do Sacramento\", \"col\": 3}}, {\"id\": \"ct014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Plano Anual\", \"col\": 3}}, {\"id\": \"ct015\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Qualidade dos Dados\", \"col\": 3}}, {\"id\": \"ct016\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Relatório Anual\", \"col\": 3}}, {\"id\": \"ct017\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ct018\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Tudo da catequese</b></span>\", \"col\": 12}}, {\"id\": \"ct019\", \"type\": \"card\", \"data\": {\"card_name\": \"Catecúmenos\", \"col\": 4}}, {\"id\": \"ct020\", \"type\": \"card\", \"data\": {\"card_name\": \"Turmas e Fases\", \"col\": 4}}, {\"id\": \"ct021\", \"type\": \"card\", \"data\": {\"card_name\": \"Sacramentos\", \"col\": 4}}, {\"id\": \"ct022\", \"type\": \"card\", \"data\": {\"card_name\": \"Catequistas\", \"col\": 4}}, {\"id\": \"ct023\", \"type\": \"card\", \"data\": {\"card_name\": \"Planeamento\", \"col\": 4}}, {\"id\": \"ct024\", \"type\": \"card\", \"data\": {\"card_name\": \"Finanças\", \"col\": 4}}, {\"id\": \"ct025\", \"type\": \"card\", \"data\": {\"card_name\": \"Configuração\", \"col\": 4}}, {\"id\": \"ct026\", \"type\": \"card\", \"data\": {\"card_name\": \"Relatórios\", \"col\": 4}}]",
+ "creation": "2026-10-03 21:31:28.000000",
  "custom_blocks": [],
  "doctype": "Workspace",
  "for_user": "",
@@ -342,9 +342,19 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Configuração",
-   "link_count": 3,
+   "link_count": 4,
    "onboard": 0,
    "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Painel da Catequese",
+   "link_count": 0,
+   "link_to": "painel-catequese",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
   },
   {
    "hidden": 0,
@@ -485,7 +495,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-03 20:52:59.000000",
+ "modified": "2026-10-03 21:31:28.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Catequese Tools",
@@ -521,6 +531,12 @@
  ],
  "sequence_id": 5.0,
  "shortcuts": [
+  {
+   "color": "Purple",
+   "label": "Painel da Catequese",
+   "link_to": "painel-catequese",
+   "type": "Page"
+  },
   {
    "color": "Blue",
    "label": "Consulta Rápida",

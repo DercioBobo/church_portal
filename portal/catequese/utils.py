@@ -84,4 +84,10 @@ def boot_session(bootinfo):
         "tamanho_maximo": definicao("tamanho_maximo"),
         "link_validade_dias": definicao("link_validade_dias"),
         "link_permite_editar": definicao("link_permite_editar"),
+        # páginas da app: recebem o link "← Painel" (public/js/catequese_nav.js)
+        "paginas": nomes_paginas(),
     }
+
+
+def nomes_paginas():
+    return frappe.get_all("Page", filters={"module": ["in", frappe.get_module_list("portal")]}, pluck="name")

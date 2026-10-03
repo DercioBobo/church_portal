@@ -46,6 +46,9 @@ override_whitelisted_methods = {
 # Ano lectivo actual e definições principais disponíveis no browser (frappe.boot.catequese)
 boot_session = "portal.catequese.utils.boot_session"
 
+# Link "← Painel" em todas as páginas da app (Painel da Catequese: /app/painel-catequese)
+app_include_js = ["/assets/portal/js/catequese_nav.js"]
+
 # ── Scheduler ──────────────────────────────────────────────────────────────────
 # (vindo da antiga app pnsa_app)
 scheduler_events = {

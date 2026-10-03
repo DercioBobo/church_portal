@@ -122,9 +122,8 @@ function createConsultaApp() {
       <p v-if="soInactivas" class="cr-nav-note">Ano encerrado: todas as turmas estão inactivas.</p>
       <template v-for="f in fasesFiltradas" :key="f.name">
         <div class="cr-nav-row" :class="{ active: selFases.includes(f.name) && !q }">
-          <button class="cr-chev" @click="expandir(f.name)" :title="abertas.includes(f.name) ? 'Fechar' : 'Ver turmas'">
-            {{ abertas.includes(f.name) ? '▾' : '▸' }}
-          </button>
+          <button class="cr-chev" :class="{ aberta: abertas.includes(f.name) }" @click.stop="expandir(f.name)"
+                  :title="abertas.includes(f.name) ? 'Esconder turmas' : 'Mostrar turmas'">▸</button>
           <input type="checkbox" class="cr-check" :checked="selFases.includes(f.name)" @change="toggleFase(f.name)"
                  title="Juntar à selecção">
           <button class="cr-nav-main" @click="abrirFase(f.name)">
@@ -384,15 +383,11 @@ function createConsultaApp() {
         const i = abertas.value.indexOf(fase);
         if (i >= 0) abertas.value.splice(i, 1); else abertas.value.push(fase);
       }
-      function abrirAba(fase) { if (!abertas.value.includes(fase)) abertas.value.push(fase); }
-
-      // Clique no nome: só esta fase, catecúmenos ordenados por turma
+      // Clique no nome: só esta fase (mantém o separador actual; não abre as turmas no menu)
       function abrirFase(nome) {
         search.value = '';
         selFases.value = [nome];
         selTurmas.value = [];
-        abrirAba(nome);
-        tab.value = 'catecumenos';
         sortKey.value = 'turma';
         sortAsc.value = true;
       }
@@ -402,7 +397,6 @@ function createConsultaApp() {
         search.value = '';
         selFases.value = [];
         selTurmas.value = [nome];
-        abrirAba(faseDe(nome));
         sortKey.value = 'nome';
         sortAsc.value = true;
       }
@@ -415,9 +409,7 @@ function createConsultaApp() {
         } else {
           selFases.value.push(nome);
           selTurmas.value = selTurmas.value.filter((t) => faseDe(t) !== nome);  // já incluídas pela fase
-          abrirAba(nome);
         }
-        if (tab.value === 'turmas') tab.value = 'catecumenos';
         sortKey.value = 'turma';
       }
       function toggleTurma(nome) {
@@ -430,7 +422,6 @@ function createConsultaApp() {
         search.value = '';
         selFases.value = [];
         selTurmas.value = [];
-        tab.value = 'turmas';
       }
 
       const chips = computed(() => [
