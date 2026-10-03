@@ -50,7 +50,10 @@ def verificacao(chave, area, titulo, descricao, doctype, colunas, correccao=None
 
 
 def _sql(q, *args):
-    return frappe.db.sql(q, args or None, as_dict=True)
+    # Sem parâmetros não se passa nada: o Frappe transforma None em (None,) e a query falha
+    if args:
+        return frappe.db.sql(q, args, as_dict=True)
+    return frappe.db.sql(q, as_dict=True)
 
 
 def _norm(s):
