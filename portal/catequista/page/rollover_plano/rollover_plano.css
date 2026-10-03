@@ -228,3 +228,14 @@
   padding: 12px 18px; border-top: 1px solid var(--rp-border);
 }
 .rp-select-sm { height: 32px; font-size: 0.8rem; }
+
+/* ── Adicionar no mês ────────────────────────────────────────────────────── */
+.rp-mes h3 { display: flex; align-items: center; gap: 6px; }
+.rp-add-mes {
+  margin-left: 6px; padding: 1px 8px; border: 1px dashed var(--rp-border); border-radius: 6px; background: none;
+  color: var(--rp-muted); font-size: 0.7rem; font-weight: 600; text-transform: none; letter-spacing: 0; cursor: pointer;
+  opacity: 0; transition: opacity 0.15s;
+}
+.rp-mes:hover .rp-add-mes, .rp-add-mes:focus { opacity: 1; }
+.rp-add-mes:hover { border-color: var(--rp-accent); color: var(--rp-accent); }
+@media (hover: none) { .rp-add-mes { opacity: 1; } }

@@ -68,7 +68,7 @@ function rpCurta(d) {
 let rpChave = 0;
 
 function createRolloverApp() {
-  const { createApp, ref, computed, onMounted, onBeforeUnmount } = Vue;
+  const { createApp, ref, computed, nextTick, onMounted, onBeforeUnmount } = Vue;
 
   return createApp({
     template: `
@@ -90,6 +90,7 @@ function createRolloverApp() {
       </a>
       <button class="rp-btn" @click="imprimir">🖨 Imprimir</button>
       <template v-if="!finalizada">
+        <button class="rp-btn" @click="adicionar()">+ Actividade</button>
         <button class="rp-btn" :disabled="!sujo || ocupado" @click="guardar">💾 Guardar</button>
         <button class="rp-btn rp-btn-primary" :disabled="ocupado || !incluidas.length" @click="finalizar">✓ Finalizar</button>
       </template>
@@ -175,6 +176,8 @@ function createRolloverApp() {
         <input v-if="!finalizada" type="checkbox" class="rp-sel" :checked="todasSel(g.linhas)"
                :indeterminate.prop="algumasSel(g.linhas)" @change="toggleGrupo(g.linhas)" title="Seleccionar o mês">
         {{ g.titulo }} <span>{{ g.linhas.length }}</span>
+        <button v-if="!finalizada" class="rp-add-mes" @click="adicionar(g.chave)"
+                :title="g.chave < 12 ? 'Nova actividade em ' + g.titulo : 'Nova actividade sem data'">+ Adicionar</button>
       </h3>
       <div class="rp-table-wrap">
         <table class="rp-table">
@@ -198,7 +201,7 @@ function createRolloverApp() {
                 </td>
                 <td class="c-data"><input type="date" v-model="l.data_fim" @input="marcar"></td>
                 <td>
-                  <input v-model="l.actividade" @input="marcar" placeholder="Nome da actividade">
+                  <input v-model="l.actividade" @input="marcar" placeholder="Nome da actividade" :data-linha="l._k">
                 </td>
                 <td class="c-info">
                   <button class="rp-chip" :class="{ vazio: !temEtiquetas(l), activo: painel === l }" @click="abrirPainel(l)"
@@ -458,11 +461,29 @@ function createRolloverApp() {
         }
       }
 
-      function adicionar() {
-        linhas.value.push({ _k: ++rpChave, origem: 'Nova', data: '', data_fim: '', actividade: '', tipologia: '',
-                            local: '', orador: '', orcamento: '', notas: '', organizador: 'Paróquia',
-                            a_confirmar: 0, so_este_ano: 0, incluir: 1 });
+      // Primeiro sábado do mês (0–11) no ano da proposta — ponto de partida para a data
+      function primeiroSabado(mes) {
+        const d = new Date(Number(ano.value), mes, 1);
+        d.setDate(1 + ((6 - d.getDay() + 7) % 7));
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+
+      // mes: 0–11 para criar já nesse mês; 12 ou vazio = sem data
+      async function adicionar(mes) {
+        const l = { _k: ++rpChave, origem: 'Nova', data: mes != null && mes < 12 ? primeiroSabado(mes) : '',
+                    data_fim: '', actividade: '', tipologia: '', local: '', orador: '', orcamento: '', notas: '',
+                    organizador: 'Paróquia', a_confirmar: 0, so_este_ano: 0, incluir: 1 };
+        // a nova linha tem de aparecer mesmo com pesquisa ou filtro activos
+        pesquisa.value = '';
+        filtro.value = 'todas';
+        linhas.value.push(l);
         marcar();
+        await nextTick();
+        const campo = document.querySelector(`#rp-app input[data-linha="${l._k}"]`);
+        if (campo) {
+          campo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          campo.focus({ preventScroll: true });
+        }
       }
 
       function apagar(l) {
