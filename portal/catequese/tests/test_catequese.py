@@ -30,9 +30,9 @@ def ano(nome):
     return nome
 
 
-def fase(nome):
+def fase(nome, **campos):
     if not frappe.db.exists("Fase", nome):
-        frappe.get_doc({"doctype": "Fase", "nome_da_fase": nome}).insert()
+        frappe.get_doc(dict({"doctype": "Fase", "nome_da_fase": nome}, **campos)).insert()
     return nome
 
 
@@ -251,7 +251,7 @@ class TestApuramento(BaseCatequese):
         doc = frappe.get_doc(dict({
             "doctype": "Apuramento de Turmas",
             "ano_lectivo_actual": ANO, "ano_lectivo_seguinte": ANO_SEGUINTE,
-            "fase_actual": origem.fase, "fase_seguinte": FASE_B,
+            "fase_actual": origem.fase,  # fase_seguinte vem da Fase (fase_seguinte_transita)
             "tamanho_minimo": 2, "tamanho_ideal": 3, "tamanho_maximo": 4,
             "apuramento_turmas": [{"turma": origem.name, "incluir": 1}],
             "apuramento_item": [
@@ -263,7 +263,7 @@ class TestApuramento(BaseCatequese):
 
     def test_transita_e_permanece(self):
         cs = [catecumeno(f"_Teste Apur {i}") for i in range(3)]
-        origem = turma(fase("_Teste Apur Fase 1"), cs)
+        origem = turma(fase("_Teste Apur Fase 1", fase_seguinte_transita=FASE_B), cs)
         doc = self.apuramento(origem, {cs[0].name: "Transita", cs[1].name: "Transita", cs[2].name: "Permanece"})
         doc.submit()
 
@@ -279,15 +279,23 @@ class TestApuramento(BaseCatequese):
 
     def test_sem_resultado_e_recusado(self):
         c = catecumeno("_Teste Apur Sem Resultado")
-        origem = turma(fase("_Teste Apur Fase 2"), [c])
+        origem = turma(fase("_Teste Apur Fase 2", fase_seguinte_transita=FASE_B), [c])
         doc = self.apuramento(origem, {c.name: ""})
         self.assertRaises(frappe.ValidationError, doc.submit)
 
     def test_ano_seguinte_tem_de_ser_maior(self):
         c = catecumeno("_Teste Apur Ano")
-        origem = turma(fase("_Teste Apur Fase 3"), [c])
+        origem = turma(fase("_Teste Apur Fase 3", fase_seguinte_transita=FASE_B), [c])
         doc = self.apuramento(origem, {c.name: "Transita"}, ano_lectivo_seguinte=ANO)
         self.assertRaises(frappe.ValidationError, doc.submit)
+
+    def test_fase_sem_fase_seguinte_da_erro_claro(self):
+        c = catecumeno("_Teste Apur Sem Seguinte")
+        origem = turma(fase("_Teste Apur Fase 4"), [c])
+        doc = self.apuramento(origem, {c.name: "Transita"})
+        with self.assertRaises(frappe.ValidationError) as ctx:
+            doc.submit()
+        self.assertIn("_Teste Apur Fase 4", str(ctx.exception))
 
     def test_distribuicao_equilibrada(self):
         from portal.catequese.doctype.apuramento_de_turmas.apuramento_de_turmas import _distribuir_em_turmas

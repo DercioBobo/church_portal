@@ -16,10 +16,14 @@ class ApuramentodeTurmas(Document):
     def _validar(self):
         if not self.ano_lectivo_seguinte:
             frappe.throw("Preencha o Ano Lectivo Seguinte.")
-        if not self.fase_seguinte:
-            frappe.throw("Preencha a Fase Seguinte.")
         if not self.fase_actual:
             frappe.throw("Preencha a Fase Actual.")
+        if not self.fase_seguinte:
+            # fase_seguinte é preenchida a partir da Fase (campo "Fase Seguinte")
+            frappe.throw(
+                f"A fase {self.fase_actual} não tem \"Fase Seguinte\" configurada. "
+                "Abra a Fase e preencha o campo \"Fase Seguinte\" antes de submeter o apuramento."
+            )
         if not self.ano_lectivo_actual:
             frappe.throw("Preencha o Ano Lectivo Actual.")
 
