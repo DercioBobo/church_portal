@@ -1,11 +1,19 @@
 import frappe
 from frappe.model.document import Document
 
+from portal.catequese.utils import tamanhos_turma
+
 TABELA_TURMA = "lista_catecumenos"
 ESTADOS_FORA = ("inactivo", "inativo", "desistente")
 
 
 class ApuramentodeTurmas(Document):
+    def before_validate(self):
+        minimo, ideal, maximo = tamanhos_turma()
+        self.tamanho_minimo = self.tamanho_minimo or minimo
+        self.tamanho_ideal = self.tamanho_ideal or ideal
+        self.tamanho_maximo = self.tamanho_maximo or maximo
+
     def before_submit(self):
         # (era o Server Script "Apuramento Script")
         self._validar()
@@ -94,9 +102,10 @@ class ApuramentodeTurmas(Document):
     # ── Processamento ─────────────────────────────────────────────────────────
 
     def _processar(self):
-        tam_min = self.tamanho_minimo or 20
-        tam_ideal = self.tamanho_ideal or 25
-        tam_max = self.tamanho_maximo or 30
+        padrao = tamanhos_turma()
+        tam_min = self.tamanho_minimo or padrao[0]
+        tam_ideal = self.tamanho_ideal or padrao[1]
+        tam_max = self.tamanho_maximo or padrao[2]
         fase_permanece = self.fase_seguinte_permanece or self.fase_actual
 
         try:

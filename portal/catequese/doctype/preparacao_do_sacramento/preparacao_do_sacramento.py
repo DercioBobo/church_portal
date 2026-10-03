@@ -5,17 +5,26 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_to_date, get_datetime, get_url, now_datetime
 
-FASE_APOS_BAPTISMO = "1º Ano de Aprofundamento"
+from portal.catequese.utils import definicao, valores_sacramento
 
 
 class PreparacaodoSacramento(Document):
+    def before_insert(self):
+        # Valores por omissão do sacramento (só os que não foram preenchidos)
+        for campo, valor in valores_sacramento(self.sacramento).items():
+            if not self.get(campo):
+                self.set(campo, valor)
+
     # ── Link para encarregados ────────────────────────────────────────────────
 
     @frappe.whitelist()
-    def gerar_link_encarregados(self, expira_em=None, dias=7, permite_editar=1):
+    def gerar_link_encarregados(self, expira_em=None, dias=None, permite_editar=None):
         """Gera um link novo (o anterior deixa de funcionar) válido até `expira_em`."""
         self.check_permission("write")
-        expira = get_datetime(expira_em) if expira_em else add_to_date(now_datetime(), days=int(dias))
+        if permite_editar is None:
+            permite_editar = definicao("link_permite_editar")
+        dias = int(dias or definicao("link_validade_dias"))
+        expira = get_datetime(expira_em) if expira_em else add_to_date(now_datetime(), days=dias)
         if expira <= now_datetime():
             frappe.throw(_("A data de validade tem de ser no futuro."))
 
@@ -50,7 +59,7 @@ class PreparacaodoSacramento(Document):
     def _finalizar_baptismo(self):
         """Move os baptizados (e os já baptizados da mesma turma) para novas turmas
         da fase seguinte e regista cada um no Livro de Baptismo."""
-        nova_fase = FASE_APOS_BAPTISMO
+        nova_fase = definicao("fase_apos_baptismo")
 
         por_turma = {}
         for row in self.candidatos_sacramento_table:

@@ -335,9 +335,9 @@ frappe.ui.form.on('Apuramento de Turmas', {
             method: 'portal.catequese.apuramento_turmas.preview_distribuicao',
             args: {
                 apuramento_items_json: JSON.stringify(items_data),
-                tamanho_min: frm.doc.tamanho_minimo || 20,
-                tamanho_ideal: frm.doc.tamanho_ideal || 25,
-                tamanho_max: frm.doc.tamanho_maximo || 30,
+                tamanho_min: frm.doc.tamanho_minimo || ((frappe.boot.catequese && frappe.boot.catequese.tamanho_minimo) || 20),
+                tamanho_ideal: frm.doc.tamanho_ideal || ((frappe.boot.catequese && frappe.boot.catequese.tamanho_ideal) || 25),
+                tamanho_max: frm.doc.tamanho_maximo || ((frappe.boot.catequese && frappe.boot.catequese.tamanho_maximo) || 30),
                 manter_estrutura: frm.doc.tipo_distribuicao === "Manter Estrutura",
                 destino_repetentes: frm.doc.destino_repetentes || "Criar Novas Turmas",
                 ano_lectivo_seguinte: frm.doc.ano_lectivo_seguinte,

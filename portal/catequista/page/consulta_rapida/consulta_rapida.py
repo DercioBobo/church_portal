@@ -23,6 +23,14 @@ def get_anos_lectivos():
 
 
 @frappe.whitelist()
+def get_ano_actual():
+    _assert_coordenador()
+    from portal.catequese.utils import ano_actual
+
+    return ano_actual()
+
+
+@frappe.whitelist()
 def get_dados(ano_lectivo):
     _assert_coordenador()
 

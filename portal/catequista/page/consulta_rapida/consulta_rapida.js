@@ -353,9 +353,9 @@ function createConsultaApp() {
       }
 
       onMounted(async () => {
-        anos.value = await api('get_anos_lectivos');
-        const atual = String(new Date().getFullYear());
-        ano.value = anos.value.includes(atual) ? atual : (anos.value[0] || '');
+        const [lista, atual] = await Promise.all([api('get_anos_lectivos'), api('get_ano_actual')]);
+        anos.value = lista || [];
+        ano.value = atual && anos.value.includes(atual) ? atual : (anos.value[0] || '');
         if (ano.value) await load(); else loading.value = false;
       });
 

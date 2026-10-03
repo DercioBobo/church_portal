@@ -100,24 +100,25 @@ def _setup_custom_fields():
 
 def seed_field_config():
     """
-    Seeds Catequista Portal Settings with the default field and section configuration.
+    Seeds the Portal do Catequista configuration (Catequese Settings) with the default fields and sections.
     Safe to call multiple times — skips if the Settings doc already has data.
 
     Can be re-run manually:
         bench execute portal.setup.seed_field_config
     """
-    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
+    doc = frappe.get_single("Catequese Settings")
+    if doc.get("field_config") or doc.get("sections"):
         print("[portal] Configuração de campos já existe, a ignorar seed.")
         return
 
     try:
         from portal.api import _default_field_config, _default_section_config
-        doc = frappe.new_doc("Catequista Portal Settings")
         for entry in _default_section_config():
             doc.append("sections", entry)
         for entry in _default_field_config():
             doc.append("field_config", entry)
-        doc.insert(ignore_permissions=True)
+        doc.flags.ignore_validate = True
+        doc.save(ignore_permissions=True)
         print("[portal] Configuração inicial de campos e secções do portal criada.")
     except Exception as e:
         print(f"[portal] Aviso: não foi possível criar configuração inicial: {e}")

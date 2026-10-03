@@ -144,7 +144,7 @@ function update_catequistas(frm) {
 frappe.ui.form.on('Turma', {
     onload: function (frm) {
         if (frm.is_new() && !frm.doc.ano_lectivo) {
-            const currentYear = new Date().getFullYear().toString();
+            const currentYear = ((frappe.boot.catequese && frappe.boot.catequese.ano_actual) || new Date().getFullYear().toString());
             frm.set_value('ano_lectivo', currentYear);
         }
     }

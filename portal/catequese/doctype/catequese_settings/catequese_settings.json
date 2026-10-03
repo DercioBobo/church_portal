@@ -1,0 +1,248 @@
+{
+ "actions": [],
+ "creation": "2026-10-03 20:42:22.000000",
+ "custom": 0,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_geral",
+  "paroquia",
+  "comunidades",
+  "ministerio",
+  "cb_geral",
+  "comunidade_sede",
+  "local",
+  "tab_ano",
+  "ano_lectivo_actual",
+  "cb_ano",
+  "ano_html",
+  "tab_turmas",
+  "tamanho_minimo",
+  "tamanho_ideal",
+  "tamanho_maximo",
+  "tab_sacramentos",
+  "fase_apos_baptismo",
+  "cb_sac",
+  "link_validade_dias",
+  "link_permite_editar",
+  "sec_valores_sacramento",
+  "valores_sacramento",
+  "sec_documentos_sacramento",
+  "documentos_html",
+  "tab_portal",
+  "editor_section",
+  "layout_preview",
+  "advanced_section",
+  "sections",
+  "field_config"
+ ],
+ "fields": [
+  {
+   "fieldname": "tab_geral",
+   "fieldtype": "Tab Break",
+   "label": "Geral"
+  },
+  {
+   "default": "PARÓQUIA NOSSA SENHORA DA ASSUNÇÃO - LIBERDADE",
+   "description": "Usado no cabeçalho dos relatórios.",
+   "fieldname": "paroquia",
+   "fieldtype": "Data",
+   "label": "Paróquia"
+  },
+  {
+   "default": "COMUNIDADE SEDE E SANTA ANA – MASTRONG",
+   "fieldname": "comunidades",
+   "fieldtype": "Data",
+   "label": "Comunidades"
+  },
+  {
+   "default": "MINISTÉRIO DA CATEQUESE E FORMAÇÃO PERMANENTE",
+   "fieldname": "ministerio",
+   "fieldtype": "Data",
+   "label": "Ministério"
+  },
+  {
+   "fieldname": "cb_geral",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Assunção",
+   "description": "Comunidade principal: os registos sem comunidade contam como sede.",
+   "fieldname": "comunidade_sede",
+   "fieldtype": "Select",
+   "label": "Comunidade sede",
+   "options": "Assunção\nSanta Ana"
+  },
+  {
+   "default": "Matola",
+   "fieldname": "local",
+   "fieldtype": "Data",
+   "label": "Local (assinaturas)"
+  },
+  {
+   "fieldname": "tab_ano",
+   "fieldtype": "Tab Break",
+   "label": "Ano Lectivo"
+  },
+  {
+   "description": "O ano usado por omissão em todas as páginas, relatórios e formulários. Muda-se na página \"Abrir e Encerrar Ano\" quando o novo ano arranca.",
+   "fieldname": "ano_lectivo_actual",
+   "fieldtype": "Link",
+   "label": "Ano lectivo actual",
+   "options": "Ano Lectivo"
+  },
+  {
+   "fieldname": "cb_ano",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ano_html",
+   "fieldtype": "HTML",
+   "options": "<p class=\"text-muted small\">O ano catequético corresponde ao ano civil (Janeiro a Dezembro).</p>"
+  },
+  {
+   "fieldname": "tab_turmas",
+   "fieldtype": "Tab Break",
+   "label": "Turmas"
+  },
+  {
+   "default": "20",
+   "description": "Abaixo disto, o apuramento junta turmas.",
+   "fieldname": "tamanho_minimo",
+   "fieldtype": "Int",
+   "label": "Tamanho mínimo",
+   "non_negative": 1
+  },
+  {
+   "default": "25",
+   "fieldname": "tamanho_ideal",
+   "fieldtype": "Int",
+   "label": "Tamanho ideal",
+   "non_negative": 1
+  },
+  {
+   "default": "30",
+   "description": "Usados por omissão no Apuramento e na Alocação em Massa.",
+   "fieldname": "tamanho_maximo",
+   "fieldtype": "Int",
+   "label": "Tamanho máximo",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "tab_sacramentos",
+   "fieldtype": "Tab Break",
+   "label": "Sacramentos"
+  },
+  {
+   "default": "1º Ano de Aprofundamento",
+   "description": "Fase das novas turmas criadas quando se submete uma Preparação de Baptismo.",
+   "fieldname": "fase_apos_baptismo",
+   "fieldtype": "Link",
+   "label": "Fase após o Baptismo",
+   "options": "Fase"
+  },
+  {
+   "fieldname": "cb_sac",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "7",
+   "fieldname": "link_validade_dias",
+   "fieldtype": "Int",
+   "label": "Validade do link para encarregados (dias)",
+   "non_negative": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "link_permite_editar",
+   "fieldtype": "Check",
+   "label": "Link permite editar por omissão"
+  },
+  {
+   "description": "Preenchidos automaticamente numa nova Preparação do Sacramento (pode alterá-los na preparação).",
+   "fieldname": "sec_valores_sacramento",
+   "fieldtype": "Section Break",
+   "label": "Valores por omissão de cada sacramento"
+  },
+  {
+   "fieldname": "valores_sacramento",
+   "fieldtype": "Table",
+   "label": "Valores",
+   "options": "Catequese Settings Sacramento"
+  },
+  {
+   "fieldname": "sec_documentos_sacramento",
+   "fieldtype": "Section Break",
+   "label": "Documentos exigidos"
+  },
+  {
+   "fieldname": "documentos_html",
+   "fieldtype": "HTML",
+   "options": "<p class=\"text-muted small\">Os documentos exigidos estão em cada registo de <a href=\"/app/sacramento\">Sacramento</a> (campo \"Documentos Exigidos\") e são copiados automaticamente para cada nova Preparação.</p>"
+  },
+  {
+   "fieldname": "tab_portal",
+   "fieldtype": "Tab Break",
+   "label": "Portal do Catequista"
+  },
+  {
+   "description": "O que os catequistas vêem no portal: secções do painel e campos da turma/catecúmeno. Guarde (Ctrl+S) para aplicar.",
+   "fieldname": "editor_section",
+   "fieldtype": "Section Break",
+   "label": "Editor do Portal"
+  },
+  {
+   "fieldname": "layout_preview",
+   "fieldtype": "HTML",
+   "label": "Editor"
+  },
+  {
+   "collapsible": 1,
+   "description": "Os mesmos dados do editor acima, em formato de tabela.",
+   "fieldname": "advanced_section",
+   "fieldtype": "Section Break",
+   "label": "Avançado: tabelas de configuração"
+  },
+  {
+   "fieldname": "sections",
+   "fieldtype": "Table",
+   "label": "Secções do Painel",
+   "options": "Catequista Portal Section"
+  },
+  {
+   "fieldname": "field_config",
+   "fieldtype": "Table",
+   "label": "Configuração de Campos",
+   "options": "Catequista Portal Field"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-03 20:51:53.000000",
+ "modified_by": "Administrator",
+ "module": "Catequese",
+ "name": "Catequese Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Coordenador Catequese",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

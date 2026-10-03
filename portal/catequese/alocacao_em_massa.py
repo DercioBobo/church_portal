@@ -6,19 +6,20 @@ from frappe import _
 from frappe.utils import cint, nowdate
 import math
 
-# Capacidade padrão se não especificada
-CAPACIDADE_PADRAO = 25
+from portal.catequese.utils import definicao
+
+# Capacidade por omissão: tamanho ideal das Catequese Settings
 
 
 @frappe.whitelist()
-def carregar_dados(fase, capacidade_recomendada=25):
+def carregar_dados(fase, capacidade_recomendada=None):
     """
     Carrega catecúmenos pendentes e turmas existentes para uma fase.
     """
     if not fase:
         return {"error": "Fase não especificada"}
     
-    capacidade = cint(capacidade_recomendada) or CAPACIDADE_PADRAO
+    capacidade = cint(capacidade_recomendada) or cint(definicao("tamanho_ideal"))
     
     # 1. Buscar catecúmenos pendentes (sem turma)
     pendentes = frappe.get_all(
@@ -84,7 +85,7 @@ def carregar_dados(fase, capacidade_recomendada=25):
 
 
 @frappe.whitelist()
-def gerar_sugestao(fase, capacidade_recomendada=25):
+def gerar_sugestao(fase, capacidade_recomendada=None):
     """
     Gera sugestão inteligente de distribuição.
     Regras:
@@ -100,7 +101,7 @@ def gerar_sugestao(fase, capacidade_recomendada=25):
     
     pendentes = dados["pendentes"]
     turmas = dados["turmas"]
-    capacidade = cint(capacidade_recomendada) or CAPACIDADE_PADRAO
+    capacidade = cint(capacidade_recomendada) or cint(definicao("tamanho_ideal"))
     
     total_pendentes = len(pendentes)
     
@@ -143,16 +144,12 @@ def gerar_sugestao(fase, capacidade_recomendada=25):
     if pendentes_restantes:
         restantes = len(pendentes_restantes)
         
-        # Lógica de criação de turmas:
-        # - Até 30: 1 turma
-        # - 31-50: 2 turmas (dividir equilibradamente)
-        # - 51-75: 3 turmas
-        # etc.
-        
-        if restantes <= 30:
+        # Lógica de criação de turmas (tamanhos das Catequese Settings):
+        # - até ao tamanho máximo: 1 turma
+        # - acima: turmas com cerca da capacidade (tamanho ideal)
+        if restantes <= cint(definicao("tamanho_maximo")):
             novas_turmas_necessarias = 1
         else:
-            # Calcular quantas turmas de ~25 são necessárias
             novas_turmas_necessarias = math.ceil(restantes / capacidade)
         
         # Distribuir equilibradamente

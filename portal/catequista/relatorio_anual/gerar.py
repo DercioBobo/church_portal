@@ -16,6 +16,7 @@ import frappe
 from frappe import _
 from frappe.utils import getdate, nowdate
 
+from portal.catequese.utils import definicao
 from portal.catequista.relatorio_anual import dados
 
 MODELO_PADRAO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "modelo_relatorio_anual.docx")
@@ -95,9 +96,9 @@ def contexto(doc):
     assin = getdate(doc.data_assinatura or nowdate())
     return {
         "cab": {
-            "paroquia": doc.paroquia or "",
-            "comunidades": doc.comunidades or "",
-            "ministerio": doc.ministerio or "",
+            "paroquia": doc.paroquia or definicao("paroquia"),
+            "comunidades": doc.comunidades or definicao("comunidades"),
+            "ministerio": doc.ministerio or definicao("ministerio"),
         },
         "ano": ano,
         "ano_anterior": ano - 1,
@@ -116,7 +117,7 @@ def contexto(doc):
         "notas_estatistica": notas,
         "fases": fases,
         "financas": fin,
-        "local_data": f"{doc.local or 'Matola'}, {dados.mes_nome(assin)} de {assin.year}",
+        "local_data": f"{doc.local or definicao('local')}, {dados.mes_nome(assin)} de {assin.year}",
     }
 
 

@@ -419,3 +419,98 @@ class TestQualidadeDados(BaseCatequese):
 
         corrigir("cat_turma_divergente", json.dumps([c.name]))
         self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["turma", "fase"]), (t.name, FASE_A))
+
+
+# ── Definições e ano lectivo ──────────────────────────────────────────────────
+
+class TestDefinicoesEAno(BaseCatequese):
+    def tearDown(self):
+        frappe.clear_document_cache("Catequese Settings", "Catequese Settings")
+
+    def definir(self, **valores):
+        s = frappe.get_single("Catequese Settings")
+        s.update(valores)
+        s.save()
+        frappe.clear_document_cache("Catequese Settings", "Catequese Settings")
+
+    def test_definicao_usa_padrao_quando_vazia(self):
+        from portal.catequese.utils import PADROES, definicao
+
+        self.definir(tamanho_ideal=0)
+        self.assertEqual(definicao("tamanho_ideal"), PADROES["tamanho_ideal"])
+        self.definir(tamanho_ideal=22)
+        self.assertEqual(definicao("tamanho_ideal"), 22)
+
+    def test_tamanhos_incoerentes_sao_recusados(self):
+        s = frappe.get_single("Catequese Settings")
+        s.update({"tamanho_minimo": 30, "tamanho_ideal": 25, "tamanho_maximo": 20})
+        self.assertRaises(frappe.ValidationError, s.save)
+
+    def test_ano_actual_vem_das_definicoes(self):
+        from portal.catequese.utils import ano_actual
+
+        self.definir(ano_lectivo_actual=ANO)
+        self.assertEqual(ano_actual(), ANO)
+
+    def test_apuramento_usa_tamanhos_das_definicoes(self):
+        self.definir(tamanho_minimo=5, tamanho_ideal=6, tamanho_maximo=7)
+        c = catecumeno("_Teste Def Apur")
+        origem = turma(fase("_Teste Def Fase", fase_seguinte_transita=FASE_B), [c])
+        doc = frappe.get_doc({
+            "doctype": "Apuramento de Turmas", "ano_lectivo_actual": ANO, "ano_lectivo_seguinte": ANO_SEGUINTE,
+            "fase_actual": origem.fase, "apuramento_turmas": [{"turma": origem.name, "incluir": 1}],
+            "apuramento_item": [{"catecumeno": c.name, "resultado": "Transita", "turma_nome": origem.name}],
+        }).insert()
+        self.assertEqual((doc.tamanho_minimo, doc.tamanho_ideal, doc.tamanho_maximo), (5, 6, 7))
+
+    def test_criar_ano_e_definir_actual(self):
+        from portal.catequese.page.ano_lectivo.ano_lectivo import criar_ano, definir_ano_actual
+        from portal.catequese.utils import ano_actual
+
+        self.definir(ano_lectivo_actual=ANO)
+        criar_ano("2099")
+        self.assertEqual(frappe.db.get_value("Ano Lectivo", "2099", "estado"), "Planeado")
+
+        definir_ano_actual("2099")
+        frappe.clear_document_cache("Catequese Settings", "Catequese Settings")
+        self.assertEqual(ano_actual(), "2099")
+        self.assertEqual(frappe.db.get_value("Ano Lectivo", "2099", "estado"), "Em curso")
+        self.assertEqual(frappe.db.get_value("Ano Lectivo", ANO, "estado"), "Encerrado")
+
+    def test_estado_mostra_fase_por_apurar_e_encerra_turmas(self):
+        from portal.catequese.page.ano_lectivo.ano_lectivo import encerrar_turmas, get_estado
+
+        t = turma(fase("_Teste Estado Fase"), [catecumeno("_Teste Estado")])
+        estado = get_estado(ANO)
+        apuramento = next(p for p in estado["encerrar"] if p["chave"] == "apuramento")
+        item = next(i for i in apuramento["itens"] if i["texto"] == "_Teste Estado Fase")
+        self.assertEqual(item["estado"], "pendente")
+        self.assertIn("Fase Seguinte", item["nota"])  # fase sem fase seguinte configurada
+
+        self.assertGreaterEqual(encerrar_turmas(ANO), 1)
+        self.assertEqual(frappe.db.get_value("Turma", t.name, "status"), "Inactivo")
+
+    def test_preparacao_recebe_valores_do_sacramento(self):
+        s = frappe.get_single("Catequese Settings")
+        s.set("valores_sacramento", [{"sacramento": "Crisma", "valor_ofertorio": 500, "valor_fotos": 150}])
+        s.save()
+        frappe.clear_document_cache("Catequese Settings", "Catequese Settings")
+
+        ano_nome = ano("2098")
+        prep = frappe.get_doc({"doctype": "Preparacao do Sacramento", "sacramento": "Crisma",
+                               "ano_lectivo": ano_nome, "valor_fotos": 99}).insert()
+        self.assertEqual(prep.valor_ofertorio, 500)
+        self.assertEqual(prep.valor_fotos, 99)  # valor indicado à mão não é substituído
+
+    def test_configuracao_do_portal_vem_das_definicoes(self):
+        from portal import api
+
+        s = frappe.get_single("Catequese Settings")
+        s.set("sections", [{"section_key": "teste", "label": "Secção Teste", "icon": "User"}])
+        s.save()
+        frappe.clear_document_cache("Catequese Settings", "Catequese Settings")
+        for attr in ("_portal_section_config", "_portal_field_config"):
+            if hasattr(frappe.local, attr):
+                delattr(frappe.local, attr)
+
+        self.assertEqual([x["section_key"] for x in api._load_section_config()], ["teste"])

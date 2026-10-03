@@ -601,10 +601,12 @@ frappe.ui.form.on('Preparacao do Sacramento', {
                 fields: [
                     {
                         fieldname: 'expira_em', fieldtype: 'Datetime', label: __('Válido até'), reqd: 1,
-                        default: frappe.datetime.add_days(frappe.datetime.now_datetime(), 7),
+                        default: frappe.datetime.add_days(frappe.datetime.now_datetime(),
+                            (frappe.boot.catequese && frappe.boot.catequese.link_validade_dias) || 7),
                     },
                     {
-                        fieldname: 'permite_editar', fieldtype: 'Check', default: 1,
+                        fieldname: 'permite_editar', fieldtype: 'Check',
+                        default: frappe.boot.catequese ? frappe.boot.catequese.link_permite_editar : 1,
                         label: __('Encarregados podem corrigir dados e deixar observações'),
                     },
                     {
@@ -653,5 +655,22 @@ frappe.ui.form.on('Preparacao do Sacramento', {
                 'blue', true
             );
         }
+    },
+});
+
+// ── Valores por omissão do sacramento (Catequese Settings) ─────────────────
+
+frappe.ui.form.on('Preparacao do Sacramento', {
+    sacramento(frm) {
+        if (!frm.is_new() || !frm.doc.sacramento) return;
+        frappe.call({
+            method: 'portal.catequese.utils.valores_sacramento',
+            args: { sacramento: frm.doc.sacramento },
+            callback(r) {
+                Object.entries(r.message || {}).forEach(([campo, valor]) => {
+                    if (!frm.doc[campo] && valor) frm.set_value(campo, valor);
+                });
+            },
+        });
     },
 });

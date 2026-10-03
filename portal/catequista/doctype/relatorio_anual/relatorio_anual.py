@@ -3,6 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import getdate, now_datetime
 
+from portal.catequese.utils import definicao
 from portal.catequista.relatorio_anual import dados, gerar
 
 # (chave, indicador) — linhas fixas da tabela de estatística
@@ -19,6 +20,9 @@ INDICADORES = [
 
 class RelatorioAnual(Document):
     def before_insert(self):
+        for campo in ("paroquia", "comunidades", "ministerio", "local"):
+            if not self.get(campo):
+                self.set(campo, definicao(campo))
         self._actualizar()
 
     def validate(self):

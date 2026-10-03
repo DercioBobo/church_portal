@@ -1,4 +1,4 @@
-// Catequista Portal Settings — visual editor for the portal's fields and panel sections.
+// Catequese Settings › Portal do Catequista — visual editor for the portal's fields and panel sections.
 //
 // Everything is edited from the "Editor do Portal" block, which mirrors what catequistas see:
 //  • Sections are cards: rename inline, pick an icon, drag to reorder, delete
@@ -36,7 +36,7 @@
 	// then numbers. The DOM always hands names back as strings, so compare as strings.
 	const same = (a, b) => a != null && b != null && String(a) === String(b);
 
-	frappe.ui.form.on('Catequista Portal Settings', {
+	frappe.ui.form.on('Catequese Settings', {
 		refresh(frm) {
 			editor.inject_styles();
 			editor.changed(frm, { silent: true });

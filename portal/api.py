@@ -459,7 +459,7 @@ def get_catecumenos_publicos():
 
 def _default_field_config():
     """
-    Static default config used when no Catequista Portal Settings doc exists.
+    Static default config used when the portal configuration in Catequese Settings is empty.
     Always returns the common fields so the portal works out-of-the-box.
     """
     return [
@@ -499,6 +499,11 @@ def _default_section_config():
     ]
 
 
+def _portal_settings():
+    """Configuração do Portal do Catequista (separador nas Catequese Settings)."""
+    return frappe.get_single("Catequese Settings")
+
+
 def _load_section_config():
     """Load section config from Settings doc, falling back to defaults.
     Result is cached for the lifetime of the request via frappe.local."""
@@ -506,8 +511,8 @@ def _load_section_config():
     if cached is not None:
         return cached
 
-    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
-        doc = frappe.get_doc("Catequista Portal Settings")
+    doc = _portal_settings()
+    if doc:
         if doc.get("sections"):
             result = [
                 {
@@ -532,8 +537,8 @@ def _load_field_config():
     if cached is not None:
         return cached
 
-    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
-        doc = frappe.get_doc("Catequista Portal Settings")
+    doc = _portal_settings()
+    if doc:
         if doc.field_config:
             result = [
                 {
@@ -740,9 +745,7 @@ def get_portal_field_candidates():
     """
     frappe.only_for("System Manager")
 
-    configured = set()
-    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
-        configured = {row.fieldname for row in frappe.get_doc("Catequista Portal Settings").field_config}
+    configured = {row.fieldname for row in _portal_settings().field_config}
 
     by_source = {key: [] for key, _doctype, _label in _PORTAL_FIELD_SOURCES}
     for c in _portal_field_candidates():
@@ -760,17 +763,14 @@ def get_portal_field_candidates():
 @frappe.whitelist()
 def sync_catecumeno_fields():
     """
-    Adds every portal field candidate not yet in Catequista Portal Settings, with
+    Adds every portal field candidate not yet in the portal configuration, with
     its default visibility. Existing rows are never overwritten.
     The Settings form uses the field picker instead; kept for bench/scripts:
         bench execute portal.api.sync_catecumeno_fields
     """
     frappe.only_for("System Manager")
 
-    if frappe.db.exists("Catequista Portal Settings", "Catequista Portal Settings"):
-        doc = frappe.get_doc("Catequista Portal Settings")
-    else:
-        doc = frappe.new_doc("Catequista Portal Settings")
+    doc = _portal_settings()
 
     existing = {row.fieldname for row in doc.field_config}
     added = 0
@@ -802,7 +802,7 @@ def get_minha_turma():
     """
     Devolve todas as turmas activas do catequista autenticado (titular ou adjunto)
     com a lista completa de catecúmenos. Os campos seleccionados são determinados
-    pela configuração em Catequista Portal Settings.
+    pela configuração do Portal do Catequista (Catequese Settings).
     """
     cat_name = _assert_catequista()
     e = frappe.db.escape(cat_name)
@@ -908,7 +908,7 @@ def get_minha_turma():
 def atualizar_catecumeno(catecumeno_nome, row_name=None):
     """
     Actualiza campos do catecúmeno e presenças/faltas na turma.
-    Os campos permitidos são determinados pela configuração em Catequista Portal Settings.
+    Os campos permitidos são determinados pela configuração do Portal do Catequista (Catequese Settings).
     O catequista só pode editar catecúmenos da sua própria turma.
     """
     cat_name = _assert_catequista()

@@ -97,7 +97,7 @@
    "fieldname": "local",
    "fieldtype": "Data",
    "label": "Local da assinatura",
-   "default": "Matola"
+   "description": "Vazio = valor das Catequese Settings."
   },
   {
    "fieldname": "data_assinatura",
@@ -115,19 +115,19 @@
    "fieldname": "paroquia",
    "fieldtype": "Data",
    "label": "Paróquia",
-   "default": "PARÓQUIA NOSSA SENHORA DA ASSUNÇÃO - LIBERDADE"
+   "description": "Vazio = valor das Catequese Settings."
   },
   {
    "fieldname": "comunidades",
    "fieldtype": "Data",
    "label": "Comunidades",
-   "default": "COMUNIDADE SEDE E SANTA ANA – MASTRONG"
+   "description": "Vazio = valor das Catequese Settings."
   },
   {
    "fieldname": "ministerio",
    "fieldtype": "Data",
    "label": "Ministério",
-   "default": "MINISTÉRIO DA CATEQUESE E FORMAÇÃO PERMANENTE"
+   "description": "Vazio = valor das Catequese Settings."
   },
   {
    "fieldname": "sec_intro",
@@ -371,7 +371,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-02 00:00:00.000000",
+ "modified": "2026-10-03 20:44:36.000000",
  "modified_by": "Administrator",
  "module": "Catequista",
  "name": "Relatorio Anual",

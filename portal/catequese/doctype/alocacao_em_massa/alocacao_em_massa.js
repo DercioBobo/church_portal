@@ -79,7 +79,7 @@ function carregar_dados(frm) {
         method: 'portal.catequese.alocacao_em_massa.carregar_dados',
         args: {
             fase: frm.doc.fase,
-            capacidade_recomendada: frm.doc.capacidade_recomendada || 25
+            capacidade_recomendada: frm.doc.capacidade_recomendada || ((frappe.boot.catequese && frappe.boot.catequese.tamanho_ideal) || 25)
         },
         freeze: true,
         freeze_message: __('A carregar dados...'),
@@ -162,7 +162,7 @@ function gerar_sugestao(frm) {
         method: 'portal.catequese.alocacao_em_massa.gerar_sugestao',
         args: {
             fase: frm.doc.fase,
-            capacidade_recomendada: frm.doc.capacidade_recomendada || 25
+            capacidade_recomendada: frm.doc.capacidade_recomendada || ((frappe.boot.catequese && frappe.boot.catequese.tamanho_ideal) || 25)
         },
         freeze: true,
         freeze_message: __('A gerar sugestão...'),
@@ -278,7 +278,7 @@ function criar_nova_turma(frm) {
         method: 'portal.catequese.alocacao_em_massa.criar_nova_turma',
         args: {
             fase: frm.doc.fase,
-            ano_lectivo: frm.doc.ano_lectivo || new Date().getFullYear().toString()
+            ano_lectivo: frm.doc.ano_lectivo || ((frappe.boot.catequese && frappe.boot.catequese.ano_actual) || new Date().getFullYear().toString())
         },
         freeze: true,
         freeze_message: __('A criar turma...'),
@@ -296,7 +296,7 @@ function criar_nova_turma(frm) {
                 row.actual = 0;
                 row.a_adicionar = 0;
                 row.total_final = 0;
-                row.capacidade = frm.doc.capacidade_recomendada || 25;
+                row.capacidade = frm.doc.capacidade_recomendada || ((frappe.boot.catequese && frappe.boot.catequese.tamanho_ideal) || 25);
                 row.status_ocupacao = '🆕 Nova';
                 
                 frm.refresh_field('turmas_table');
@@ -367,7 +367,7 @@ function executar_alocacao(frm) {
                 args: {
                     alocacoes_json: JSON.stringify(alocacoes),
                     fase: frm.doc.fase,
-                    ano_lectivo: frm.doc.ano_lectivo || new Date().getFullYear().toString(),
+                    ano_lectivo: frm.doc.ano_lectivo || ((frappe.boot.catequese && frappe.boot.catequese.ano_actual) || new Date().getFullYear().toString()),
                     criar_turmas_json: JSON.stringify(criar_turmas)
                 },
                 freeze: true,

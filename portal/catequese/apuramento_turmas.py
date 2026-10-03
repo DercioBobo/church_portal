@@ -5,6 +5,8 @@
 import frappe
 from frappe import _
 
+from portal.catequese.utils import tamanhos_turma
+
 @frappe.whitelist()
 def get_turmas_por_fase(ano_lectivo, fase):
     """
@@ -174,7 +176,7 @@ def get_turmas_disponiveis_para_repetentes(ano_lectivo, fase):
 
 
 @frappe.whitelist()
-def preview_distribuicao(apuramento_items_json, tamanho_min=20, tamanho_ideal=25, tamanho_max=30, manter_estrutura=False, destino_repetentes="Criar Novas Turmas", ano_lectivo_seguinte=None, fase_permanece=None):
+def preview_distribuicao(apuramento_items_json, tamanho_min=None, tamanho_ideal=None, tamanho_max=None, manter_estrutura=False, destino_repetentes="Criar Novas Turmas", ano_lectivo_seguinte=None, fase_permanece=None):
 
     """
     Gera pré-visualização da distribuição de catecúmenos em novas turmas.
@@ -192,9 +194,10 @@ def preview_distribuicao(apuramento_items_json, tamanho_min=20, tamanho_ideal=25
     
     items = json.loads(apuramento_items_json)
     
-    tamanho_min = int(tamanho_min)
-    tamanho_ideal = int(tamanho_ideal)
-    tamanho_max = int(tamanho_max)
+    padrao = tamanhos_turma()
+    tamanho_min = int(tamanho_min or padrao[0])
+    tamanho_ideal = int(tamanho_ideal or padrao[1])
+    tamanho_max = int(tamanho_max or padrao[2])
     
     # Separar por resultado
     transitam = []
@@ -616,9 +619,10 @@ def criar_novas_turmas(apuramento_name):
         doc = frappe.get_doc("Apuramento de Turmas", apuramento_name)
         
         # === CONFIGURAÇÕES ===
-        TAMANHO_MIN = doc.tamanho_minimo or 20
-        TAMANHO_IDEAL = doc.tamanho_ideal or 25
-        TAMANHO_MAX = doc.tamanho_maximo or 30
+        PADRAO = tamanhos_turma()
+        TAMANHO_MIN = doc.tamanho_minimo or PADRAO[0]
+        TAMANHO_IDEAL = doc.tamanho_ideal or PADRAO[1]
+        TAMANHO_MAX = doc.tamanho_maximo or PADRAO[2]
         
         # Tipo de distribuição: "Redistribuir" ou "Manter Estrutura"
         TIPO_DISTRIBUICAO = doc.get("tipo_distribuicao") or "Redistribuir"

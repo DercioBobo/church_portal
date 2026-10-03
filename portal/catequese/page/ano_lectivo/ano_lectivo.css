@@ -1,0 +1,89 @@
+/* ── Abrir e Encerrar Ano ── usa as variáveis de tema do Frappe (claro/escuro) */
+#al-app {
+  --al-bg: var(--bg-color, #f8f9fc);
+  --al-card: var(--card-bg, #fff);
+  --al-text: var(--text-color, #1f2937);
+  --al-muted: var(--text-muted, #6b7280);
+  --al-border: var(--border-color, #e5e7eb);
+  --al-accent: #4f46e5;
+  --al-ok: #16a34a;
+  --al-warn: #d97706;
+  --al-todo: #dc2626;
+  --al-info: #64748b;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  color: var(--al-text);
+  background: var(--al-bg);
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+#al-app a { color: var(--al-accent); text-decoration: none; }
+#al-app a:hover { text-decoration: underline; }
+.al-muted { color: var(--al-muted); font-size: 0.82rem; }
+
+.al-toolbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 24px; background: var(--al-card); border-bottom: 1px solid var(--al-border);
+  position: sticky; top: 0; z-index: 50;
+}
+.al-toolbar h1 { font-size: 1.1rem; font-weight: 700; margin: 0; }
+.al-select {
+  height: 34px; padding: 0 10px; border: 1px solid var(--al-border); border-radius: 8px;
+  background: var(--al-card); color: var(--al-text); font-size: 0.85rem;
+}
+.al-btn {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 12px;
+  border: 1px solid var(--al-border); border-radius: 8px; background: var(--al-card);
+  color: var(--al-text) !important; font-size: 0.82rem; cursor: pointer; text-decoration: none !important;
+}
+.al-btn:hover:not(:disabled) { border-color: var(--al-accent); color: var(--al-accent) !important; }
+.al-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.al-btn-primary { background: var(--al-accent); border-color: var(--al-accent); color: #fff !important; }
+.al-btn-primary:hover:not(:disabled) { color: #fff !important; filter: brightness(1.1); }
+.al-link { border: 0; background: none; color: var(--al-accent); font-size: 0.8rem; cursor: pointer; padding: 0 0 0 8px; }
+
+.al-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 60px; color: var(--al-muted); }
+.al-spinner {
+  width: 20px; height: 20px; border: 2px solid var(--al-border); border-top-color: var(--al-accent);
+  border-radius: 50%; animation: al-spin 0.8s linear infinite;
+}
+@keyframes al-spin { to { transform: rotate(360deg); } }
+
+.al-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px 24px; transition: opacity 0.2s; }
+.al-cols.busy { opacity: 0.6; pointer-events: none; }
+.al-col { display: flex; flex-direction: column; gap: 10px; }
+.al-col-head h2 { font-size: 1.05rem; font-weight: 700; margin: 0 0 8px; }
+.al-progress { height: 6px; border-radius: 999px; background: var(--al-border); overflow: hidden; margin-bottom: 4px; }
+.al-progress-bar { height: 100%; background: var(--al-ok); transition: width 0.3s; }
+
+.al-step {
+  display: flex; gap: 12px; padding: 14px 16px; background: var(--al-card);
+  border: 1px solid var(--al-border); border-left: 4px solid var(--al-info); border-radius: 12px;
+}
+.al-step.st-ok { border-left-color: var(--al-ok); }
+.al-step.st-aviso { border-left-color: var(--al-warn); }
+.al-step.st-pendente { border-left-color: var(--al-todo); }
+.al-step-icon {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;
+  background: rgba(100, 116, 139, 0.12); color: var(--al-info);
+}
+.st-ok .al-step-icon { background: rgba(22, 163, 74, 0.12); color: var(--al-ok); }
+.st-aviso .al-step-icon { background: rgba(217, 119, 6, 0.12); color: var(--al-warn); }
+.st-pendente .al-step-icon { background: rgba(220, 38, 38, 0.1); color: var(--al-todo); }
+.al-step-body { flex: 1; min-width: 0; }
+.al-step-body h3 { font-size: 0.92rem; font-weight: 600; margin: 2px 0 4px; }
+.al-step-n { color: var(--al-muted); font-weight: 500; }
+.al-step-body p { margin: 0; font-size: 0.84rem; color: var(--al-muted); line-height: 1.45; }
+
+.al-itens { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.83rem; }
+.al-itens li { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+.al-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--al-info); margin-right: 8px; flex-shrink: 0; }
+.al-itens .st-ok .al-dot { background: var(--al-ok); }
+.al-itens .st-aviso .al-dot { background: var(--al-warn); }
+.al-itens .st-pendente .al-dot { background: var(--al-todo); }
+.al-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+@media (max-width: 900px) {
+  .al-cols { grid-template-columns: 1fr; padding: 16px; }
+  .al-toolbar { padding: 12px 16px; }
+}

@@ -16,7 +16,9 @@
  "email_append_to": 0,
  "engine": "InnoDB",
  "field_order": [
-  "ano_lectivo"
+  "ano_lectivo",
+  "estado",
+  "data_encerramento"
  ],
  "fields": [
   {
@@ -62,6 +64,22 @@
    "sort_options": 0,
    "translatable": 0,
    "unique": 1
+  },
+  {
+   "default": "Planeado",
+   "fieldname": "estado",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Estado",
+   "options": "Planeado\nEm curso\nEncerrado"
+  },
+  {
+   "fieldname": "data_encerramento",
+   "fieldtype": "Datetime",
+   "label": "Encerrado em",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "force_re_route_to_default_view": 0,
@@ -79,7 +97,7 @@
  "links": [],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-03 18:42:19.000000",
+ "modified": "2026-10-03 20:42:22.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Ano Lectivo",

@@ -1,0 +1,65 @@
+{
+ "actions": [],
+ "creation": "2026-10-03 20:51:53.000000",
+ "custom": 0,
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sacramento",
+  "valor_ofertorio",
+  "valor_cracha",
+  "valor_fotos",
+  "valor_accao_gracas"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "sacramento",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sacramento",
+   "options": "Sacramento",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "valor_ofertorio",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Ofertório"
+  },
+  {
+   "columns": 2,
+   "fieldname": "valor_cracha",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Crachá"
+  },
+  {
+   "columns": 2,
+   "fieldname": "valor_fotos",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Fotos"
+  },
+  {
+   "columns": 2,
+   "fieldname": "valor_accao_gracas",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Acção de Graças (padrinho)"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-03 20:51:53.000000",
+ "modified_by": "Administrator",
+ "module": "Catequese",
+ "name": "Catequese Settings Sacramento",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

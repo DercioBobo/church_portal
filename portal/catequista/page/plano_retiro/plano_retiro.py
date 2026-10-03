@@ -28,17 +28,9 @@ def get_anos_lectivos():
 @frappe.whitelist()
 def get_ano_lectivo_atual():
     _assert_coordenador()
-    try:
-        ano = frappe.db.get_value("Ano Lectivo", {"is_current": 1}, "name")
-        if not ano:
-            rows = frappe.db.sql(
-                "SELECT name FROM `tabAno Lectivo` ORDER BY name DESC LIMIT 1",
-                as_dict=True,
-            )
-            ano = rows[0].name if rows else None
-        return ano
-    except Exception:
-        return None
+    from portal.catequese.utils import ano_actual
+
+    return ano_actual()
 
 
 @frappe.whitelist()

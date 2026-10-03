@@ -1,5 +1,7 @@
 [pre_model_sync]
 portal.patches.v1_0.adoptar_doctypes_catequese
+portal.patches.v1_0.mover_portal_settings
 
 [post_model_sync]
 portal.patches.v1_0.remover_scripts_convertidos
+portal.patches.v1_0.iniciar_catequese_settings

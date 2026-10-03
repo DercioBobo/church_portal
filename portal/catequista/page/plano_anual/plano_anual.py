@@ -88,31 +88,9 @@ def get_anos_lectivos():
 @frappe.whitelist()
 def get_ano_lectivo_atual():
     _assert_coordenador()
-    try:
-        # Try is_current flag first (common Frappe pattern)
-        ano = None
-        try:
-            ano = frappe.db.get_value("Ano Lectivo", {"is_current": 1}, "name")
-        except Exception:
-            pass
-        if not ano:
-            from datetime import date
-            current_year = str(date.today().year)
-            rows = frappe.db.sql(
-                "SELECT name FROM `tabAno Lectivo` ORDER BY name ASC",
-                as_dict=True,
-            )
-            # Pick the last ano_lectivo whose start year (first 4 chars) <= current calendar year.
-            # Works for single-year names ("2026") and range names ("2026-2027").
-            for r in rows:
-                if str(r.name)[:4] <= current_year:
-                    ano = r.name
-            # If all anos are future, fall back to the earliest available.
-            if not ano and rows:
-                ano = rows[0].name
-        return ano
-    except Exception:
-        return None
+    from portal.catequese.utils import ano_actual
+
+    return ano_actual()
 
 
 @frappe.whitelist()

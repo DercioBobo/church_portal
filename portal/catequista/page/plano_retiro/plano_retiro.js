@@ -1181,13 +1181,8 @@ function createPlanoRetiroApp() {
           anos.value  = anosData  || [];
           fases.value = fasesData || [];
 
-          // Always honour the real calendar year rather than whatever is_current says.
-          // For academic-year strings like "2025-2026" we prefer the one whose end
-          // year matches today (April 2026 → "2025-2026"), then any that contains it.
-          const currentYear = frappe.datetime.get_today().substring(0, 4);
-          const byEndYear   = (anosData || []).find(a => String(a).endsWith(currentYear));
-          const byAnyMatch  = (anosData || []).find(a => String(a).includes(currentYear));
-          anoLectivo.value  = byEndYear || byAnyMatch || anoAtual || (anosData[0] || '');
+          // Ano lectivo actual definido nas Catequese Settings
+          anoLectivo.value  = anoAtual || (anosData[0] || '');
 
           await loadRetiros();
         } catch(e) {

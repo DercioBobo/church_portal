@@ -42,6 +42,10 @@ override_whitelisted_methods = {
         "portal.catequese.turma.get_turma_catecumenos",
 }
 
+# ── Boot ───────────────────────────────────────────────────────────────────────
+# Ano lectivo actual e definições principais disponíveis no browser (frappe.boot.catequese)
+boot_session = "portal.catequese.utils.boot_session"
+
 # ── Scheduler ──────────────────────────────────────────────────────────────────
 # (vindo da antiga app pnsa_app)
 scheduler_events = {
