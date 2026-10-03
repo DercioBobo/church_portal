@@ -114,24 +114,36 @@ function createConsultaApp() {
 
     <!-- ── Navegação ─────────────────────────────────────────────────── -->
     <nav class="cr-nav">
-      <button class="cr-nav-item" :class="{ active: !faseSel && !turmaSel && !q }" @click="abrirFase(null)">
+      <input class="cr-nav-filter" v-model="filtroFases" placeholder="Filtrar fases…" @keydown.escape="filtroFases = ''">
+      <button class="cr-nav-item" :class="{ active: !temSeleccao && !q }" @click="limparSeleccao">
         <span class="cr-n">{{ totalActivos }}</span>
-        <span class="cr-nav-txt"><b>Todas as fases</b><small>{{ dados.turmas.length }} turmas</small></span>
+        <span class="cr-nav-txt"><b>Todas as fases</b><small>{{ turmasVisiveis.length }} turmas</small></span>
       </button>
-      <template v-for="f in fasesNav" :key="f.name">
-        <button class="cr-nav-item" :class="{ active: faseSel === f.name && !turmaSel && !q, open: faseSel === f.name }"
-                @click="abrirFase(f.name)">
-          <span class="cr-n">{{ f.n }}</span>
-          <span class="cr-nav-txt"><b>{{ f.name }}</b><small>{{ f.turmas.length }} turma{{ f.turmas.length === 1 ? '' : 's' }}</small></span>
-        </button>
-        <div v-if="faseSel === f.name" class="cr-sub">
-          <button v-for="t in f.turmas" :key="t.name" class="cr-sub-item"
-                  :class="{ active: turmaSel === t.name && !q, off: t.status === 'Inactivo' }"
-                  @click="abrirTurma(t.name)">
-            <span>{{ curto(t.name, f.name) }}</span><span class="cr-sub-n">{{ t.n }}</span>
+      <p v-if="soInactivas" class="cr-nav-note">Ano encerrado: todas as turmas estão inactivas.</p>
+      <template v-for="f in fasesFiltradas" :key="f.name">
+        <div class="cr-nav-row" :class="{ active: selFases.includes(f.name) && !q }">
+          <button class="cr-chev" @click="expandir(f.name)" :title="abertas.includes(f.name) ? 'Fechar' : 'Ver turmas'">
+            {{ abertas.includes(f.name) ? '▾' : '▸' }}
+          </button>
+          <input type="checkbox" class="cr-check" :checked="selFases.includes(f.name)" @change="toggleFase(f.name)"
+                 title="Juntar à selecção">
+          <button class="cr-nav-main" @click="abrirFase(f.name)">
+            <span class="cr-n">{{ f.n }}</span>
+            <span class="cr-nav-txt"><b>{{ f.name }}</b><small>{{ f.turmas.length }} turma{{ f.turmas.length === 1 ? '' : 's' }}</small></span>
           </button>
         </div>
+        <div v-if="abertas.includes(f.name)" class="cr-sub">
+          <div v-for="t in f.turmas" :key="t.name" class="cr-sub-item"
+               :class="{ active: turmaEstaSel(t.name) && !q }">
+            <input type="checkbox" class="cr-check" :checked="turmaEstaSel(t.name)" :disabled="selFases.includes(f.name)"
+                   @change="toggleTurma(t.name)" title="Juntar à selecção">
+            <button class="cr-sub-main" @click="abrirTurma(t.name)">
+              <span>{{ curto(t.name, f.name) }}</span><span class="cr-sub-n">{{ t.n }}</span>
+            </button>
+          </div>
+        </div>
       </template>
+      <p v-if="!fasesFiltradas.length" class="cr-nav-note">Nenhuma fase encontrada.</p>
     </nav>
 
     <!-- ── Painel ────────────────────────────────────────────────────── -->
@@ -220,8 +232,14 @@ function createConsultaApp() {
         <div class="cr-head">
           <div class="cr-head-top">
             <div>
-              <h2>{{ faseSel || 'Todas as fases' }}</h2>
+              <h2>{{ tituloSeleccao }}</h2>
               <p class="cr-muted">Ano lectivo {{ ano }}</p>
+              <div v-if="chips.length > 1" class="cr-chips">
+                <span v-for="c in chips" :key="c.tipo + c.nome" class="cr-chip">
+                  {{ c.rotulo }}<button @click="removerChip(c)" title="Retirar">✕</button>
+                </span>
+                <button class="cr-link" @click="limparSeleccao">Limpar</button>
+              </div>
             </div>
             <div class="cr-actions">
               <button v-if="tab === 'catequistas'" class="cr-btn" @click="copiarCatequistas">📋 Contactos</button>
@@ -241,7 +259,7 @@ function createConsultaApp() {
           <table class="cr-table">
             <thead><tr><th>Turma</th><th>Horário</th><th>Catequista</th><th>Contacto</th><th class="num">Catecúmenos</th></tr></thead>
             <tbody>
-              <tr v-for="t in turmasDetalhe" :key="t.name" class="cr-click" :class="{ inativo: t.status === 'Inactivo' }" @click="abrirTurma(t.name)">
+              <tr v-for="t in turmasDetalhe" :key="t.name" class="cr-click" @click="abrirTurma(t.name)">
                 <td><b>{{ t.name }}</b></td>
                 <td>{{ horario(t) || '—' }}</td>
                 <td>{{ t.pessoas.map(p => p.nome).join(', ') || '—' }}</td>
@@ -274,7 +292,7 @@ function createConsultaApp() {
         </div>
 
         <tabela-catecumenos v-if="tab === 'catecumenos'" :rows="catecumenosOrdenados" :ordenar="ordenar" :seta="seta"
-                            @turma="abrirTurma"></tabela-catecumenos>
+                            :agrupar="sortKey === 'turma'" @turma="abrirTurma"></tabela-catecumenos>
       </template>
     </section>
   </div>
@@ -287,12 +305,14 @@ function createConsultaApp() {
       const loading = ref(true);
       const dados = ref({ fases: [], turmas: [], catecumenos: [], catequistas: [] });
 
-      const faseSel = ref(null);
-      const turmaSel = ref(null);
+      const selFases = ref([]);    // fases inteiras seleccionadas
+      const selTurmas = ref([]);   // turmas soltas seleccionadas
+      const abertas = ref([]);     // fases com as turmas visíveis no menu
+      const filtroFases = ref('');
       const tab = ref('turmas');
       const search = ref('');
       const soActivos = ref(true);
-      const sortKey = ref('nome');
+      const sortKey = ref('turma');
       const sortAsc = ref(true);
 
       // ── Carregamento ──────────────────────────────────────────────────────
@@ -300,10 +320,9 @@ function createConsultaApp() {
         loading.value = true;
         try {
           dados.value = await api('get_dados', { ano_lectivo: ano.value });
-          turmaSel.value = null;
-          if (faseSel.value && !dados.value.turmas.some((t) => (t.fase || SEM_FASE) === faseSel.value)) {
-            faseSel.value = null;
-          }
+          const existem = new Set(turmasVisiveis.value.map((t) => t.fase || SEM_FASE));
+          selFases.value = selFases.value.filter((f) => existem.has(f));
+          selTurmas.value = [];
         } catch (e) {
           frappe.msgprint(__('Erro ao carregar os dados.'));
         } finally {
@@ -327,12 +346,19 @@ function createConsultaApp() {
         return m;
       });
       const activosDa = (turma) => (catsPorTurma.value[turma] || []).filter(isActivo).length;
-      const totalActivos = computed(() => dados.value.catecumenos.filter(isActivo).length);
+      // Turmas inactivas não aparecem; num ano já encerrado (todas inactivas) mostram-se todas
+      const soInactivas = computed(() =>
+        dados.value.turmas.length > 0 && !dados.value.turmas.some((t) => t.status === 'Activo'));
+      const turmasVisiveis = computed(() =>
+        soInactivas.value ? dados.value.turmas : dados.value.turmas.filter((t) => t.status === 'Activo'));
+      const nomesVisiveis = computed(() => new Set(turmasVisiveis.value.map((t) => t.name)));
+      const totalActivos = computed(() =>
+        dados.value.catecumenos.filter((c) => nomesVisiveis.value.has(c.turma) && isActivo(c)).length);
 
       // ── Navegação ─────────────────────────────────────────────────────────
       const fasesNav = computed(() => {
         const grupos = {};
-        dados.value.turmas.forEach((t) => {
+        turmasVisiveis.value.forEach((t) => {
           const f = t.fase || SEM_FASE;
           (grupos[f] = grupos[f] || []).push({ name: t.name, status: t.status, n: activosDa(t.name) });
         });
@@ -346,18 +372,83 @@ function createConsultaApp() {
           }));
       });
 
+      const fasesFiltradas = computed(() => {
+        const f = norm(filtroFases.value.trim());
+        return f ? fasesNav.value.filter((x) => norm(x.name).includes(f)) : fasesNav.value;
+      });
+      const faseDe = (turma) => ((turmaPorNome.value[turma] || {}).fase || SEM_FASE);
+      const temSeleccao = computed(() => selFases.value.length > 0 || selTurmas.value.length > 0);
+      const turmaEstaSel = (nome) => selTurmas.value.includes(nome) || selFases.value.includes(faseDe(nome));
+
+      function expandir(fase) {
+        const i = abertas.value.indexOf(fase);
+        if (i >= 0) abertas.value.splice(i, 1); else abertas.value.push(fase);
+      }
+      function abrirAba(fase) { if (!abertas.value.includes(fase)) abertas.value.push(fase); }
+
+      // Clique no nome: só esta fase, catecúmenos ordenados por turma
       function abrirFase(nome) {
         search.value = '';
-        turmaSel.value = null;
-        faseSel.value = nome;
+        selFases.value = [nome];
+        selTurmas.value = [];
+        abrirAba(nome);
+        tab.value = 'catecumenos';
+        sortKey.value = 'turma';
+        sortAsc.value = true;
       }
+      // Clique no nome da turma: só esta turma
       function abrirTurma(nome) {
-        const t = turmaPorNome.value[nome];
-        if (!t) return;
+        if (!turmaPorNome.value[nome]) return;
         search.value = '';
-        faseSel.value = t.fase || SEM_FASE;
-        turmaSel.value = nome;
+        selFases.value = [];
+        selTurmas.value = [nome];
+        abrirAba(faseDe(nome));
+        sortKey.value = 'nome';
+        sortAsc.value = true;
       }
+      // Caixas de selecção: juntar / retirar
+      function toggleFase(nome) {
+        search.value = '';
+        const i = selFases.value.indexOf(nome);
+        if (i >= 0) {
+          selFases.value.splice(i, 1);
+        } else {
+          selFases.value.push(nome);
+          selTurmas.value = selTurmas.value.filter((t) => faseDe(t) !== nome);  // já incluídas pela fase
+          abrirAba(nome);
+        }
+        if (tab.value === 'turmas') tab.value = 'catecumenos';
+        sortKey.value = 'turma';
+      }
+      function toggleTurma(nome) {
+        search.value = '';
+        const i = selTurmas.value.indexOf(nome);
+        if (i >= 0) selTurmas.value.splice(i, 1); else selTurmas.value.push(nome);
+        sortKey.value = 'turma';
+      }
+      function limparSeleccao() {
+        search.value = '';
+        selFases.value = [];
+        selTurmas.value = [];
+        tab.value = 'turmas';
+      }
+
+      const chips = computed(() => [
+        ...selFases.value.map((f) => ({ tipo: 'fase', nome: f, rotulo: f })),
+        ...selTurmas.value.map((t) => ({ tipo: 'turma', nome: t, rotulo: t })),
+      ]);
+      function removerChip(c) {
+        if (c.tipo === 'fase') selFases.value = selFases.value.filter((f) => f !== c.nome);
+        else selTurmas.value = selTurmas.value.filter((t) => t !== c.nome);
+      }
+      const tituloSeleccao = computed(() => {
+        if (!temSeleccao.value) return 'Todas as fases';
+        if (chips.value.length === 1) return chips.value[0].rotulo;
+        const partes = [];
+        if (selFases.value.length) partes.push(`${selFases.value.length} fase${selFases.value.length > 1 ? 's' : ''}`);
+        if (selTurmas.value.length) partes.push(`${selTurmas.value.length} turma${selTurmas.value.length > 1 ? 's' : ''}`);
+        return partes.join(' + ') + ' seleccionadas';
+      });
       // "2026 1ª Fase T2" dentro de "1ª Fase" → "T2"
       function curto(nome, fase) {
         const i = nome.indexOf(fase);
@@ -366,11 +457,17 @@ function createConsultaApp() {
       }
 
       // ── Selecção ──────────────────────────────────────────────────────────
-      const turma = computed(() => (turmaSel.value ? turmaPorNome.value[turmaSel.value] : null));
+      // Vista de turma: exactamente uma turma seleccionada e nenhuma fase
+      const turma = computed(() =>
+        (selTurmas.value.length === 1 && !selFases.value.length ? turmaPorNome.value[selTurmas.value[0]] : null));
       const turmasSel = computed(() => {
-        if (turma.value) return [turma.value];
-        if (faseSel.value) return dados.value.turmas.filter((t) => (t.fase || SEM_FASE) === faseSel.value);
-        return dados.value.turmas;
+        if (!temSeleccao.value) return turmasVisiveis.value;
+        const escolhidas = turmasVisiveis.value.filter((t) =>
+          selFases.value.includes(t.fase || SEM_FASE) || selTurmas.value.includes(t.name));
+        // turma aberta por link (ex.: inactiva) que não está na lista visível
+        const extra = selTurmas.value.filter((n) => !nomesVisiveis.value.has(n))
+          .map((n) => turmaPorNome.value[n]).filter(Boolean);
+        return escolhidas.concat(extra);
       });
 
       function pessoas(t) {
@@ -445,11 +542,12 @@ function createConsultaApp() {
       const resultados = computed(() => {
         if (!q.value) return { catecumenos: [], catequistas: [], turmas: [], total: 0 };
         const catecumenos = dados.value.catecumenos
-          .filter((c) => (!soActivos.value || isActivo(c)) && has(c.nome, c.encarregado, c.contacto, c.padrinhos))
+          .filter((c) => nomesVisiveis.value.has(c.turma) && (!soActivos.value || isActivo(c))
+            && has(c.nome, c.encarregado, c.contacto, c.padrinhos))
           .slice(0, 60);
-        const catequistas = agruparCatequistas(dados.value.turmas)
+        const catequistas = agruparCatequistas(turmasVisiveis.value)
           .filter((x) => has(x.nome, x.nucleo, x.email, ...x.contactos));
-        const turmas = dados.value.turmas.filter((t) => has(t.name, t.local, t.catequista, t.catequista_adj));
+        const turmas = turmasVisiveis.value.filter((t) => has(t.name, t.local, t.catequista, t.catequista_adj));
         return { catecumenos, catequistas, turmas, total: catecumenos.length + catequistas.length + turmas.length };
       });
 
@@ -459,8 +557,9 @@ function createConsultaApp() {
         const dir = sortAsc.value ? 1 : -1;
         return [...catecumenosSel.value].sort((a, b) => {
           const va = a[k] ?? '', vb = b[k] ?? '';
-          if (typeof va === 'number' || typeof vb === 'number') return ((va || 0) - (vb || 0)) * dir;
-          return String(va).localeCompare(String(vb)) * dir;
+          const r = (typeof va === 'number' || typeof vb === 'number')
+            ? ((va || 0) - (vb || 0)) : String(va).localeCompare(String(vb));
+          return r * dir || String(a.nome).localeCompare(String(b.nome));
         });
       });
       function ordenar(k) {
@@ -482,7 +581,10 @@ function createConsultaApp() {
           .map((c) => `${c.nome} — ${c.encarregado || 'Encarregado'}: ${c.contacto} (${c.turma})`));
       }
 
-      const sufixo = () => `${(turmaSel.value || faseSel.value || 'todas').replace(/\s+/g, '-')}-${ano.value}`;
+      const sufixo = () => {
+        const base = chips.value.length === 1 ? chips.value[0].nome : (temSeleccao.value ? 'seleccao' : 'todas');
+        return `${base.replace(/\s+/g, '-')}-${ano.value}`;
+      };
       function exportarCatecumenos() {
         downloadCSV(`catecumenos-${sufixo()}.csv`, [
           ['Nome', 'Turma', 'Fase', 'Estado', 'Idade', 'Sexo', 'Encarregado', 'Contacto', 'Padrinhos', 'Contacto padrinhos', 'Faltas', 'Ficha', 'Baptismo', 'Eucaristia', 'Crisma', 'Comunidade'],
@@ -514,10 +616,12 @@ function createConsultaApp() {
       }
 
       return {
-        anos, ano, loading, dados, load, faseSel, turmaSel, tab, search, soActivos, q,
+        anos, ano, loading, dados, load, tab, search, soActivos, q,
+        selFases, selTurmas, abertas, filtroFases, fasesFiltradas, soInactivas, turmasVisiveis, temSeleccao,
+        turmaEstaSel, expandir, toggleFase, toggleTurma, limparSeleccao, chips, removerChip, tituloSeleccao,
         fasesNav, totalActivos, abrirFase, abrirTurma, curto, turma, pessoas, horario,
         turmasDetalhe, catecumenosSel, catequistasSel, statsLinha, resultados,
-        catecumenosOrdenados, ordenar, seta, copiarCatequistas, copiarEncarregados, exportar, exportarCatecumenos,
+        catecumenosOrdenados, ordenar, seta, sortKey, copiarCatequistas, copiarEncarregados, exportar, exportarCatecumenos,
         slug, isActivo,
       };
     },
@@ -528,8 +632,23 @@ function createConsultaApp() {
       setup() { return { tel: telLink, wa: waLink }; },
     })
     .component('tabela-catecumenos', {
-      props: ['rows', 'semTurma', 'ordenar', 'seta'],
+      props: ['rows', 'semTurma', 'ordenar', 'seta', 'agrupar'],
       emits: ['turma'],
+      setup(props) {
+        const { computed } = Vue;
+        const mostraTurma = computed(() => !props.semTurma && !props.agrupar);
+        const colunas = computed(() => (mostraTurma.value ? 8 : 7));
+        // Ordenado por turma: um cabeçalho (nome + total) antes de cada turma
+        const linhas = computed(() => {
+          const total = {};
+          props.rows.forEach((c) => { total[c.turma] = (total[c.turma] || 0) + 1; });
+          return props.rows.map((c, i) => ({
+            c, grupo: props.agrupar && !props.semTurma && (i === 0 || props.rows[i - 1].turma !== c.turma),
+            total: total[c.turma],
+          }));
+        });
+        return { mostraTurma, colunas, linhas };
+      },
       template: `
 <div class="cr-table-wrap">
   <div v-if="!rows.length" class="cr-empty">Sem catecúmenos.</div>
@@ -537,7 +656,7 @@ function createConsultaApp() {
     <thead>
       <tr>
         <th class="cr-sort" @click="ordenar('nome')">Nome {{ seta('nome') }}</th>
-        <th v-if="!semTurma" class="cr-sort" @click="ordenar('turma')">Turma {{ seta('turma') }}</th>
+        <th v-if="mostraTurma" class="cr-sort" @click="ordenar('turma')">Turma {{ seta('turma') }}</th>
         <th class="cr-sort num" @click="ordenar('idade')">Idade {{ seta('idade') }}</th>
         <th>Encarregado</th>
         <th>Contacto</th>
@@ -547,20 +666,28 @@ function createConsultaApp() {
       </tr>
     </thead>
     <tbody>
-      <tr v-for="c in rows" :key="c.turma + c.catecumeno" :class="{ inativo: c.estado === 'Inativo' }">
-        <td>
-          <a :href="'/app/catecumeno/' + encodeURIComponent(c.catecumeno)">{{ c.nome }}</a>
-          <span v-if="c.estado === 'Inativo'" class="cr-badge grey">Inativo</span>
-          <span v-if="c.comunidade === 'Santa Ana'" class="cr-badge">Santa Ana</span>
+      <template v-for="l in linhas" :key="l.c.turma + l.c.catecumeno">
+      <tr v-if="l.grupo" class="cr-grupo">
+        <td :colspan="colunas">
+          <button class="cr-link" @click="$emit('turma', l.c.turma)">{{ l.c.turma }}</button>
+          <span class="cr-muted"> · {{ l.total }}</span>
         </td>
-        <td v-if="!semTurma" class="cr-small"><button class="cr-link" @click="$emit('turma', c.turma)">{{ c.turma }}</button></td>
-        <td class="num">{{ c.idade || '—' }}</td>
-        <td>{{ c.encarregado || '—' }}</td>
-        <td><phone :n="c.contacto"></phone><span v-if="!c.contacto" class="cr-muted">—</span></td>
-        <td class="num">{{ c.nr_de_faltas || 0 }}</td>
-        <td>{{ c.ficha_de_catecumeno ? '✔' : '—' }}</td>
-        <td class="cr-sacr"><span :class="{ on: c.baptismo }">B</span><span :class="{ on: c.eucaristia }">E</span><span :class="{ on: c.crisma }">C</span></td>
       </tr>
+      <tr :class="{ inativo: l.c.estado === 'Inativo' }">
+        <td>
+          <a :href="'/app/catecumeno/' + encodeURIComponent(l.c.catecumeno)">{{ l.c.nome }}</a>
+          <span v-if="l.c.estado === 'Inativo'" class="cr-badge grey">Inativo</span>
+          <span v-if="l.c.comunidade === 'Santa Ana'" class="cr-badge">Santa Ana</span>
+        </td>
+        <td v-if="mostraTurma" class="cr-small"><button class="cr-link" @click="$emit('turma', l.c.turma)">{{ l.c.turma }}</button></td>
+        <td class="num">{{ l.c.idade || '—' }}</td>
+        <td>{{ l.c.encarregado || '—' }}</td>
+        <td><phone :n="l.c.contacto"></phone><span v-if="!l.c.contacto" class="cr-muted">—</span></td>
+        <td class="num">{{ l.c.nr_de_faltas || 0 }}</td>
+        <td>{{ l.c.ficha_de_catecumeno ? '✔' : '—' }}</td>
+        <td class="cr-sacr"><span :class="{ on: l.c.baptismo }">B</span><span :class="{ on: l.c.eucaristia }">E</span><span :class="{ on: l.c.crisma }">C</span></td>
+      </tr>
+      </template>
     </tbody>
   </table>
 </div>`,

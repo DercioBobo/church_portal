@@ -69,15 +69,42 @@
 .cr-nav-txt b { font-weight: 600; }
 .cr-nav-txt small { color: var(--cr-muted); font-size: 0.72rem; }
 
-.cr-sub { display: flex; flex-direction: column; gap: 2px; margin: -2px 0 4px 26px; padding-left: 12px; border-left: 2px solid var(--cr-border); }
-.cr-sub-item {
-  display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  padding: 6px 10px; border: 0; border-radius: 8px; background: none; color: var(--cr-text);
+.cr-nav-filter {
+  width: 100%; height: 32px; padding: 0 10px; margin-bottom: 2px; border: 1px solid var(--cr-border);
+  border-radius: 8px; background: var(--cr-card); color: var(--cr-text); font-size: 0.82rem; outline: none;
+}
+.cr-nav-filter:focus { border-color: var(--cr-accent); box-shadow: 0 0 0 3px var(--cr-accent-soft); }
+.cr-nav-note { margin: 2px 4px; font-size: 0.75rem; color: var(--cr-muted); }
+
+/* linha de fase: [▸] [☐] [contagem + nome] */
+.cr-nav-row {
+  display: flex; align-items: center; gap: 4px; padding: 3px 4px 3px 2px;
+  border: 1px solid var(--cr-border); border-radius: 10px; background: var(--cr-card);
+}
+.cr-nav-row:hover { border-color: var(--cr-accent); }
+.cr-nav-row.active { border-color: var(--cr-accent); box-shadow: 0 0 0 3px var(--cr-accent-soft); }
+.cr-chev {
+  width: 22px; height: 28px; border: 0; background: none; color: var(--cr-muted);
+  font-size: 0.8rem; cursor: pointer; flex-shrink: 0; border-radius: 6px;
+}
+.cr-chev:hover { background: var(--cr-accent-soft); color: var(--cr-accent); }
+.cr-check { width: 15px; height: 15px; margin: 0 2px; cursor: pointer; flex-shrink: 0; accent-color: var(--cr-accent); }
+.cr-check:disabled { cursor: default; opacity: 0.6; }
+.cr-nav-main {
+  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 4px 6px;
+  border: 0; background: none; color: var(--cr-text); text-align: left; cursor: pointer; border-radius: 8px;
+}
+
+.cr-sub { display: flex; flex-direction: column; gap: 1px; margin: -2px 0 4px 22px; padding-left: 8px; border-left: 2px solid var(--cr-border); }
+.cr-sub-item { display: flex; align-items: center; gap: 4px; border-radius: 8px; }
+.cr-sub-item:hover { background: var(--cr-accent-soft); }
+.cr-sub-item.active { background: var(--cr-accent-soft); }
+.cr-sub-main {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; flex: 1;
+  padding: 5px 8px 5px 2px; border: 0; background: none; color: var(--cr-text);
   font-size: 0.83rem; text-align: left; cursor: pointer;
 }
-.cr-sub-item:hover { background: var(--cr-accent-soft); }
-.cr-sub-item.active { background: var(--cr-accent); color: #fff; }
-.cr-sub-item.off { opacity: 0.55; }
+.cr-sub-item.active .cr-sub-main { color: var(--cr-accent); font-weight: 600; }
 .cr-sub-n { font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* ── Painel ──────────────────────────────────────────────────────────────── */
@@ -102,6 +129,14 @@
 .cr-people { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 12px; }
 .cr-person { display: flex; flex-direction: column; gap: 1px; font-size: 0.85rem; }
 .cr-person small { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--cr-muted); }
+
+.cr-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.cr-chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 10px; border-radius: 999px;
+  background: var(--cr-accent-soft); color: var(--cr-accent); font-size: 0.76rem; font-weight: 500;
+}
+.cr-chip button { border: 0; background: none; color: inherit; cursor: pointer; font-size: 0.7rem; padding: 0 4px; opacity: 0.7; }
+.cr-chip button:hover { opacity: 1; }
 
 .cr-tabs { display: flex; gap: 2px; margin: 14px -18px 0; padding: 0 12px; border-bottom: 1px solid var(--cr-border); }
 .cr-tabs button {
@@ -130,6 +165,12 @@
 .cr-table tr.inativo td { opacity: 0.55; }
 .cr-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .cr-click { cursor: pointer; }
+.cr-table tr.cr-grupo td {
+  background: var(--bg-light-gray, rgba(100, 116, 139, 0.08)); font-weight: 600; font-size: 0.8rem;
+  padding: 6px 12px; border-bottom: 1px solid var(--cr-border);
+}
+.cr-table tr.cr-grupo:hover td { background: var(--bg-light-gray, rgba(100, 116, 139, 0.08)); }
+
 .cr-sort { cursor: pointer; user-select: none; }
 .cr-sort:hover { color: var(--cr-accent); }
 .cr-link { border: 0; background: none; padding: 0; color: var(--cr-accent); font-size: inherit; cursor: pointer; text-align: left; }
