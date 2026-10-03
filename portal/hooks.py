@@ -31,9 +31,23 @@ fixtures = [
     {"dt": "Report", "filters": [["ref_doctype", "in", CATEQUESE_DOCTYPES]]},
 ]
 
-# pnsa_app continua necessário: vários Client Scripts chamam métodos pnsa_app.*
-# (não declarado em required_apps porque não é instalável a partir de um repositório público)
-# required_apps = ["pnsa_app"]
+# ── Compatibilidade com a antiga app pnsa_app ──────────────────────────────────
+# A página pública da paróquia usa estes URLs; continuam a funcionar depois de
+# remover a pnsa_app.
+override_whitelisted_methods = {
+    "pnsa_app.paroquia_app.catequese.scheduler.get_catecumenos_aniversariantes":
+        "portal.catequese.scheduler.get_catecumenos_aniversariantes",
+    "pnsa_app.paroquia_app.catequese.turma.get_turma_catecumenos":
+        "portal.catequese.turma.get_turma_catecumenos",
+}
+
+# ── Scheduler ──────────────────────────────────────────────────────────────────
+# (vindo da antiga app pnsa_app)
+scheduler_events = {
+    "daily": [
+        "portal.catequese.scheduler.update_catecumeno_idade_daily",
+    ],
+}
 
 # ── After install ──────────────────────────────────────────────────────────────
 # Sets up the Catequista role and DocType permissions automatically.
