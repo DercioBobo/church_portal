@@ -585,3 +585,73 @@ frappe.ui.form.on("Candidatos ao Sacramento Table", {
         }
     }
 });
+
+// ── Link para encarregados ────────────────────────────────────────────────
+
+frappe.ui.form.on('Preparacao do Sacramento', {
+    refresh(frm) {
+        if (frm.is_new()) return;
+        const grupo = __('Link para encarregados');
+        const activo = frm.doc.link_token && frm.doc.link_expira_em
+            && frappe.datetime.str_to_obj(frm.doc.link_expira_em) > new Date();
+
+        frm.add_custom_button(activo ? __('Gerar novo link') : __('Gerar link'), () => {
+            const d = new frappe.ui.Dialog({
+                title: __('Link para o grupo dos encarregados'),
+                fields: [
+                    {
+                        fieldname: 'expira_em', fieldtype: 'Datetime', label: __('Válido até'), reqd: 1,
+                        default: frappe.datetime.add_days(frappe.datetime.now_datetime(), 7),
+                    },
+                    {
+                        fieldname: 'permite_editar', fieldtype: 'Check', default: 1,
+                        label: __('Encarregados podem corrigir dados e deixar observações'),
+                    },
+                    {
+                        fieldname: 'aviso', fieldtype: 'HTML',
+                        options: `<p class="text-muted small">${__('Quem tiver o link vê todos os candidatos desta preparação até à data indicada. Gerar um novo link desactiva o anterior.')}</p>`,
+                    },
+                ],
+                primary_action_label: __('Gerar'),
+                primary_action(v) {
+                    frm.call({
+                        doc: frm.doc,
+                        method: 'gerar_link_encarregados',
+                        args: { expira_em: v.expira_em, permite_editar: v.permite_editar },
+                        callback(r) {
+                            d.hide();
+                            frm.reload_doc();
+                            if (r.message) {
+                                frappe.utils.copy_to_clipboard(r.message);
+                                frappe.msgprint({
+                                    title: __('Link gerado e copiado'),
+                                    indicator: 'green',
+                                    message: `<p>${__('Cole no grupo de WhatsApp:')}</p><p><a href="${r.message}" target="_blank">${r.message}</a></p>`,
+                                });
+                            }
+                        },
+                    });
+                },
+            });
+            d.show();
+        }, grupo);
+
+        if (activo) {
+            frm.add_custom_button(__('Copiar link'), () => {
+                frappe.utils.copy_to_clipboard(frm.doc.link_url);
+            }, grupo);
+            frm.add_custom_button(__('Revogar link'), () => {
+                frappe.confirm(__('O link deixa de funcionar imediatamente. Continuar?'), () => {
+                    frm.call({ doc: frm.doc, method: 'revogar_link_encarregados', callback: () => frm.reload_doc() });
+                });
+            }, grupo);
+            frm.dashboard.add_comment(
+                __('Link para encarregados activo até {0}{1}.', [
+                    frappe.datetime.str_to_user(frm.doc.link_expira_em),
+                    frm.doc.link_permite_editar ? '' : __(' (só leitura)'),
+                ]),
+                'blue', true
+            );
+        }
+    },
+});

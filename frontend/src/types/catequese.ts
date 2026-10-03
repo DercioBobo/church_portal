@@ -95,6 +95,8 @@ export interface PreparacaoSacramento extends PreparacaoSacramentoLista {
   valor_cracha?: number;
   observacoes?: string;
   candidatos: CandidatoSacramento[];
+  pode_editar?: boolean;
+  link_expira_em?: string | null;
 }
 
 // ── Quotas ────────────────────────────────────────────────────────────────────

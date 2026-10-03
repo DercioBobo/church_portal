@@ -1,10 +1,41 @@
+from urllib.parse import quote
+
 import frappe
+from frappe import _
 from frappe.model.document import Document
+from frappe.utils import add_to_date, get_datetime, get_url, now_datetime
 
 FASE_APOS_BAPTISMO = "1º Ano de Aprofundamento"
 
 
 class PreparacaodoSacramento(Document):
+    # ── Link para encarregados ────────────────────────────────────────────────
+
+    @frappe.whitelist()
+    def gerar_link_encarregados(self, expira_em=None, dias=7, permite_editar=1):
+        """Gera um link novo (o anterior deixa de funcionar) válido até `expira_em`."""
+        self.check_permission("write")
+        expira = get_datetime(expira_em) if expira_em else add_to_date(now_datetime(), days=int(dias))
+        if expira <= now_datetime():
+            frappe.throw(_("A data de validade tem de ser no futuro."))
+
+        token = frappe.generate_hash(length=32)
+        url = get_url(f"/portal/sacramento/?nome={quote(self.name)}&t={token}")
+        self.db_set({
+            "link_token": token,
+            "link_expira_em": expira,
+            "link_permite_editar": 1 if int(permite_editar) else 0,
+            "link_url": url,
+        }, update_modified=False)
+        self.add_comment("Info", _("Link para encarregados gerado, válido até {0}.").format(
+            frappe.format(expira, {"fieldtype": "Datetime"})))
+        return url
+
+    @frappe.whitelist()
+    def revogar_link_encarregados(self):
+        self.check_permission("write")
+        self.db_set({"link_token": None, "link_expira_em": None, "link_url": None}, update_modified=False)
+        self.add_comment("Info", _("Link para encarregados revogado."))
     def on_submit(self):
         # (eram os Server Scripts "PS Baptismo Script", "PS Eucaristia Script" e "Finalize Crisma")
         if self.sacramento == "Baptismo":

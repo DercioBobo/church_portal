@@ -1,0 +1,551 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"ct001\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Catecumenos Activos\", \"col\": 3}}, {\"id\": \"ct002\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Pre-inscricoes Pendentes\", \"col\": 3}}, {\"id\": \"ct003\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Turmas Activas\", \"col\": 3}}, {\"id\": \"ct004\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Catequistas Activos\", \"col\": 3}}, {\"id\": \"ct005\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ct006\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Acesso rápido</b></span>\", \"col\": 12}}, {\"id\": \"ct007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Consulta Rápida\", \"col\": 3}}, {\"id\": \"ct008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Nova Inscrição\", \"col\": 3}}, {\"id\": \"ct009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Turmas\", \"col\": 3}}, {\"id\": \"ct010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Catecúmenos\", \"col\": 3}}, {\"id\": \"ct011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Preparação do Sacramento\", \"col\": 3}}, {\"id\": \"ct012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Plano Anual\", \"col\": 3}}, {\"id\": \"ct013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Qualidade dos Dados\", \"col\": 3}}, {\"id\": \"ct014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Relatório Anual\", \"col\": 3}}, {\"id\": \"ct015\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ct016\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Tudo da catequese</b></span>\", \"col\": 12}}, {\"id\": \"ct017\", \"type\": \"card\", \"data\": {\"card_name\": \"Catecúmenos\", \"col\": 4}}, {\"id\": \"ct018\", \"type\": \"card\", \"data\": {\"card_name\": \"Turmas e Fases\", \"col\": 4}}, {\"id\": \"ct019\", \"type\": \"card\", \"data\": {\"card_name\": \"Sacramentos\", \"col\": 4}}, {\"id\": \"ct020\", \"type\": \"card\", \"data\": {\"card_name\": \"Catequistas\", \"col\": 4}}, {\"id\": \"ct021\", \"type\": \"card\", \"data\": {\"card_name\": \"Planeamento\", \"col\": 4}}, {\"id\": \"ct022\", \"type\": \"card\", \"data\": {\"card_name\": \"Finanças\", \"col\": 4}}, {\"id\": \"ct023\", \"type\": \"card\", \"data\": {\"card_name\": \"Relatórios\", \"col\": 4}}]",
+ "creation": "2026-10-03 19:54:01.000000",
+ "custom_blocks": [],
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "education",
+ "is_hidden": 0,
+ "label": "Catequese Tools",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Catecúmenos",
+   "link_count": 6,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Catecúmeno",
+   "link_count": 0,
+   "link_to": "Catecumeno",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Inscrição",
+   "link_count": 0,
+   "link_to": "Inscricao",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Alocação em Massa",
+   "link_count": 0,
+   "link_to": "Alocacao em Massa",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Troca de Turma",
+   "link_count": 0,
+   "link_to": "Troca de Turma",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Transferência",
+   "link_count": 0,
+   "link_to": "Transferencia de Catecumeno",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Inactivar Catecúmeno",
+   "link_count": 0,
+   "link_to": "Inactivar Catecumeno",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Turmas e Fases",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Turma",
+   "link_count": 0,
+   "link_to": "Turma",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Apuramento de Turmas",
+   "link_count": 0,
+   "link_to": "Apuramento de Turmas",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Fase",
+   "link_count": 0,
+   "link_to": "Fase",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Ano Lectivo",
+   "link_count": 0,
+   "link_to": "Ano Lectivo",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Programa da Fase",
+   "link_count": 0,
+   "link_to": "Programa da Fase",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sacramentos",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Preparação do Sacramento",
+   "link_count": 0,
+   "link_to": "Preparacao do Sacramento",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Livro de Baptismo",
+   "link_count": 0,
+   "link_to": "Livro de Baptismo",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Profissão de Fé",
+   "link_count": 0,
+   "link_to": "Profissao de Fe",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sacramento",
+   "link_count": 0,
+   "link_to": "Sacramento",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Fiéis",
+   "link_count": 0,
+   "link_to": "Fiel",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Catequistas",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Catequista",
+   "link_count": 0,
+   "link_to": "Catequista",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Núcleo",
+   "link_count": 0,
+   "link_to": "Nucleo",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Quotas",
+   "link_count": 0,
+   "link_to": "Quota Catequista",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Avisos",
+   "link_count": 0,
+   "link_to": "Catequista Aviso",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Definições do Portal",
+   "link_count": 0,
+   "link_to": "Catequista Portal Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Planeamento",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Plano Anual",
+   "link_count": 0,
+   "link_to": "plano-anual",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Rollover do Plano",
+   "link_count": 0,
+   "link_to": "rollover-plano",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Plano de Retiros",
+   "link_count": 0,
+   "link_to": "plano-retiro",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Actividades do Plano",
+   "link_count": 0,
+   "link_to": "Actividade do Plano",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tipologias de Actividade",
+   "link_count": 0,
+   "link_to": "Tipologia Actividade",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Finanças",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Despesas e Receitas",
+   "link_count": 0,
+   "link_to": "despesas-catequese",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Despesa",
+   "link_count": 0,
+   "link_to": "Despesa Catequese",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Receita",
+   "link_count": 0,
+   "link_to": "Receita Catequese",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Relatórios",
+   "link_count": 10,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Relatório Anual",
+   "link_count": 0,
+   "link_to": "Relatorio Anual",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Consulta Rápida",
+   "link_count": 0,
+   "link_to": "consulta-rapida",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Qualidade dos Dados",
+   "link_count": 0,
+   "link_to": "qualidade-dados",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Aniversariantes Hoje",
+   "link_count": 0,
+   "link_to": "aniversariantes-hoje",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Catecúmenos sem Renovação",
+   "link_count": 0,
+   "link_to": "Catecumenos Sem Renovacao",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Catecúmenos Duplicados em Turmas",
+   "link_count": 0,
+   "link_to": "Catecúmenos Duplicados em Turmas",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Catequistas e Turmas",
+   "link_count": 0,
+   "link_to": "Catequistas e Turmas Atribuídas",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Catequista e Núcleo",
+   "link_count": 0,
+   "link_to": "Catequista e Nucleo",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Aniversários da Semana (Catecúmenos)",
+   "link_count": 0,
+   "link_to": "Catecumenos Aniversariantes da Semana",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Aniversários da Semana (Catequistas)",
+   "link_count": 0,
+   "link_to": "Catequistas Aniversariantes da Semana",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-03 19:54:01.000000",
+ "modified_by": "Administrator",
+ "module": "Catequese",
+ "name": "Catequese Tools",
+ "number_cards": [
+  {
+   "label": "Catecúmenos Activos",
+   "number_card_name": "Catecumenos Activos"
+  },
+  {
+   "label": "Pré-inscrições Pendentes",
+   "number_card_name": "Pre-inscricoes Pendentes"
+  },
+  {
+   "label": "Turmas Activas",
+   "number_card_name": "Turmas Activas"
+  },
+  {
+   "label": "Catequistas Activos",
+   "number_card_name": "Catequistas Activos"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [
+  {
+   "role": "Coordenador Catequese"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "sequence_id": 5.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "label": "Consulta Rápida",
+   "link_to": "consulta-rapida",
+   "type": "Page"
+  },
+  {
+   "color": "Green",
+   "doc_view": "New",
+   "label": "Nova Inscrição",
+   "link_to": "Inscricao",
+   "type": "DocType"
+  },
+  {
+   "color": "Cyan",
+   "doc_view": "List",
+   "label": "Turmas",
+   "link_to": "Turma",
+   "type": "DocType"
+  },
+  {
+   "color": "Purple",
+   "doc_view": "List",
+   "label": "Catecúmenos",
+   "link_to": "Catecumeno",
+   "type": "DocType"
+  },
+  {
+   "color": "Yellow",
+   "doc_view": "List",
+   "label": "Preparação do Sacramento",
+   "link_to": "Preparacao do Sacramento",
+   "type": "DocType"
+  },
+  {
+   "color": "Orange",
+   "label": "Plano Anual",
+   "link_to": "plano-anual",
+   "type": "Page"
+  },
+  {
+   "color": "Red",
+   "label": "Qualidade dos Dados",
+   "link_to": "qualidade-dados",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Relatório Anual",
+   "link_to": "Relatorio Anual",
+   "type": "DocType"
+  }
+ ],
+ "title": "Catequese Tools"
+}

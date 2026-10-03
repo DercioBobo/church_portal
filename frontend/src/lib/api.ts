@@ -133,8 +133,8 @@ export const api = {
   getPreparacoesSacramento: () =>
     frappeFetch<PreparacaoSacramentoLista[]>(`${APP}.get_preparacoes_sacramento`),
 
-  getPreparacaoSacramento: (nome: string) =>
-    frappeFetch<PreparacaoSacramento>(`${APP}.get_preparacao_sacramento`, { nome }),
+  getPreparacaoSacramento: (nome: string, t?: string | null) =>
+    frappeFetch<PreparacaoSacramento>(`${APP}.get_preparacao_sacramento`, t ? { nome, t } : { nome }),
 
   atualizarCandidatoSacramento: (
     preparacao_nome: string,
@@ -148,12 +148,14 @@ export const api = {
       data_de_nascimento?: string;
       dia?: string;
       enc_obs?: string;
-    }
+    },
+    t?: string | null,
   ) =>
     frappePOST<{ success: boolean }>(`${APP}.atualizar_candidato_sacramento`, {
       preparacao_nome,
       row_name,
       ...dados,
+      t: t || undefined,
     }),
 
   // ── Quotas (authenticated admin endpoints) ───────────────────────────────────

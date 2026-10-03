@@ -30,6 +30,12 @@ function fmtDate(d?: string | null): string {
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
+function fmtDateTime(d?: string | null): string {
+  if (!d) return '—';
+  const [data, hora = ''] = d.split(' ');
+  return `${fmtDate(data)}${hora ? ' às ' + hora.slice(0, 5) : ''}`;
+}
+
 /** Strip HTML tags and return plain text; returns '' for empty Quill output. */
 function htmlToText(html?: string | null): string {
   if (!html) return '';
@@ -130,11 +136,15 @@ function DocBadge({ ok, label }: { ok: boolean; label: string }) {
 function CandidatoModal({
   candidato: initial,
   preparacaoNome,
+  token,
+  podeEditar,
   onClose,
   onSaved,
 }: {
   candidato: CandidatoSacramento;
   preparacaoNome: string;
+  token: string | null;
+  podeEditar: boolean;
   onClose: () => void;
   onSaved: (updates: Partial<CandidatoSacramento>) => void;
 }) {
@@ -172,7 +182,7 @@ function CandidatoModal({
         idade: form.idade ? parseInt(form.idade, 10) : undefined,
         data_de_nascimento: form.data_de_nascimento || undefined,
         enc_obs: form.enc_obs || undefined,
-      });
+      }, token);
       const updates: Partial<CandidatoSacramento> = {
         encarregado: form.encarregado,
         contacto_encarregado: form.contacto_encarregado,
@@ -238,7 +248,7 @@ function CandidatoModal({
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-5 space-y-6">
+          <fieldset disabled={!podeEditar} className="p-5 space-y-6 min-w-0">
 
             {/* ── Personal data ───────────────────────────────────────── */}
             <div>
@@ -332,7 +342,7 @@ function CandidatoModal({
                 <p className="text-sm text-slate-700">{candidato.obs}</p>
               </div>
             )}
-          </div>
+          </fieldset>
         </div>
 
         {/* Modal footer */}
@@ -344,7 +354,7 @@ function CandidatoModal({
           >
             Fechar
           </button>
-          <button
+          {podeEditar ? <button
             onClick={handleSave}
             disabled={saving}
             className="flex items-center gap-2 px-5 py-2 rounded-lg bg-navy-900 text-gold-400
@@ -353,7 +363,7 @@ function CandidatoModal({
           >
             <Save className="w-3.5 h-3.5" />
             {saving ? 'A guardar...' : 'Guardar'}
-          </button>
+          </button> : <span className="text-xs text-slate-500">Só consulta</span>}
         </div>
       </div>
     </div>
@@ -365,10 +375,14 @@ function CandidatoModal({
 function CandidatosTable({
   candidatos,
   preparacaoNome,
+  token,
+  podeEditar,
   onCandidatoSaved,
 }: {
   candidatos: CandidatoSacramento[];
   preparacaoNome: string;
+  token: string | null;
+  podeEditar: boolean;
   onCandidatoSaved: (rowName: string, updates: Partial<CandidatoSacramento>) => void;
 }) {
   const [filter, setFilter] = useState('');
@@ -499,6 +513,8 @@ function CandidatosTable({
         <CandidatoModal
           candidato={selected}
           preparacaoNome={preparacaoNome}
+          token={token}
+          podeEditar={podeEditar}
           onClose={() => setSelected(null)}
           onSaved={(updates) => {
             onCandidatoSaved(selected.name, updates);
@@ -558,17 +574,19 @@ function ListaPreparacoes({ items }: { items: PreparacaoSacramentoLista[] }) {
 
 // ─── Detail view ──────────────────────────────────────────────────────────────
 
-function DetalhePreparacao({ nome }: { nome: string }) {
+function DetalhePreparacao({ nome, token }: { nome: string; token: string | null }) {
   const [data, setData] = useState<PreparacaoSacramento | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getPreparacaoSacramento(nome)
+    api.getPreparacaoSacramento(nome, token)
       .then(setData)
-      .catch(() => setError('Preparação não encontrada ou indisponível.'))
+      .catch(() => setError(token
+        ? 'Este link expirou ou não é válido. Peça um novo link à coordenação da catequese.'
+        : 'Os dados desta preparação só estão disponíveis através do link enviado pela coordenação.'))
       .finally(() => setLoading(false));
-  }, [nome]);
+  }, [nome, token]);
 
   const handleSaved = useCallback((rowName: string, updates: Partial<CandidatoSacramento>) => {
     setData((prev) => {
@@ -632,6 +650,16 @@ function DetalhePreparacao({ nome }: { nome: string }) {
         </div>
       </div>
 
+      {data.link_expira_em && (
+        <div className="flex items-center gap-2 text-xs text-slate-600 bg-gold-100 border border-gold-200 rounded-xl px-4 py-2.5">
+          <CalendarDays className="w-4 h-4 text-gold-700 shrink-0" />
+          <span>
+            Link válido até <b>{fmtDateTime(data.link_expira_em)}</b>
+            {data.pode_editar ? '. Pode corrigir os dados do seu educando e deixar observações.' : ' (só consulta).'}
+          </span>
+        </div>
+      )}
+
       {/* Documentos e Observações */}
       {(documentosText || observacoesText) && (
         <div className="bg-white rounded-2xl border border-cream-300 shadow-warm-xs p-5 space-y-4">
@@ -664,6 +692,8 @@ function DetalhePreparacao({ nome }: { nome: string }) {
         <CandidatosTable
           candidatos={data.candidatos}
           preparacaoNome={data.name}
+          token={token}
+          podeEditar={!!data.pode_editar}
           onCandidatoSaved={handleSaved}
         />
       </div>
@@ -676,6 +706,7 @@ function DetalhePreparacao({ nome }: { nome: string }) {
 export default function SacramentoContent() {
   const params = useSearchParams();
   const nome = params.get('nome');
+  const token = params.get('t');
 
   const [lista, setLista] = useState<PreparacaoSacramentoLista[]>([]);
   const [loadingLista, setLoadingLista] = useState(false);
@@ -691,7 +722,7 @@ export default function SacramentoContent() {
     }
   }, [nome]);
 
-  if (nome) return <DetalhePreparacao nome={nome} />;
+  if (nome) return <DetalhePreparacao nome={nome} token={token} />;
 
   return (
     <div className="animate-fade-up">

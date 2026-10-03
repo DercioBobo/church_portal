@@ -256,9 +256,41 @@ def get_preparacoes_sacramento():
     return preparacoes
 
 
+LINK_INVALIDO = _("Este link expirou ou não é válido. Peça um novo link à coordenação da catequese.")
+
+
+def _acesso_preparacao(nome, token, editar=False):
+    """
+    Acesso às preparações pelo link partilhado com os encarregados.
+    Devolve True se pode editar. Coordenadores autenticados acedem sem link.
+    """
+    import secrets
+    from frappe.utils import get_datetime, now_datetime
+
+    if frappe.session.user != "Guest":
+        roles = set(frappe.get_roles())
+        if roles & {"System Manager", "Coordenador Catequese"}:
+            return True
+
+    link = frappe.db.get_value(
+        "Preparacao do Sacramento", nome,
+        ["link_token", "link_expira_em", "link_permite_editar"], as_dict=True,
+    )
+    if (
+        not link or not link.link_token or not token
+        or not secrets.compare_digest(str(link.link_token), str(token))
+        or not link.link_expira_em or get_datetime(link.link_expira_em) <= now_datetime()
+    ):
+        frappe.throw(LINK_INVALIDO, frappe.PermissionError)
+    if editar and not link.link_permite_editar:
+        frappe.throw(_("Este link é só de consulta."), frappe.PermissionError)
+    return bool(link.link_permite_editar)
+
+
 @frappe.whitelist(allow_guest=True)
-def get_preparacao_sacramento(nome):
-    """Detalhe de uma Preparação do Sacramento com candidatos."""
+def get_preparacao_sacramento(nome, t=None):
+    """Detalhe de uma Preparação do Sacramento com candidatos (só com link válido)."""
+    pode_editar = _acesso_preparacao(nome, t)
     preparacao = frappe.db.get_value(
         "Preparacao do Sacramento",
         nome,
@@ -301,6 +333,8 @@ def get_preparacao_sacramento(nome):
     """, (nome,), as_dict=True)
 
     preparacao["candidatos"] = candidatos
+    preparacao["pode_editar"] = pode_editar
+    preparacao["link_expira_em"] = frappe.db.get_value("Preparacao do Sacramento", nome, "link_expira_em")
     return preparacao
 
 
@@ -309,12 +343,14 @@ def atualizar_candidato_sacramento(
     preparacao_nome, row_name,
     encarregado=None, contacto_encarregado=None,
     padrinhos=None, contacto_padrinhos=None,
-    idade=None, data_de_nascimento=None, dia=None, enc_obs=None,
+    idade=None, data_de_nascimento=None, dia=None, enc_obs=None, t=None,
 ):
     """
     Permite ao encarregado actualizar os campos editáveis do candidato.
     Actualiza também o Catecumeno correspondente nos campos partilhados.
     """
+    _acesso_preparacao(preparacao_nome, t, editar=True)
+
     # Verify the row belongs to this preparacao
     row = frappe.db.get_value(
         "Candidatos ao Sacramento Table",
@@ -346,7 +382,11 @@ def atualizar_candidato_sacramento(
         child_updates["enc_obs"] = enc_obs
 
     if child_updates:
+        antes = frappe.db.get_value(
+            "Candidatos ao Sacramento Table", row_name, list(child_updates), as_dict=True
+        ) or {}
         frappe.db.set_value("Candidatos ao Sacramento Table", row_name, child_updates)
+        _registar_alteracao(preparacao_nome, row.catecumeno, antes, child_updates)
 
     # Mirror shared fields to Catecumeno doctype
     if row.catecumeno:
@@ -370,8 +410,27 @@ def atualizar_candidato_sacramento(
             except Exception:
                 pass  # Catecumeno may not exist; non-critical
 
-    frappe.db.commit()
     return {"success": True}
+
+
+def _registar_alteracao(preparacao, catecumeno, antes, depois):
+    """Comentário na Preparação com o que mudou (para a coordenação rever/desfazer)."""
+    linhas = []
+    for campo, novo in depois.items():
+        velho = antes.get(campo)
+        if str(velho or "") != str(novo or ""):
+            linhas.append(f"<li><b>{campo}</b>: {frappe.utils.escape_html(str(velho or '—'))} → "
+                          f"{frappe.utils.escape_html(str(novo or '—'))}</li>")
+    if not linhas:
+        return
+    origem = "link dos encarregados" if frappe.session.user == "Guest" else frappe.session.user
+    frappe.get_doc({
+        "doctype": "Comment",
+        "comment_type": "Info",
+        "reference_doctype": "Preparacao do Sacramento",
+        "reference_name": preparacao,
+        "content": f"Dados de <b>{frappe.utils.escape_html(catecumeno or '')}</b> alterados via {origem}:<ul>{''.join(linhas)}</ul>",
+    }).insert(ignore_permissions=True)
 
 
 @frappe.whitelist(allow_guest=True)
