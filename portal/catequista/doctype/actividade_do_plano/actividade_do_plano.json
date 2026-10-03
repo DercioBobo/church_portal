@@ -12,6 +12,7 @@
   "data",
   "data_fim",
   "data_original",
+  "proposta",
   "section_responsavel",
   "orador",
   "local",
@@ -75,6 +76,15 @@
    "description": "Data original antes de qualquer alteração (preenchida automaticamente)"
   },
   {
+   "fieldname": "proposta",
+   "fieldtype": "Link",
+   "label": "Proposta do Plano",
+   "options": "Proposta do Plano",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Proposta que criou esta actividade (rollover)."
+  },
+  {
    "fieldname": "section_responsavel",
    "fieldtype": "Section Break",
    "label": "Responsável e Local"
@@ -108,7 +118,7 @@
  ],
  "allow_import": 1,
  "links": [],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-10-03 23:42:44.000000",
  "modified_by": "Administrator",
  "module": "Catequista",
  "name": "Actividade do Plano",

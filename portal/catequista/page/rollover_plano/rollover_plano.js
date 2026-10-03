@@ -1,10 +1,11 @@
 /* global frappe, Vue */
-// Rollover do Plano Anual — Vue 3 CDN, no build step
+// Rollover do Plano — Proposta do Plano Anual: gerar → editar por mês → imprimir → finalizar.
+// Vue 3 CDN, no build step.
 
 frappe.pages['rollover-plano'].on_page_load = function (wrapper) {
   frappe.ui.make_app_page({
     parent: wrapper,
-    title: 'Rollover do Plano Anual',
+    title: __('Rollover do Plano Anual'),
     single_column: true,
   });
 
@@ -30,300 +31,325 @@ frappe.pages['rollover-plano'].on_page_load = function (wrapper) {
   }
 };
 
+const RP_METODO = 'portal.catequista.doctype.proposta_do_plano.proposta_do_plano';
+const RP_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto',
+                  'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const RP_DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const RP_CAMPOS = ['data', 'data_fim', 'actividade', 'tipologia', 'local', 'orador', 'orcamento', 'notas'];
+
+function rpApi(method, args) {
+  return new Promise((resolve, reject) => {
+    frappe.call({
+      method: `${RP_METODO}.${method}`,
+      args,
+      callback: (r) => { if (r.exc) reject(new Error(r.exc)); else resolve(r.message); },
+      error: reject,
+    });
+  });
+}
+
+function rpDia(d) {
+  if (!d) return '';
+  const [y, m, day] = String(d).split('-').map(Number);
+  return RP_DIAS[new Date(y, m - 1, day).getDay()];
+}
+function rpCurta(d) {
+  if (!d) return '';
+  const [, m, day] = String(d).split('-');
+  return `${day}/${m}`;
+}
+
+let rpChave = 0;
+
 function createRolloverApp() {
-  const WEEKDAYS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const MESES_PT    = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const { createApp, ref, computed, onMounted, onBeforeUnmount } = Vue;
 
-  return Vue.createApp({
+  return createApp({
     template: `
-<div class="rp-page">
+<div id="rp-app">
+  <div class="rp-toolbar">
+    <h1>🔁 Rollover do Plano</h1>
+    <label class="rp-muted">Plano para</label>
+    <select v-model="ano" @change="carregar" class="rp-select">
+      <option v-for="a in anos" :key="a" :value="a">{{ a }}</option>
+    </select>
+    <span v-if="proposta" class="rp-estado" :class="finalizada ? 'final' : 'rascunho'">
+      {{ finalizada ? 'Finalizada' : 'Em discussão' }}
+    </span>
+    <div style="flex:1"></div>
+    <template v-if="proposta">
+      <span v-if="sujo" class="rp-muted">Alterações por guardar</span>
+      <a class="rp-btn" :href="'/app/proposta-do-plano/' + encodeURIComponent(proposta.name)" title="Documento, comentários e histórico">
+        📄 Documento<span v-if="proposta.comentarios"> · 💬 {{ proposta.comentarios }}</span>
+      </a>
+      <button class="rp-btn" @click="imprimir">🖨 Imprimir</button>
+      <template v-if="!finalizada">
+        <button class="rp-btn" :disabled="!sujo || ocupado" @click="guardar">💾 Guardar</button>
+        <button class="rp-btn rp-btn-primary" :disabled="ocupado || !linhas.length" @click="finalizar">✓ Finalizar</button>
+      </template>
+      <a v-else class="rp-btn rp-btn-primary" href="/app/plano-anual">Abrir Plano Anual →</a>
+    </template>
+  </div>
 
-  <!-- Header -->
-  <div class="rp-header">
-    <div class="rp-header-icon">&#8635;</div>
-    <div>
-      <h1 class="rp-title">Rollover do Plano Anual</h1>
-      <p class="rp-subtitle">Duplica actividades de um ano lectivo para outro, ajustando datas automaticamente.</p>
+  <div v-if="loading" class="rp-loading"><div class="rp-spinner"></div> A carregar…</div>
+
+  <!-- ── Sem proposta: gerar ───────────────────────────────────────── -->
+  <div v-else-if="!proposta" class="rp-wrap">
+    <div class="rp-card rp-gerar">
+      <h2>Proposta do Plano {{ ano }}</h2>
+      <p class="rp-muted">
+        Copia as actividades de um ano para {{ ano }}, com as datas ajustadas. A proposta fica em rascunho para
+        discutir em reunião: pode alterar, apagar e acrescentar actividades, imprimir, e só no fim finalizar.
+      </p>
+      <div class="rp-form">
+        <label>Copiar do ano
+          <select v-model="origem" class="rp-select">
+            <option v-for="a in anos.filter(x => x !== ano)" :key="a" :value="a">{{ a }}</option>
+          </select>
+        </label>
+        <label class="rp-check"><input type="checkbox" v-model="manterOrador"> Manter orador / responsável</label>
+        <label class="rp-check"><input type="checkbox" v-model="manterFds"> Manter o dia da semana das actividades ao fim-de-semana</label>
+      </div>
+      <p v-if="info.no_plano" class="rp-aviso">
+        {{ ano }} já tem {{ info.no_plano }} actividade(s) no Plano Anual — as que tiverem o mesmo nome não são repetidas.
+      </p>
+      <button class="rp-btn rp-btn-primary rp-btn-lg" :disabled="!origem || ocupado" @click="gerar">Gerar proposta</button>
     </div>
   </div>
 
-  <!-- ── STEP: form ─────────────────────────────────────────────── -->
-  <div v-if="step === 'form'" class="rp-card">
-    <div class="rp-form-row">
-      <div class="rp-field">
-        <label class="rp-label">Copiar de</label>
-        <select v-model="anoOrigem" class="rp-select">
-          <option value="">— seleccionar —</option>
-          <option v-for="a in anos" :key="a" :value="a">{{ a }}</option>
-        </select>
-      </div>
-      <div class="rp-arrow">→</div>
-      <div class="rp-field">
-        <label class="rp-label">Para</label>
-        <select v-model="anoDestino" class="rp-select">
-          <option value="">— seleccionar —</option>
-          <option v-for="a in anos" :key="a" :value="a" :disabled="a === anoOrigem">{{ a }}</option>
-        </select>
-      </div>
+  <!-- ── Proposta ──────────────────────────────────────────────────── -->
+  <div v-else class="rp-wrap rp-wrap-wide">
+    <div class="rp-resumo">
+      <div><b>{{ linhas.length }}</b><span>actividades</span></div>
+      <div><b>{{ novas }}</b><span>novas</span></div>
+      <div><b>{{ semData }}</b><span>sem data</span></div>
+      <div :class="{ alerta: choques.size }"><b>{{ choques.size }}</b><span>dias com várias actividades</span></div>
+      <p v-if="proposta.ano_origem" class="rp-muted">Baseada no plano de {{ proposta.ano_origem }}.</p>
+      <p v-if="finalizada" class="rp-muted">
+        Finalizada — as actividades estão no Plano Anual, ligadas a esta proposta.
+        Para desfazer, cancele o documento (só é possível se nenhuma actividade já começou).
+      </p>
     </div>
 
-    <div class="rp-options">
-      <label class="rp-checkbox-label">
-        <input type="checkbox" v-model="manterOrador" />
-        <span>Manter orador / responsável</span>
-      </label>
-      <label class="rp-checkbox-label">
-        <input type="checkbox" v-model="ajustarDatas" />
-        <span>
-          Ajustar datas (+1 ano, mesmo dia/mês)
-          <span class="rp-hint">Actividades ao Sáb/Dom mantêm o mesmo dia da semana no ano seguinte</span>
-        </span>
-      </label>
+    <section v-for="g in grupos" :key="g.chave" class="rp-mes">
+      <h3>{{ g.titulo }} <span>{{ g.linhas.length }}</span></h3>
+      <div class="rp-table-wrap">
+        <table class="rp-table">
+          <thead>
+            <tr>
+              <th class="c-data">Data</th><th class="c-data">Fim</th><th class="c-act">Actividade</th><th class="c-tip">Tipologia</th>
+              <th class="c-txt">Local</th><th class="c-txt">Responsável</th><th class="c-num">Orçamento</th><th class="c-notas">Notas da reunião</th>
+              <th v-if="!finalizada" class="c-x"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="l in g.linhas" :key="l._k" :class="{ choque: l.data && choques.has(l.data) }">
+              <template v-if="!finalizada">
+                <td class="c-data">
+                  <input type="date" v-model="l.data" @input="marcar">
+                  <small>{{ dia(l.data) }}<span v-if="l.data_origem"> · antes {{ curta(l.data_origem) }}</span></small>
+                </td>
+                <td class="c-data"><input type="date" v-model="l.data_fim" @input="marcar"></td>
+                <td>
+                  <input v-model="l.actividade" @input="marcar" placeholder="Nome da actividade">
+                  <span v-if="l.origem !== 'Rollover'" class="rp-nova">NOVA</span>
+                </td>
+                <td class="c-tip">
+                  <select v-model="l.tipologia" @change="marcar">
+                    <option value=""></option>
+                    <option v-for="t in tipologias" :key="t.name" :value="t.name">{{ t.icone ? t.icone + ' ' : '' }}{{ t.name }}</option>
+                  </select>
+                </td>
+                <td><input v-model="l.local" @input="marcar"></td>
+                <td><input v-model="l.orador" @input="marcar"></td>
+                <td class="c-num"><input type="number" min="0" step="0.01" v-model="l.orcamento" @input="marcar"></td>
+                <td><input v-model="l.notas" @input="marcar" placeholder="—"></td>
+                <td class="c-x"><button class="rp-x" title="Apagar" @click="apagar(l)">✕</button></td>
+              </template>
+              <template v-else>
+                <td class="c-data">{{ curta(l.data) || '—' }} <small>{{ dia(l.data) }}</small></td>
+                <td class="c-data">{{ curta(l.data_fim) }}</td>
+                <td>
+                  <a v-if="l.actividade_criada" :href="'/app/actividade-do-plano/' + encodeURIComponent(l.actividade_criada)">{{ l.actividade }}</a>
+                  <span v-else>{{ l.actividade }}</span>
+                </td>
+                <td class="c-tip">{{ l.tipologia }}</td><td>{{ l.local }}</td><td>{{ l.orador }}</td>
+                <td class="c-num">{{ l.orcamento || '' }}</td><td>{{ l.notas }}</td>
+              </template>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div v-if="!finalizada" class="rp-add">
+      <button class="rp-btn" @click="adicionar">+ Adicionar actividade</button>
     </div>
 
-    <div v-if="formError" class="rp-alert rp-alert-error">{{ formError }}</div>
-
-    <button class="rp-btn rp-btn-primary" :disabled="!canPreview || loading" @click="doPreview">
-      <span v-if="loading" class="rp-spinner"></span>
-      <span v-else>Pré-visualizar</span>
-    </button>
-  </div>
-
-  <!-- ── STEP: preview ──────────────────────────────────────────── -->
-  <div v-if="step === 'preview'">
-
-    <div class="rp-summary">
-      <div class="rp-summary-stat rp-stat-create">
-        <span class="rp-stat-num">{{ preview.to_create.length }}</span>
-        <span class="rp-stat-label">a criar</span>
-      </div>
-      <div class="rp-summary-stat rp-stat-skip">
-        <span class="rp-stat-num">{{ preview.to_skip.length }}</span>
-        <span class="rp-stat-label">a ignorar</span>
-      </div>
-      <div class="rp-summary-meta">
-        <strong>{{ preview.ano_origem }}</strong>
-        <span class="rp-arrow-sm">→</span>
-        <strong>{{ preview.ano_destino }}</strong>
-      </div>
-    </div>
-
-    <!-- To create -->
-    <div class="rp-card rp-card-create">
-      <div class="rp-section-header">
-        <span class="rp-badge rp-badge-create">{{ preview.to_create.length }}</span>
-        Actividades a criar
-      </div>
-      <div v-if="preview.to_create.length === 0" class="rp-empty">Nenhuma actividade nova para criar.</div>
-      <table v-else class="rp-table">
-        <thead>
-          <tr>
-            <th>Actividade</th>
-            <th>Tipologia</th>
-            <th>Data origem</th>
-            <th>Data destino</th>
-            <th v-if="manterOrador">Orador</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in preview.to_create" :key="row.actividade">
-            <td>{{ row.actividade }}</td>
-            <td><span class="rp-tip" v-if="row.tipologia">{{ row.tipologia }}</span></td>
-            <td class="rp-date">{{ fmtDate(row.data_origem) }}</td>
-            <td class="rp-date rp-date-new">
-              {{ fmtDate(row.data_destino) }}
-              <span v-if="row.data_destino" class="rp-weekday">{{ weekday(row.data_destino) }}</span>
-            </td>
-            <td v-if="manterOrador" class="rp-orador">{{ row.orador || '—' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- To skip -->
-    <div v-if="preview.to_skip.length > 0" class="rp-card rp-card-skip">
-      <div class="rp-section-header">
-        <span class="rp-badge rp-badge-skip">{{ preview.to_skip.length }}</span>
-        Já existem em <strong>&nbsp;{{ preview.ano_destino }}</strong> — serão ignoradas
-      </div>
-      <table class="rp-table rp-table-muted">
-        <thead>
-          <tr>
-            <th>Actividade</th>
-            <th>Tipologia</th>
-            <th>Data origem</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in preview.to_skip" :key="row.actividade">
-            <td>{{ row.actividade }}</td>
-            <td><span class="rp-tip" v-if="row.tipologia">{{ row.tipologia }}</span></td>
-            <td class="rp-date">{{ fmtDate(row.data_origem) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-if="execError" class="rp-alert rp-alert-error">{{ execError }}</div>
-
-    <div class="rp-actions">
-      <button class="rp-btn rp-btn-ghost" @click="step = 'form'">← Voltar</button>
-      <button
-        class="rp-btn rp-btn-primary"
-        :disabled="preview.to_create.length === 0 || loading"
-        @click="doExecutar"
-      >
-        <span v-if="loading" class="rp-spinner"></span>
-        <span v-else>Confirmar e criar ({{ preview.to_create.length }})</span>
-      </button>
+    <div class="rp-card rp-notas">
+      <label>Notas gerais da reunião</label>
+      <textarea v-if="!finalizada" v-model="notasGerais" @input="marcar" rows="3"
+                placeholder="Decisões, pendentes, quem trata de quê…"></textarea>
+      <p v-else>{{ notasGerais || '—' }}</p>
     </div>
   </div>
-
-  <!-- ── STEP: done ─────────────────────────────────────────────── -->
-  <div v-if="step === 'done'" class="rp-card rp-card-done">
-    <div class="rp-done-icon">✓</div>
-    <h2 class="rp-done-title">
-      {{ result.created }} actividade{{ result.created !== 1 ? 's' : '' }}
-      criada{{ result.created !== 1 ? 's' : '' }} com sucesso!
-    </h2>
-    <p v-if="result.skipped > 0" class="rp-done-sub">
-      {{ result.skipped }} ignorada{{ result.skipped !== 1 ? 's' : '' }} (já existiam em {{ result.ano_destino }}).
-    </p>
-    <div class="rp-done-actions">
-      <button class="rp-btn rp-btn-primary" @click="openPlano">
-        Abrir em Plano Anual →
-      </button>
-      <button class="rp-btn rp-btn-ghost" @click="reset">Fazer outro rollover</button>
-    </div>
-  </div>
-
 </div>
-    `,
+`,
+    setup() {
+      const anos = ref([]);
+      const ano = ref('');
+      const loading = ref(true);
+      const ocupado = ref(false);
+      const info = ref({});
+      const proposta = ref(null);
+      const linhas = ref([]);
+      const notasGerais = ref('');
+      const tipologias = ref([]);
+      const sujo = ref(false);
 
-    data() {
+      const origem = ref('');
+      const manterOrador = ref(true);
+      const manterFds = ref(true);
+
+      const finalizada = computed(() => proposta.value && proposta.value.docstatus === 1);
+      const novas = computed(() => linhas.value.filter((l) => l.origem !== 'Rollover').length);
+      const semData = computed(() => linhas.value.filter((l) => !l.data).length);
+      const choques = computed(() => {
+        const n = {};
+        linhas.value.forEach((l) => { if (l.data) n[l.data] = (n[l.data] || 0) + 1; });
+        return new Set(Object.keys(n).filter((d) => n[d] > 1));
+      });
+
+      // Agrupadas por mês da data (sem data no fim); dentro do mês, por data
+      const grupos = computed(() => {
+        const m = {};
+        linhas.value.forEach((l) => {
+          const k = l.data ? Number(String(l.data).slice(5, 7)) - 1 : 12;
+          (m[k] = m[k] || []).push(l);
+        });
+        return Object.keys(m).map(Number).sort((a, b) => a - b).map((k) => ({
+          chave: k,
+          titulo: k < 12 ? RP_MESES[k] : 'Sem data',
+          linhas: m[k].sort((a, b) => String(a.data || '').localeCompare(String(b.data || '')) || a._k - b._k),
+        }));
+      });
+
+      function aplicar(estado) {
+        info.value = estado;
+        tipologias.value = estado.tipologias || [];
+        proposta.value = estado.proposta;
+        linhas.value = ((estado.proposta && estado.proposta.itens) || []).map((r) => {
+          const l = { _k: ++rpChave, name: r.name, origem: r.origem, data_origem: r.data_origem,
+                      actividade_criada: r.actividade_criada };
+          RP_CAMPOS.forEach((c) => { l[c] = r[c] == null ? '' : r[c]; });
+          return l;
+        });
+        notasGerais.value = (estado.proposta && estado.proposta.notas) || '';
+        origem.value = estado.origem_sugerida && anos.value.includes(estado.origem_sugerida)
+          ? estado.origem_sugerida : (anos.value.find((a) => a !== ano.value) || '');
+        sujo.value = false;
+      }
+
+      async function carregar() {
+        if (sujo.value && !window.confirm(__('Há alterações por guardar. Mudar de ano e perdê-las?'))) return;
+        loading.value = true;
+        try {
+          aplicar(await rpApi('get_estado', { ano_destino: ano.value }));
+        } finally {
+          loading.value = false;
+        }
+      }
+
+      function marcar() { sujo.value = true; }
+
+      async function gerar() {
+        ocupado.value = true;
+        try {
+          await rpApi('gerar_proposta', {
+            ano_origem: origem.value, ano_destino: ano.value,
+            manter_orador: manterOrador.value ? 1 : 0, manter_fim_de_semana: manterFds.value ? 1 : 0,
+          });
+          frappe.show_alert({ message: __('Proposta criada'), indicator: 'green' });
+          await carregar();
+        } finally {
+          ocupado.value = false;
+        }
+      }
+
+      async function guardar() {
+        ocupado.value = true;
+        try {
+          const itens = linhas.value.map((l) => {
+            const r = { name: l.name };
+            RP_CAMPOS.forEach((c) => { r[c] = l[c] === '' ? null : l[c]; });
+            return r;
+          });
+          const doc = await rpApi('guardar_itens', {
+            nome: proposta.value.name, itens: JSON.stringify(itens), notas: notasGerais.value,
+          });
+          aplicar(Object.assign({}, info.value, { proposta: Object.assign(doc, { comentarios: proposta.value.comentarios }) }));
+          frappe.show_alert({ message: __('Proposta guardada'), indicator: 'green' });
+          return true;
+        } catch (e) {
+          return false;
+        } finally {
+          ocupado.value = false;
+        }
+      }
+
+      function adicionar() {
+        linhas.value.push({ _k: ++rpChave, origem: 'Nova', data: '', data_fim: '', actividade: '', tipologia: '',
+                            local: '', orador: '', orcamento: '', notas: '' });
+        marcar();
+      }
+
+      function apagar(l) {
+        const nome = l.actividade || __('esta linha');
+        frappe.confirm(__('Apagar "{0}" da proposta?', [nome]), () => {
+          linhas.value = linhas.value.filter((x) => x !== l);
+          marcar();
+        });
+      }
+
+      async function imprimir() {
+        if (sujo.value && !(await guardar())) return;
+        const q = new URLSearchParams({ doctype: 'Proposta do Plano', name: proposta.value.name,
+                                        format: 'Proposta do Plano', trigger_print: 1, no_letterhead: 1 });
+        window.open(`/printview?${q.toString()}`, '_blank');
+      }
+
+      function finalizar() {
+        frappe.confirm(
+          __('Criar {0} actividades no Plano Anual de {1}? Depois de finalizada, a proposta já não pode ser editada.',
+             [linhas.value.length, ano.value]),
+          async () => {
+            if (sujo.value && !(await guardar())) return;
+            ocupado.value = true;
+            try {
+              await rpApi('finalizar', { nome: proposta.value.name });
+              await carregar();
+            } finally {
+              ocupado.value = false;
+            }
+          });
+      }
+
+      const avisarSaida = (e) => { if (sujo.value) { e.preventDefault(); e.returnValue = ''; } };
+      onMounted(async () => {
+        window.addEventListener('beforeunload', avisarSaida);
+        const r = await rpApi('get_anos');
+        anos.value = r.anos || [];
+        ano.value = r.sugerido || anos.value[0] || '';
+        if (ano.value) await carregar(); else loading.value = false;
+      });
+      onBeforeUnmount(() => window.removeEventListener('beforeunload', avisarSaida));
+
       return {
-        step:         'form',
-        anos:         [],
-        anoOrigem:    '',
-        anoDestino:   '',
-        manterOrador: true,
-        ajustarDatas: true,
-        loading:      false,
-        formError:    '',
-        execError:    '',
-        preview:      null,
-        result:       null,
+        anos, ano, loading, ocupado, info, proposta, linhas, notasGerais, tipologias, sujo,
+        origem, manterOrador, manterFds, finalizada, novas, semData, choques, grupos,
+        carregar, marcar, gerar, guardar, adicionar, apagar, imprimir, finalizar,
+        dia: rpDia, curta: rpCurta,
       };
-    },
-
-    computed: {
-      canPreview() {
-        return this.anoOrigem && this.anoDestino && this.anoOrigem !== this.anoDestino;
-      },
-    },
-
-    methods: {
-      fmtDate(iso) {
-        if (!iso) return '—';
-        const d = new Date(iso + 'T00:00:00');
-        if (isNaN(d.getTime())) return iso;
-        return `${String(d.getDate()).padStart(2,'0')} ${MESES_PT[d.getMonth()]} ${d.getFullYear()}`;
-      },
-
-      weekday(iso) {
-        if (!iso) return '';
-        const d = new Date(iso + 'T00:00:00');
-        if (isNaN(d.getTime())) return '';
-        return WEEKDAYS_PT[d.getDay()];
-      },
-
-      doPreview() {
-        this.formError = '';
-        if (!this.canPreview) return;
-        this.loading = true;
-        frappe.call({
-          method: 'portal.catequista.page.plano_anual.plano_anual.preview_rollover',
-          args: {
-            ano_origem:    this.anoOrigem,
-            ano_destino:   this.anoDestino,
-            manter_orador: this.manterOrador ? '1' : '0',
-            ajustar_datas: this.ajustarDatas ? '1' : '0',
-          },
-          callback: (r) => {
-            this.loading = false;
-            if (r.message) {
-              this.preview = r.message;
-              this.step    = 'preview';
-            }
-          },
-          error: (err) => {
-            this.loading   = false;
-            this.formError = (err._server_messages
-              ? JSON.parse(err._server_messages).map(m => {
-                  try { return JSON.parse(m).message; } catch { return m; }
-                }).join(' ')
-              : null) || err.message || 'Erro ao pré-visualizar.';
-          },
-        });
-      },
-
-      doExecutar() {
-        this.execError = '';
-        this.loading   = true;
-        frappe.call({
-          method: 'portal.catequista.page.plano_anual.plano_anual.executar_rollover',
-          args: {
-            ano_origem:    this.anoOrigem,
-            ano_destino:   this.anoDestino,
-            manter_orador: this.manterOrador ? '1' : '0',
-            ajustar_datas: this.ajustarDatas ? '1' : '0',
-          },
-          callback: (r) => {
-            this.loading = false;
-            if (r.message) {
-              this.result = r.message;
-              this.step   = 'done';
-            }
-          },
-          error: (err) => {
-            this.loading   = false;
-            this.execError = err.message || 'Erro ao executar rollover.';
-          },
-        });
-      },
-
-      openPlano() {
-        frappe.set_route('plano-anual');
-      },
-
-      reset() {
-        this.step         = 'form';
-        this.anoOrigem    = '';
-        this.anoDestino   = '';
-        this.manterOrador = true;
-        this.ajustarDatas = true;
-        this.loading      = false;
-        this.formError    = '';
-        this.execError    = '';
-        this.preview      = null;
-        this.result       = null;
-      },
-
-      _loadAnos() {
-        frappe.call({
-          method: 'portal.catequista.page.plano_anual.plano_anual.get_anos_lectivos',
-          callback: (r) => {
-            if (r.message) {
-              // get_anos_lectivos returns DESC; reverse so oldest is at top
-              this.anos = [...r.message].reverse();
-            }
-          },
-        });
-      },
-    },
-
-    mounted() {
-      this._loadAnos();
     },
   });
 }

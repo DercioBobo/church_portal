@@ -168,11 +168,19 @@ def _passos_abrir(ano, seguinte):
         [] if existe else [_metodo(f"Criar {seguinte}", "criar_ano", {"ano": seguinte})]))
 
     n_plano = frappe.db.count("Actividade do Plano", {"ano_lectivo": seguinte}) if existe else 0
+    proposta = frappe.db.get_value("Proposta do Plano", {"ano_destino": seguinte, "docstatus": ["<", 2]},
+                                   ["name", "docstatus", "total_actividades"], as_dict=True) if existe else None
+    if proposta and proposta.docstatus == 0:
+        estado, detalhe = "aviso", (f"A {proposta.name} está em discussão ({proposta.total_actividades} actividades). "
+                                    "Finalize-a depois da reunião para criar as actividades.")
+    elif n_plano:
+        estado, detalhe = "ok", f"{n_plano} actividade(s) planeadas" + (f" ({proposta.name} finalizada)." if proposta else ".")
+    else:
+        estado, detalhe = "pendente", (f"Ainda sem actividades. Gere a proposta no Rollover (a partir de {ano}), "
+                                       "discuta-a em reunião e finalize.")
     passos.append(_passo(
-        "plano", f"Plano anual {seguinte}", "ok" if n_plano else "pendente",
-        f"{n_plano} actividade(s) planeadas." if n_plano else
-        f"Ainda sem actividades. Use o Rollover para copiar o plano de {ano} e ajustar as datas.",
-        [_rota("Rollover do plano", "/app/rollover-plano"), _rota("Plano anual", "/app/plano-anual")]))
+        "plano", f"Plano anual {seguinte}", estado, detalhe,
+        [_rota("Proposta / Rollover", "/app/rollover-plano"), _rota("Plano anual", "/app/plano-anual")]))
 
     turmas = frappe.get_all("Turma", filters={"ano_lectivo": seguinte},
                             fields=["name", "catequista", "status"]) if existe else []

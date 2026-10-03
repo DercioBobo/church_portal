@@ -43,7 +43,21 @@
 @keyframes qd-spin { to { transform: rotate(360deg); } }
 
 .qd-layout { display: grid; grid-template-columns: 320px 1fr; gap: 16px; padding: 16px 24px; align-items: start; }
-.qd-checks { display: flex; flex-direction: column; gap: 6px; position: sticky; top: 70px; }
+.qd-checks {
+  display: flex; flex-direction: column; gap: 6px; position: sticky; top: 70px;
+  max-height: calc(100vh - 90px); overflow-y: auto; padding-right: 2px;
+}
+.qd-area {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 10px 2px 2px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--qd-muted);
+}
+.qd-area:first-child { margin-top: 0; }
+.qd-area-n {
+  min-width: 26px; padding: 1px 7px; border-radius: 999px; text-align: center; font-size: 0.72rem;
+  background: rgba(220, 38, 38, 0.1); color: var(--qd-warn);
+}
+.qd-area-n.ok { background: rgba(22, 163, 74, 0.12); color: var(--qd-ok); }
 .qd-check {
   display: flex; align-items: center; gap: 12px; text-align: left; width: 100%;
   padding: 10px 12px; border: 1px solid var(--qd-border); border-radius: 10px;

@@ -45,7 +45,15 @@ const QD_ROTULOS = {
   turma: 'Turma', fase: 'Fase', status: 'Estado', idade: 'Idade', comunidade: 'Comunidade',
   turma_real: 'Turma real', turmas: 'Turmas', encarregado: 'Encarregado', contacto: 'Contacto',
   contacto_1: 'Contacto', nucleo: 'Núcleo', email: 'Email', ano_lectivo: 'Ano', catequistas: 'Catequistas',
+  data_de_nascimento: 'Nascimento', idade_certa: 'Idade certa', idade_tipica: 'Idade típica da fase',
+  fase_da_turma: 'Fase da turma', estado_catecumeno: 'Estado do catecúmeno', parecido_com: 'Parecido com',
+  criado_em: 'Inscrito em', baptismo: 'Baptismo', eucaristia: 'Eucaristia', crisma: 'Crisma',
+  data_do_crisma: 'Data do crisma', data_do_livro: 'Data no Livro', ano: 'Ano', sem_data: 'Sem data',
+  preparacao: 'Preparação', falta: 'Falta', catecumenos: 'Catecúmenos', maximo: 'Máximo',
+  dia: 'Dia', hora: 'Hora', local: 'Local', catequista_inactivo: 'Catequista inactivo',
 };
+
+const QD_ICONE_AREA = { 'Catecúmenos': '👦', 'Sacramentos': '✝️', 'Turmas': '👥', 'Catequistas': '🙋' };
 
 function createQualidadeApp() {
   const { createApp, ref, computed, onMounted } = Vue;
@@ -65,15 +73,21 @@ function createQualidadeApp() {
   <div v-else class="qd-layout">
     <!-- Verificações -->
     <div class="qd-checks">
-      <button v-for="v in verificacoes" :key="v.chave" class="qd-check"
-              :class="{ active: actual && actual.chave === v.chave, ok: !v.total }"
-              @click="abrir(v)">
-        <span class="qd-check-n">{{ v.total || '✓' }}</span>
-        <span class="qd-check-txt">
-          <b>{{ v.titulo }}</b>
-          <small v-if="v.correccao">correcção rápida disponível</small>
-        </span>
-      </button>
+      <template v-for="a in areas" :key="a.nome">
+        <div class="qd-area">
+          <span>{{ a.icone }} {{ a.nome }}</span>
+          <span class="qd-area-n" :class="{ ok: !a.total }">{{ a.total || '✓' }}</span>
+        </div>
+        <button v-for="v in a.verificacoes" :key="v.chave" class="qd-check"
+                :class="{ active: actual && actual.chave === v.chave, ok: !v.total }"
+                @click="abrir(v)">
+          <span class="qd-check-n">{{ v.total || '✓' }}</span>
+          <span class="qd-check-txt">
+            <b>{{ v.titulo }}</b>
+            <small v-if="v.correccao && v.total">correcção rápida disponível</small>
+          </span>
+        </button>
+      </template>
     </div>
 
     <!-- Registos -->
@@ -118,7 +132,7 @@ function createQualidadeApp() {
             <tbody>
               <tr v-for="r in registos" :key="r.name">
                 <td v-if="actual.correccao"><input type="checkbox" :value="r.name" v-model="seleccionados"></td>
-                <td><a :href="link(r.name)" target="_blank">{{ r.name }}</a></td>
+                <td><a :href="link(r)" target="_blank">{{ nomeDe(r) }}</a></td>
                 <td v-for="c in actual.colunas" :key="c">{{ r[c] || '—' }}</td>
                 <td v-if="actual.correccao && actual.correccao.por_linha" class="qd-row-fix">
                   <button v-for="val in actual.correccao.valores" :key="val" class="qd-mini"
@@ -143,6 +157,16 @@ function createQualidadeApp() {
       const saving = ref(false);
 
       const totalProblemas = computed(() => verificacoes.value.reduce((s, v) => s + (v.total || 0), 0));
+      const areas = computed(() => {
+        const out = [];
+        verificacoes.value.forEach((v) => {
+          let a = out.find((x) => x.nome === v.area);
+          if (!a) { a = { nome: v.area, icone: QD_ICONE_AREA[v.area] || '•', total: 0, verificacoes: [] }; out.push(a); }
+          a.verificacoes.push(v);
+          a.total += v.total || 0;
+        });
+        return out;
+      });
       const todosSeleccionados = computed(() =>
         registos.value.length > 0 && seleccionados.value.length === registos.value.length);
 
@@ -206,13 +230,20 @@ function createQualidadeApp() {
       }
 
       const rotulo = (c) => QD_ROTULOS[c] || c;
-      const link = (name) => `/app/${frappe.router.slug(actual.value.doctype)}/${encodeURIComponent(name)}`;
+      // Algumas verificações listam linhas de tabelas: mostram outro campo e abrem outro registo
+      const nomeDe = (r) => (actual.value.nome ? r[actual.value.nome] : r.name);
+      const link = (r) => {
+        const l = actual.value.link;
+        const dt = l ? l.doctype : actual.value.doctype;
+        const nome = l ? r[l.campo] : r.name;
+        return `/app/${frappe.router.slug(dt)}/${encodeURIComponent(nome)}`;
+      };
 
       onMounted(carregar);
 
       return {
         verificacoes, loading, actual, registos, loadingRegistos, seleccionados, saving,
-        totalProblemas, todosSeleccionados, carregar, abrir, toggleTodos, aplicar, aplicarLinha, rotulo, link,
+        totalProblemas, areas, nomeDe, todosSeleccionados, carregar, abrir, toggleTodos, aplicar, aplicarLinha, rotulo, link,
       };
     },
   });

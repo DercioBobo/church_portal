@@ -1,0 +1,158 @@
+{
+ "actions": [],
+ "autoname": "format:Proposta {ano_destino}",
+ "creation": "2026-10-03 23:42:44.000000",
+ "custom": 0,
+ "default_print_format": "Proposta do Plano",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ano_destino",
+  "ano_origem",
+  "cb_1",
+  "total_actividades",
+  "finalizada_em",
+  "sec_opcoes",
+  "manter_orador",
+  "manter_fim_de_semana",
+  "sec_itens",
+  "itens",
+  "sec_notas",
+  "notas",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "ano_destino",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Plano para o ano",
+   "options": "Ano Lectivo",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "ano_origem",
+   "fieldtype": "Link",
+   "label": "Copiado do ano",
+   "options": "Ano Lectivo",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_actividades",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Actividades",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "finalizada_em",
+   "fieldtype": "Datetime",
+   "label": "Finalizada em",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "sec_opcoes",
+   "fieldtype": "Section Break",
+   "label": "Opções do rollover"
+  },
+  {
+   "default": "1",
+   "fieldname": "manter_orador",
+   "fieldtype": "Check",
+   "label": "Manter orador / responsável",
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "manter_fim_de_semana",
+   "fieldtype": "Check",
+   "label": "Manter o dia da semana (sábado/domingo)",
+   "read_only": 1
+  },
+  {
+   "description": "Edite na página Rollover do Plano (vista por mês). Ao submeter, as actividades são criadas no Plano Anual e ficam ligadas a esta proposta.",
+   "fieldname": "sec_itens",
+   "fieldtype": "Section Break",
+   "label": "Actividades propostas"
+  },
+  {
+   "fieldname": "itens",
+   "fieldtype": "Table",
+   "label": "Actividades",
+   "options": "Proposta do Plano Item"
+  },
+  {
+   "fieldname": "sec_notas",
+   "fieldtype": "Section Break",
+   "label": "Notas"
+  },
+  {
+   "fieldname": "notas",
+   "fieldtype": "Small Text",
+   "label": "Notas gerais da reunião"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Proposta do Plano",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-10-03 23:42:44.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Proposta do Plano",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Coordenador Catequese",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "ano_destino",
+ "track_changes": 1
+}

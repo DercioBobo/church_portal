@@ -37,7 +37,7 @@ PAGINAS = {
     },
     "rollover-plano": {
         "icone": "🔁", "grupo": "Planeamento", "ordem": 2,
-        "descricao": "Copiar o plano de um ano para o seguinte e ajustar as datas.",
+        "descricao": "Proposta do plano do ano seguinte: copiar, discutir em reunião, imprimir e finalizar.",
     },
     "plano-retiro": {
         "icone": "⛪", "grupo": "Planeamento", "ordem": 3,

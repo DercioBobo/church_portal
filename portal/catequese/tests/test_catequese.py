@@ -390,6 +390,57 @@ class TestLinkEncarregados(BaseCatequese):
 # ── Qualidade dos dados ───────────────────────────────────────────────────────
 
 class TestQualidadeDados(BaseCatequese):
+    def test_todas_as_verificacoes_correm(self):
+        from portal.catequese.page.qualidade_dados.qualidade_dados import VERIFICACOES, get_verificacoes
+
+        resumo = get_verificacoes()  # executa cada verificação (apanha erros de SQL / campos)
+        self.assertEqual(len(resumo), len(VERIFICACOES))
+        for v in resumo:
+            self.assertIsInstance(v["total"], int, v["chave"])
+
+    def test_recalcular_idade(self):
+        from portal.catequese.page.qualidade_dados.qualidade_dados import corrigir, get_registos
+
+        c = catecumeno("_Teste QD Idade", data_de_nascimento="2015-03-10", idade=1)
+        self.assertIn(c.name, {r.name for r in get_registos("cat_idade_errada")})
+        corrigir("cat_idade_errada", json.dumps([c.name]))
+        self.assertNotEqual(frappe.db.get_value("Catecumeno", c.name, "idade"), 1)
+        self.assertNotIn(c.name, {r.name for r in get_registos("cat_idade_errada")})
+
+    def test_saiu_mas_continua_na_turma(self):
+        from portal.catequese.page.qualidade_dados.qualidade_dados import corrigir, get_registos
+
+        c = catecumeno("_Teste QD Saiu")
+        t = turma(FASE_A, [c])
+        frappe.db.set_value("Catecumeno", c.name, "status", "Transferido")
+        linhas = [r for r in get_registos("cat_saiu_mas_na_turma") if r.catecumeno == c.name]
+        self.assertEqual(len(linhas), 1)
+        corrigir("cat_saiu_mas_na_turma", json.dumps([linhas[0].name]))
+        self.assertEqual(
+            frappe.db.get_value("Turma Catecumenos", {"parent": t.name, "catecumeno": c.name}, "estado"), "Inativo")
+
+    def test_sacramentos_fora_de_ordem(self):
+        from portal.catequese.page.qualidade_dados.qualidade_dados import corrigir
+
+        c = catecumeno("_Teste QD Ordem", baptismo=0, eucaristia=0, crisma=1)
+        corrigir("sac_ordem", json.dumps([c.name]))
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["baptismo", "eucaristia"]), (1, 1))
+
+    def test_turma_vazia_inactivada(self):
+        from portal.catequese.page.qualidade_dados.qualidade_dados import corrigir, get_registos
+
+        t = turma(FASE_A)
+        self.assertIn(t.name, {r.name for r in get_registos("turma_vazia")})
+        corrigir("turma_vazia", json.dumps([t.name]))
+        self.assertEqual(frappe.db.get_value("Turma", t.name, "status"), "Inactivo")
+
+    def test_contacto_invalido(self):
+        from portal.catequese.page.qualidade_dados.qualidade_dados import _contacto_invalido
+
+        self.assertFalse(_contacto_invalido("+258 84 123 4567"))
+        self.assertFalse(_contacto_invalido("841234567 / 827654321"))
+        self.assertTrue(_contacto_invalido("21 123 456"))
+
     def test_corrigir_sexo_propaga_para_a_turma(self):
         from portal.catequese.page.qualidade_dados.qualidade_dados import corrigir, get_registos
 
@@ -515,3 +566,91 @@ class TestDefinicoesEAno(BaseCatequese):
                 delattr(frappe.local, attr)
 
         self.assertEqual([x["section_key"] for x in api._load_section_config()], ["teste"])
+
+
+# ── Proposta do Plano (rollover) ──────────────────────────────────────────────
+
+class TestPropostaPlano(BaseCatequese):
+    _ano = 2200
+
+    def setUp(self):
+        frappe.set_user("Administrator")
+        # cada teste usa um par de anos próprio (só pode haver uma proposta por ano de destino)
+        TestPropostaPlano._ano += 2
+        self.origem = ano(str(TestPropostaPlano._ano))
+        self.destino = ano(str(TestPropostaPlano._ano + 1))
+        for nome, data in (("Retiro de Teste", f"{self.origem}-02-07"),
+                           ("Festa de Teste", f"{self.origem}-06-20")):
+            frappe.get_doc({"doctype": "Actividade do Plano", "actividade": nome, "estado": "Realizada",
+                            "ano_lectivo": self.origem, "data": data, "local": "Igreja"}).insert()
+
+    def gerar(self):
+        from portal.catequista.doctype.proposta_do_plano.proposta_do_plano import gerar_proposta
+        return frappe.get_doc("Proposta do Plano", gerar_proposta(self.origem, self.destino))
+
+    def test_gerar_copia_para_o_ano_seguinte(self):
+        p = self.gerar()
+        self.assertEqual(p.docstatus, 0)
+        self.assertEqual(len(p.itens), 2)
+        for it in p.itens:
+            self.assertEqual(str(it.data)[:4], self.destino)
+            self.assertEqual(it.origem, "Rollover")
+
+    def test_so_uma_proposta_por_ano(self):
+        from portal.catequista.doctype.proposta_do_plano.proposta_do_plano import gerar_proposta
+
+        self.gerar()
+        self.assertRaises(frappe.ValidationError, gerar_proposta, self.origem, self.destino)
+
+    def test_editar_apagar_acrescentar_e_finalizar(self):
+        from portal.catequista.doctype.proposta_do_plano.proposta_do_plano import finalizar, guardar_itens
+
+        p = self.gerar()
+        itens = [{"name": p.itens[0].name, "actividade": "Retiro Alterado", "data": f"{self.destino}-03-01"},
+                 {"actividade": "Actividade Nova", "data": f"{self.destino}-05-05", "notas": "decidido na reunião"}]
+        doc = guardar_itens(p.name, json.dumps(itens), notas="Notas da reunião")
+        self.assertEqual([i["actividade"] for i in doc["itens"]], ["Retiro Alterado", "Actividade Nova"])
+        self.assertEqual(doc["itens"][1]["origem"], "Nova")
+
+        finalizar(p.name)
+        p.reload()
+        self.assertEqual(p.docstatus, 1)
+        criadas = frappe.get_all("Actividade do Plano", filters={"proposta": p.name},
+                                 fields=["actividade", "ano_lectivo", "estado"])
+        self.assertEqual({c.actividade for c in criadas}, {"Retiro Alterado", "Actividade Nova"})
+        self.assertTrue(all(c.ano_lectivo == self.destino and c.estado == "Pendente" for c in criadas))
+        self.assertTrue(all(i.actividade_criada for i in p.itens))
+        self.assertRaises(frappe.ValidationError, guardar_itens, p.name, json.dumps(itens))
+
+    def test_cancelar_apaga_as_actividades(self):
+        from portal.catequista.doctype.proposta_do_plano.proposta_do_plano import finalizar
+
+        p = self.gerar()
+        finalizar(p.name)
+        p.reload()
+        p.cancel()
+        self.assertEqual(frappe.db.count("Actividade do Plano", {"proposta": p.name}), 0)
+
+    def test_cancelar_recusado_se_ja_comecou(self):
+        from portal.catequista.doctype.proposta_do_plano.proposta_do_plano import finalizar
+
+        p = self.gerar()
+        finalizar(p.name)
+        p.reload()
+        frappe.db.set_value("Actividade do Plano", p.itens[0].actividade_criada, "estado", "Realizada")
+        self.assertRaises(frappe.ValidationError, p.cancel)
+
+    def test_nao_repete_actividades_ja_no_destino(self):
+        frappe.get_doc({"doctype": "Actividade do Plano", "actividade": "Festa de Teste", "estado": "Pendente",
+                        "ano_lectivo": self.destino}).insert()
+        p = self.gerar()
+        self.assertEqual([i.actividade for i in p.itens], ["Retiro de Teste"])
+
+    def test_dias_de_fim_de_semana_mantidos(self):
+        from datetime import date
+
+        from portal.catequista.doctype.proposta_do_plano.proposta_do_plano import _um_ano_depois
+
+        self.assertEqual(_um_ano_depois(date(2026, 2, 7)), date(2027, 2, 6))   # sábado → sábado
+        self.assertEqual(_um_ano_depois(date(2026, 3, 18)), date(2027, 3, 18))  # dia útil: mesma data
+        self.assertEqual(_um_ano_depois(date(2024, 2, 29)), date(2025, 2, 28))

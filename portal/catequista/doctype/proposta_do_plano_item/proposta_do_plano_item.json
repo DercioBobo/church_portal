@@ -1,0 +1,109 @@
+{
+ "actions": [],
+ "creation": "2026-10-03 23:42:44.000000",
+ "custom": 0,
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "data",
+  "data_fim",
+  "actividade",
+  "tipologia",
+  "local",
+  "orador",
+  "orcamento",
+  "notas",
+  "origem",
+  "data_origem",
+  "actividade_criada"
+ ],
+ "fields": [
+  {
+   "columns": 1,
+   "fieldname": "data",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Data"
+  },
+  {
+   "fieldname": "data_fim",
+   "fieldtype": "Date",
+   "label": "Data fim"
+  },
+  {
+   "columns": 3,
+   "fieldname": "actividade",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Actividade",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "tipologia",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Tipologia",
+   "options": "Tipologia Actividade"
+  },
+  {
+   "columns": 2,
+   "fieldname": "local",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Local"
+  },
+  {
+   "columns": 2,
+   "fieldname": "orador",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Orador / Responsável"
+  },
+  {
+   "fieldname": "orcamento",
+   "fieldtype": "Currency",
+   "label": "Orçamento"
+  },
+  {
+   "fieldname": "notas",
+   "fieldtype": "Small Text",
+   "label": "Notas da reunião"
+  },
+  {
+   "default": "Nova",
+   "fieldname": "origem",
+   "fieldtype": "Select",
+   "label": "Origem",
+   "options": "Rollover\nNova",
+   "read_only": 1
+  },
+  {
+   "fieldname": "data_origem",
+   "fieldtype": "Date",
+   "label": "Data no ano de origem",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "actividade_criada",
+   "fieldtype": "Link",
+   "label": "Actividade criada",
+   "no_copy": 1,
+   "options": "Actividade do Plano",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-03 23:42:44.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "Proposta do Plano Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
