@@ -165,6 +165,7 @@ function createRolloverApp() {
           <button class="rp-btn" @click="confirmarEmMassa(1)" title="Marcar a data como estimativa">? A confirmar</button>
           <button class="rp-btn" @click="confirmarEmMassa(0)" title="A data está confirmada">✓ Confirmada</button>
           <button class="rp-btn" @click="seleccionadas = []">Limpar selecção</button>
+          <button class="rp-btn" @click="duplicarSeleccionadas">⧉ Duplicar ({{ seleccionadas.length }})</button>
           <button class="rp-btn rp-btn-danger" @click="apagarSeleccionadas">🗑 Apagar seleccionadas ({{ seleccionadas.length }})</button>
         </template>
       </template>
@@ -185,8 +186,8 @@ function createRolloverApp() {
             <tr>
               <th v-if="!finalizada" class="c-sel"></th>
               <th class="c-data">Data</th><th class="c-data">Fim</th><th class="c-act">Actividade</th><th class="c-info"></th><th class="c-tip">Tipologia</th>
-              <th class="c-txt">Local</th><th class="c-txt">Responsável</th><th class="c-num">Orçamento</th><th class="c-notas">Notas da reunião</th>
-              <th v-if="!finalizada" class="c-x"></th>
+              <th class="c-txt">Local</th><th class="c-txt">Responsável</th>
+              <th v-if="!finalizada" class="c-x c-x2"></th>
             </tr>
           </thead>
           <tbody>
@@ -207,10 +208,12 @@ function createRolloverApp() {
                   <button class="rp-chip" :class="{ vazio: !temEtiquetas(l), activo: painel === l }" @click="abrirPainel(l)"
                           :title="resumoEtiquetas(l) || 'Detalhes da actividade'">
                     <template v-if="temEtiquetas(l)">
-                      <span v-if="l.origem !== 'Rollover'" class="ch-nova">NOVA</span>
                       <span v-if="externa(l)" class="ch-org">{{ sigla(l.organizador) }}</span>
                       <span v-if="l.a_confirmar" class="ch-conf" title="Data a confirmar">?</span>
                       <span v-if="l.so_este_ano" class="ch-extra" title="Só este ano">1×</span>
+                      <span v-if="l.origem !== 'Rollover'" class="ch-nova">NOVA</span>
+                      <span v-if="temNotas(l)" class="ch-notas" title="Tem notas da reunião">📝</span>
+                      <span v-if="temOrcamento(l)" class="ch-orc" title="Tem orçamento">MT</span>
                     </template>
                     <template v-else>⋯</template>
                   </button>
@@ -223,9 +226,10 @@ function createRolloverApp() {
                 </td>
                 <td><input v-model="l.local" @input="marcar"></td>
                 <td><input v-model="l.orador" @input="marcar"></td>
-                <td class="c-num"><input type="number" min="0" step="0.01" v-model="l.orcamento" @input="marcar"></td>
-                <td><input v-model="l.notas" @input="marcar" placeholder="—"></td>
-                <td class="c-x"><button class="rp-x" title="Apagar" @click="apagar(l)">✕</button></td>
+                <td class="c-x">
+                  <button class="rp-x rp-dup" title="Duplicar (cópia logo abaixo)" @click="duplicar(l)">⧉</button>
+                  <button class="rp-x" title="Apagar" @click="apagar(l)">✕</button>
+                </td>
               </template>
               <template v-else>
                 <td class="c-data">{{ curta(l.data) || '—' }} <small>{{ dia(l.data) }}</small></td>
@@ -235,14 +239,20 @@ function createRolloverApp() {
                   <span v-else>{{ l.actividade }}</span>
                 </td>
                 <td class="c-info">
-                  <span v-if="temEtiquetas(l)" class="rp-chip leitura" :title="resumoEtiquetas(l)">
-                    <span v-if="externa(l)" class="ch-org">{{ sigla(l.organizador) }}</span>
-                    <span v-if="l.a_confirmar" class="ch-conf">?</span>
-                    <span v-if="l.so_este_ano" class="ch-extra">1×</span>
-                  </span>
+                  <button class="rp-chip" :class="{ vazio: !temEtiquetas(l), activo: painel === l }" @click="abrirPainel(l)"
+                          :title="resumoEtiquetas(l) || 'Detalhes da actividade'">
+                    <template v-if="temEtiquetas(l)">
+                      <span v-if="externa(l)" class="ch-org">{{ sigla(l.organizador) }}</span>
+                      <span v-if="l.a_confirmar" class="ch-conf">?</span>
+                      <span v-if="l.so_este_ano" class="ch-extra">1×</span>
+                      <span v-if="temNotas(l)" class="ch-notas">📝</span>
+                      <span v-if="temOrcamento(l)" class="ch-orc">MT</span>
+                    </template>
+                    <template v-else>⋯</template>
+                  </button>
                 </td>
                 <td class="c-tip">{{ l.tipologia }}</td><td>{{ l.local }}</td><td>{{ l.orador }}</td>
-                <td class="c-num">{{ l.orcamento || '' }}</td><td>{{ l.notas }}</td>
+
               </template>
             </tr>
           </tbody>
@@ -291,6 +301,17 @@ function createRolloverApp() {
           <template v-else>Actividade nova (acrescentada nesta proposta)</template>
         </p>
 
+        <label class="rp-campo">Notas da reunião
+          <textarea v-model="painel.notas" :readonly="finalizada" @input="marcar" rows="5" class="rp-notas-painel"
+                    placeholder="Decisões, dúvidas, quem trata…"></textarea>
+          <small>Também aparecem na coluna Notas da folha impressa.</small>
+        </label>
+
+        <label class="rp-campo">Orçamento (MT)
+          <input type="number" min="0" step="0.01" v-model="painel.orcamento" :readonly="finalizada" @input="marcar"
+                 class="rp-input" placeholder="0,00">
+        </label>
+
         <label class="rp-campo">Organizador
           <select v-model="painel.organizador" :disabled="finalizada" @change="mudarOrganizador(painel)" class="rp-select">
             <option v-for="o in organizadores" :key="o" :value="o">{{ o }}</option>
@@ -313,6 +334,7 @@ function createRolloverApp() {
       </div>
       <div class="rp-painel-foot">
         <button class="rp-btn" :disabled="!vizinha(-1)" @click="abrirPainel(vizinha(-1))">‹ Anterior</button>
+        <button v-if="!finalizada" class="rp-btn" @click="duplicar(painel, true)" title="Criar uma cópia desta actividade">⧉ Duplicar</button>
         <span class="rp-muted">{{ posicaoPainel }}</span>
         <button class="rp-btn" :disabled="!vizinha(1)" @click="abrirPainel(vizinha(1))">Seguinte ›</button>
       </div>
@@ -461,6 +483,45 @@ function createRolloverApp() {
         }
       }
 
+      // ── Duplicar ────────────────────────────────────────────────────────────
+      // Cópia nova (NOVA): mesmos dados e etiquetas; sem notas da reunião nem ligação ao ano de origem.
+      // Mesma data → fica logo abaixo do original.
+      function copiaDe(l) {
+        const c = { _k: ++rpChave, origem: 'Nova', data_origem: null };
+        RP_CAMPOS.forEach((k) => { c[k] = l[k]; });
+        RP_CHECKS.forEach((k) => { c[k] = l[k]; });
+        c.notas = '';
+        c.incluir = 1;
+        return c;
+      }
+
+      async function focarNome(k, seleccionar) {
+        await nextTick();
+        const campo = document.querySelector(`#rp-app input[data-linha="${k}"]`);
+        if (campo) {
+          campo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          campo.focus({ preventScroll: true });
+          if (seleccionar) campo.select();
+        }
+      }
+
+      async function duplicar(l, noPainel) {
+        const c = copiaDe(l);
+        linhas.value.push(c);
+        marcar();
+        if (noPainel) painel.value = c;
+        frappe.show_alert({ message: __('Cópia criada — altere o que for preciso'), indicator: 'blue' });
+        await focarNome(c._k, true);
+      }
+
+      function duplicarSeleccionadas() {
+        const copias = linhas.value.filter((l) => seleccionadas.value.includes(l._k)).map(copiaDe);
+        linhas.value.push(...copias);
+        seleccionadas.value = copias.map((c) => c._k);   // as cópias ficam seleccionadas
+        marcar();
+        frappe.show_alert({ message: __('{0} cópia(s) criadas e seleccionadas', [copias.length]), indicator: 'blue' });
+      }
+
       // Primeiro sábado do mês (0–11) no ano da proposta — ponto de partida para a data
       function primeiroSabado(mes) {
         const d = new Date(Number(ano.value), mes, 1);
@@ -478,12 +539,7 @@ function createRolloverApp() {
         filtro.value = 'todas';
         linhas.value.push(l);
         marcar();
-        await nextTick();
-        const campo = document.querySelector(`#rp-app input[data-linha="${l._k}"]`);
-        if (campo) {
-          campo.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          campo.focus({ preventScroll: true });
-        }
+        await focarNome(l._k, false);
       }
 
       function apagar(l) {
@@ -499,12 +555,17 @@ function createRolloverApp() {
       const painel = ref(null);
       const SIGLAS = { 'Zona V': 'ZV', 'Vigararia': 'VIG', 'Arquidiocese': 'ARQ', 'Outro': 'OUT' };
       const sigla = (o) => SIGLAS[o] || o;
-      const temEtiquetas = (l) => externa(l) || l.a_confirmar || l.so_este_ano || l.origem !== 'Rollover';
+      const temNotas = (l) => !!String(l.notas || '').trim();
+      const temOrcamento = (l) => Number(l.orcamento) > 0;
+      const temEtiquetas = (l) => externa(l) || l.a_confirmar || l.so_este_ano || l.origem !== 'Rollover'
+        || temNotas(l) || temOrcamento(l);
       const resumoEtiquetas = (l) => [
         externa(l) ? 'Organizado por ' + l.organizador : '',
         l.a_confirmar ? 'data a confirmar' : '',
         l.so_este_ano ? 'só este ano' : '',
         l.origem !== 'Rollover' ? 'nova' : '',
+        temOrcamento(l) ? 'Orçamento: ' + Number(l.orcamento).toLocaleString('pt-PT') + ' MT' : '',
+        temNotas(l) ? 'Notas: ' + String(l.notas).trim() : '',
       ].filter(Boolean).join(' · ');
       // Ordem do painel = ordem no ecrã (meses filtrados)
       const ordemVisivel = computed(() => grupos.value.flatMap((g) => g.linhas));
@@ -613,8 +674,8 @@ function createRolloverApp() {
         origem, manterOrador, manterFds, finalizada, novas, semData, choques, grupos,
         pesquisa, visiveis, seleccionadas, filtro, incluidas, naoCopiadas, aConfirmar, externas, externa,
         mudarOrganizador, incluir, organizadores: RP_ORGANIZADORES,
-        painel, sigla, temEtiquetas, resumoEtiquetas, abrirPainel, fecharPainel, vizinha, posicaoPainel,
-        organizadorEmMassa, confirmarEmMassa, toggle, todasSel, algumasSel, toggleGrupo, seleccionarVisiveis,
+        painel, sigla, temEtiquetas, temNotas, temOrcamento, resumoEtiquetas, abrirPainel, fecharPainel, vizinha, posicaoPainel,
+        organizadorEmMassa, confirmarEmMassa, duplicar, duplicarSeleccionadas, toggle, todasSel, algumasSel, toggleGrupo, seleccionarVisiveis,
         apagarSeleccionadas,
         carregar, marcar, definirData, gerar, guardar, adicionar, apagar, imprimir, finalizar,
         dia: rpDia, curta: rpCurta,
