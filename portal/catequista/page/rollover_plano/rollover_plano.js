@@ -157,6 +157,12 @@ function createRolloverApp() {
           ☑ Seleccionar {{ pesquisa ? 'resultados' : 'todas' }}
         </button>
         <template v-if="seleccionadas.length">
+          <select class="rp-select rp-select-sm" @change="organizadorEmMassa($event)" title="Organizador das seleccionadas">
+            <option value="">Organizador…</option>
+            <option v-for="o in organizadores" :key="o" :value="o">{{ o }}</option>
+          </select>
+          <button class="rp-btn" @click="confirmarEmMassa(1)" title="Marcar a data como estimativa">? A confirmar</button>
+          <button class="rp-btn" @click="confirmarEmMassa(0)" title="A data está confirmada">✓ Confirmada</button>
           <button class="rp-btn" @click="seleccionadas = []">Limpar selecção</button>
           <button class="rp-btn rp-btn-danger" @click="apagarSeleccionadas">🗑 Apagar seleccionadas ({{ seleccionadas.length }})</button>
         </template>
@@ -175,7 +181,7 @@ function createRolloverApp() {
           <thead>
             <tr>
               <th v-if="!finalizada" class="c-sel"></th>
-              <th class="c-data">Data</th><th class="c-data">Fim</th><th class="c-act">Actividade</th><th class="c-tip">Tipologia</th>
+              <th class="c-data">Data</th><th class="c-data">Fim</th><th class="c-act">Actividade</th><th class="c-info"></th><th class="c-tip">Tipologia</th>
               <th class="c-txt">Local</th><th class="c-txt">Responsável</th><th class="c-num">Orçamento</th><th class="c-notas">Notas da reunião</th>
               <th v-if="!finalizada" class="c-x"></th>
             </tr>
@@ -188,25 +194,23 @@ function createRolloverApp() {
                 <td class="c-data">
                   <input type="date" :value="l.data" :class="{ tentativa: l.a_confirmar }" @blur="definirData(l, $event)"
                          @keydown.enter.prevent="$event.target.blur()" title="A linha muda de mês ao sair do campo">
-                  <small>{{ dia(l.data) }}<span v-if="l.data_origem"> · antes {{ curta(l.data_origem) }}</span>
-                    <b v-if="l.a_confirmar" class="rp-tent">a confirmar</b></small>
+                  <small>{{ dia(l.data) }}</small>
                 </td>
                 <td class="c-data"><input type="date" v-model="l.data_fim" @input="marcar"></td>
                 <td>
                   <input v-model="l.actividade" @input="marcar" placeholder="Nome da actividade">
-                  <div class="rp-tags">
-                    <select v-model="l.organizador" @change="mudarOrganizador(l)" class="rp-org" :class="{ ext: externa(l) }"
-                            title="Organizador">
-                      <option v-for="o in organizadores" :key="o" :value="o">{{ o }}</option>
-                    </select>
-                    <label class="rp-tag" :class="{ on: l.a_confirmar }" title="A data é uma estimativa">
-                      <input type="checkbox" v-model="l.a_confirmar" :true-value="1" :false-value="0" @change="marcar"> a confirmar
-                    </label>
-                    <label class="rp-tag" :class="{ on: l.so_este_ano }" title="Extraordinária: não se repete nos próximos anos">
-                      <input type="checkbox" v-model="l.so_este_ano" :true-value="1" :false-value="0" @change="marcar"> só este ano
-                    </label>
-                    <span v-if="l.origem !== 'Rollover'" class="rp-nova">NOVA</span>
-                  </div>
+                </td>
+                <td class="c-info">
+                  <button class="rp-chip" :class="{ vazio: !temEtiquetas(l), activo: painel === l }" @click="abrirPainel(l)"
+                          :title="resumoEtiquetas(l) || 'Detalhes da actividade'">
+                    <template v-if="temEtiquetas(l)">
+                      <span v-if="l.origem !== 'Rollover'" class="ch-nova">NOVA</span>
+                      <span v-if="externa(l)" class="ch-org">{{ sigla(l.organizador) }}</span>
+                      <span v-if="l.a_confirmar" class="ch-conf" title="Data a confirmar">?</span>
+                      <span v-if="l.so_este_ano" class="ch-extra" title="Só este ano">1×</span>
+                    </template>
+                    <template v-else>⋯</template>
+                  </button>
                 </td>
                 <td class="c-tip">
                   <select v-model="l.tipologia" @change="marcar">
@@ -226,11 +230,13 @@ function createRolloverApp() {
                 <td>
                   <a v-if="l.actividade_criada" :href="'/app/actividade-do-plano/' + encodeURIComponent(l.actividade_criada)">{{ l.actividade }}</a>
                   <span v-else>{{ l.actividade }}</span>
-                  <div class="rp-tags">
-                    <span v-if="externa(l)" class="rp-tag on">{{ l.organizador }}</span>
-                    <span v-if="l.a_confirmar" class="rp-tag on">a confirmar</span>
-                    <span v-if="l.so_este_ano" class="rp-tag on">só este ano</span>
-                  </div>
+                </td>
+                <td class="c-info">
+                  <span v-if="temEtiquetas(l)" class="rp-chip leitura" :title="resumoEtiquetas(l)">
+                    <span v-if="externa(l)" class="ch-org">{{ sigla(l.organizador) }}</span>
+                    <span v-if="l.a_confirmar" class="ch-conf">?</span>
+                    <span v-if="l.so_este_ano" class="ch-extra">1×</span>
+                  </span>
                 </td>
                 <td class="c-tip">{{ l.tipologia }}</td><td>{{ l.local }}</td><td>{{ l.orador }}</td>
                 <td class="c-num">{{ l.orcamento || '' }}</td><td>{{ l.notas }}</td>
@@ -264,6 +270,50 @@ function createRolloverApp() {
     <div v-if="!finalizada" class="rp-add">
       <button class="rp-btn" @click="adicionar">+ Adicionar actividade</button>
     </div>
+
+    <aside v-if="painel" class="rp-painel" @keydown.esc="fecharPainel">
+      <div class="rp-painel-head">
+        <div>
+          <small>{{ painel.data ? dia(painel.data) + ', ' + curta(painel.data) : 'Sem data' }}</small>
+          <h3>{{ painel.actividade || 'Actividade sem nome' }}</h3>
+        </div>
+        <button class="rp-x" @click="fecharPainel" title="Fechar (Esc)">✕</button>
+      </div>
+      <div class="rp-painel-body">
+        <p class="rp-origem">
+          <template v-if="painel.origem === 'Rollover'">
+            Copiada do plano de {{ proposta.ano_origem || 'origem' }}<span v-if="painel.data_origem">:
+            {{ dia(painel.data_origem) }}, {{ curta(painel.data_origem) }}/{{ String(painel.data_origem).slice(0, 4) }}</span>
+          </template>
+          <template v-else>Actividade nova (acrescentada nesta proposta)</template>
+        </p>
+
+        <label class="rp-campo">Organizador
+          <select v-model="painel.organizador" :disabled="finalizada" @change="mudarOrganizador(painel)" class="rp-select">
+            <option v-for="o in organizadores" :key="o" :value="o">{{ o }}</option>
+          </select>
+          <small>Actividades de outros organizadores têm datas decididas por eles.</small>
+        </label>
+
+        <label class="rp-switch">
+          <input type="checkbox" v-model="painel.a_confirmar" :true-value="1" :false-value="0" :disabled="finalizada" @change="marcar">
+          <span><b>Data a confirmar</b><small>A data é uma estimativa até o organizador a anunciar.</small></span>
+        </label>
+        <label class="rp-switch">
+          <input type="checkbox" v-model="painel.so_este_ano" :true-value="1" :false-value="0" :disabled="finalizada" @change="marcar">
+          <span><b>Só este ano</b><small>Extraordinária: não é copiada no próximo rollover e vai para as Actividades Extraordinárias do relatório.</small></span>
+        </label>
+        <label class="rp-switch">
+          <input type="checkbox" v-model="painel.incluir" :true-value="1" :false-value="0" :disabled="finalizada" @change="marcar">
+          <span><b>Incluir na proposta</b><small>Desligado: passa para "Não copiadas" e não é criada ao finalizar.</small></span>
+        </label>
+      </div>
+      <div class="rp-painel-foot">
+        <button class="rp-btn" :disabled="!vizinha(-1)" @click="abrirPainel(vizinha(-1))">‹ Anterior</button>
+        <span class="rp-muted">{{ posicaoPainel }}</span>
+        <button class="rp-btn" :disabled="!vizinha(1)" @click="abrirPainel(vizinha(1))">Seguinte ›</button>
+      </div>
+    </aside>
 
     <div class="rp-card rp-notas">
       <label>Notas gerais da reunião</label>
@@ -345,6 +395,7 @@ function createRolloverApp() {
         });
         notasGerais.value = (estado.proposta && estado.proposta.notas) || '';
         seleccionadas.value = [];
+        painel.value = null;
         origem.value = estado.origem_sugerida && anos.value.includes(estado.origem_sugerida)
           ? estado.origem_sugerida : (anos.value.find((a) => a !== ano.value) || '');
         sujo.value = false;
@@ -423,6 +474,47 @@ function createRolloverApp() {
         });
       }
 
+      // ── Etiquetas e painel lateral ─────────────────────────────────────────
+      const painel = ref(null);
+      const SIGLAS = { 'Zona V': 'ZV', 'Vigararia': 'VIG', 'Arquidiocese': 'ARQ', 'Outro': 'OUT' };
+      const sigla = (o) => SIGLAS[o] || o;
+      const temEtiquetas = (l) => externa(l) || l.a_confirmar || l.so_este_ano || l.origem !== 'Rollover';
+      const resumoEtiquetas = (l) => [
+        externa(l) ? 'Organizado por ' + l.organizador : '',
+        l.a_confirmar ? 'data a confirmar' : '',
+        l.so_este_ano ? 'só este ano' : '',
+        l.origem !== 'Rollover' ? 'nova' : '',
+      ].filter(Boolean).join(' · ');
+      // Ordem do painel = ordem no ecrã (meses filtrados)
+      const ordemVisivel = computed(() => grupos.value.flatMap((g) => g.linhas));
+      function abrirPainel(l) { if (l) painel.value = l; }
+      function fecharPainel() { painel.value = null; }
+      function vizinha(passo) {
+        const lista = ordemVisivel.value;
+        const i = lista.indexOf(painel.value);
+        return i < 0 ? null : lista[i + passo] || null;
+      }
+      const posicaoPainel = computed(() => {
+        const i = ordemVisivel.value.indexOf(painel.value);
+        return i < 0 ? '' : `${i + 1} de ${ordemVisivel.value.length}`;
+      });
+      const teclaPainel = (e) => { if (e.key === 'Escape' && painel.value) fecharPainel(); };
+
+      function organizadorEmMassa(e) {
+        const org = e.target.value;
+        e.target.value = '';
+        if (!org) return;
+        linhas.value.filter((l) => seleccionadas.value.includes(l._k)).forEach((l) => {
+          l.organizador = org;
+          if (externa(l)) l.a_confirmar = 1;
+        });
+        marcar();
+      }
+      function confirmarEmMassa(v) {
+        linhas.value.filter((l) => seleccionadas.value.includes(l._k)).forEach((l) => { l.a_confirmar = v; });
+        marcar();
+      }
+
       // Mudar para um organizador externo marca a data como "a confirmar"
       function mudarOrganizador(l) {
         if (externa(l)) l.a_confirmar = 1;
@@ -484,18 +576,24 @@ function createRolloverApp() {
       const avisarSaida = (e) => { if (sujo.value) { e.preventDefault(); e.returnValue = ''; } };
       onMounted(async () => {
         window.addEventListener('beforeunload', avisarSaida);
+        window.addEventListener('keydown', teclaPainel);
         const r = await rpApi('get_anos');
         anos.value = r.anos || [];
         ano.value = r.sugerido || anos.value[0] || '';
         if (ano.value) await carregar(); else loading.value = false;
       });
-      onBeforeUnmount(() => window.removeEventListener('beforeunload', avisarSaida));
+      onBeforeUnmount(() => {
+        window.removeEventListener('beforeunload', avisarSaida);
+        window.removeEventListener('keydown', teclaPainel);
+      });
 
       return {
         anos, ano, loading, ocupado, info, proposta, linhas, notasGerais, tipologias, sujo,
         origem, manterOrador, manterFds, finalizada, novas, semData, choques, grupos,
         pesquisa, visiveis, seleccionadas, filtro, incluidas, naoCopiadas, aConfirmar, externas, externa,
-        mudarOrganizador, incluir, organizadores: RP_ORGANIZADORES, toggle, todasSel, algumasSel, toggleGrupo, seleccionarVisiveis,
+        mudarOrganizador, incluir, organizadores: RP_ORGANIZADORES,
+        painel, sigla, temEtiquetas, resumoEtiquetas, abrirPainel, fecharPainel, vizinha, posicaoPainel,
+        organizadorEmMassa, confirmarEmMassa, toggle, todasSel, algumasSel, toggleGrupo, seleccionarVisiveis,
         apagarSeleccionadas,
         carregar, marcar, definirData, gerar, guardar, adicionar, apagar, imprimir, finalizar,
         dia: rpDia, curta: rpCurta,
