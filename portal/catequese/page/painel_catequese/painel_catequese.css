@@ -14,6 +14,8 @@
   padding: 20px 24px 48px;
 }
 #pc-app, #pc-app * { box-sizing: border-box; }
+/* conteúdo centrado com largura máxima, em qualquer ecrã */
+#pc-app > * { max-width: 1200px; margin-left: auto; margin-right: auto; }
 #pc-app a { text-decoration: none; color: inherit; }
 
 .pc-loading { display: flex; justify-content: center; padding: 80px; }
@@ -46,7 +48,7 @@
 .pc-year b { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
 
 /* ── Resumo ──────────────────────────────────────────────────────────────── */
-.pc-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 18px 0 6px; }
+.pc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; margin-bottom: 6px; }
 .pc-stat {
   display: flex; flex-direction: column; gap: 2px; padding: 14px 18px; border-radius: 14px;
   background: var(--pc-card); border: 1px solid var(--pc-border); transition: border-color 0.15s, transform 0.15s;
@@ -57,11 +59,12 @@
 
 /* ── Grupos e cartões ────────────────────────────────────────────────────── */
 .pc-group { margin-top: 26px; }
+#pc-app > .pc-group { display: block; }
 .pc-group h2 {
   margin: 0 0 10px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--pc-muted);
 }
-.pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.pc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .pc-card {
   display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 14px;
   background: var(--pc-card); border: 1px solid var(--pc-border);
@@ -87,6 +90,10 @@
 }
 .pc-pill:hover { border-color: var(--pc-accent); color: var(--pc-accent) !important; }
 
+@media (max-width: 1000px) {
+  .pc-grid { grid-template-columns: repeat(2, 1fr); }
+  .pc-stats { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 640px) {
   #pc-app { padding: 14px 16px 40px; }
   .pc-hero { padding: 20px; }
