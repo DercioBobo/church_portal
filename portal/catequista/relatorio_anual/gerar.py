@@ -154,6 +154,12 @@ def _caminho_modelo(doc):
     if doc.modelo_docx:
         f = frappe.get_doc("File", {"file_url": doc.modelo_docx})
         return f.get_full_path()
+    if not os.path.exists(MODELO_PADRAO):
+        frappe.throw(_(
+            "O modelo Word padrão não foi encontrado no servidor ({0}). "
+            "Confirme que o ficheiro modelo_relatorio_anual.docx foi incluído no commit, "
+            "ou anexe um modelo personalizado no campo \"Modelo Word personalizado\"."
+        ).format(MODELO_PADRAO))
     return MODELO_PADRAO
 
 

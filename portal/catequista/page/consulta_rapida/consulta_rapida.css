@@ -1,0 +1,165 @@
+/* ── Consulta Rápida ─────────────────────────────────────────────────────────
+   Usa as variáveis de tema do Frappe para funcionar em modo claro e escuro. */
+#consulta-app {
+  --cr-bg: var(--bg-color, #f8f9fc);
+  --cr-card: var(--card-bg, #fff);
+  --cr-text: var(--text-color, #1f2937);
+  --cr-muted: var(--text-muted, #6b7280);
+  --cr-border: var(--border-color, #e5e7eb);
+  --cr-accent: #4f46e5;
+  --cr-accent-soft: rgba(79, 70, 229, 0.1);
+  --cr-wa: #16a34a;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  color: var(--cr-text);
+  background: var(--cr-bg);
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+#consulta-app a { color: var(--cr-accent); text-decoration: none; }
+#consulta-app a:hover { text-decoration: underline; }
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.cr-toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 24px; background: var(--cr-card);
+  border-bottom: 1px solid var(--cr-border);
+  position: sticky; top: 0; z-index: 50;
+}
+.cr-toolbar h1 { font-size: 1.1rem; font-weight: 700; margin: 0; white-space: nowrap; }
+.cr-select {
+  height: 34px; padding: 0 10px; border: 1px solid var(--cr-border); border-radius: 8px;
+  background: var(--cr-card); color: var(--cr-text); font-size: 0.85rem; cursor: pointer;
+}
+.cr-search-wrap { position: relative; flex: 1; min-width: 220px; max-width: 460px; }
+.cr-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--cr-muted); }
+.cr-search-input {
+  width: 100%; height: 34px; padding: 0 30px 0 30px; border: 1px solid var(--cr-border);
+  border-radius: 8px; background: var(--cr-card); color: var(--cr-text); font-size: 0.85rem; outline: none;
+}
+.cr-search-input:focus, .cr-select:focus { border-color: var(--cr-accent); box-shadow: 0 0 0 3px var(--cr-accent-soft); }
+.cr-search-clear {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  border: 0; background: none; color: var(--cr-muted); cursor: pointer;
+}
+.cr-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; margin: 0; cursor: pointer; white-space: nowrap; }
+
+/* ── Loading ─────────────────────────────────────────────────────────────── */
+.cr-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 80px; color: var(--cr-muted); }
+.cr-spinner {
+  width: 20px; height: 20px; border: 2px solid var(--cr-border); border-top-color: var(--cr-accent);
+  border-radius: 50%; animation: cr-spin 0.8s linear infinite;
+}
+@keyframes cr-spin { to { transform: rotate(360deg); } }
+
+/* ── Fases ───────────────────────────────────────────────────────────────── */
+.cr-fases { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 24px 4px; }
+.cr-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border: 1px solid var(--cr-border); border-radius: 999px; background: var(--cr-card);
+  color: var(--cr-text); font-size: 0.83rem; cursor: pointer; transition: all 0.15s;
+}
+.cr-chip:hover { border-color: var(--cr-accent); }
+.cr-chip.active { background: var(--cr-accent); border-color: var(--cr-accent); color: #fff; }
+.cr-chip-n {
+  min-width: 22px; padding: 1px 7px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+  background: var(--cr-accent-soft); color: var(--cr-accent);
+}
+.cr-chip.active .cr-chip-n { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.cr-chip-dot { width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; }
+.cr-hint { padding: 0 24px; margin: 4px 0 0; font-size: 0.75rem; color: var(--cr-muted); }
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.cr-cards {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px; padding: 16px 24px;
+}
+.cr-card { background: var(--cr-card); border: 1px solid var(--cr-border); border-radius: 12px; padding: 14px 16px; }
+.cr-card-label { margin: 0; font-size: 0.75rem; color: var(--cr-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.cr-card-value { margin: 4px 0 2px; font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cr-card-value-sm { font-size: 1.1rem; padding: 6px 0 3px; }
+.cr-card-sub { margin: 0; font-size: 0.78rem; color: var(--cr-muted); }
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.cr-tabs-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 24px 12px; }
+.cr-tabs { display: flex; gap: 2px; background: var(--cr-card); border: 1px solid var(--cr-border); border-radius: 10px; padding: 3px; }
+.cr-tab {
+  border: 0; background: none; color: var(--cr-muted); padding: 6px 14px; border-radius: 8px;
+  font-size: 0.85rem; font-weight: 500; cursor: pointer;
+}
+.cr-tab span { font-size: 0.75rem; opacity: 0.8; margin-left: 4px; }
+.cr-tab.active { background: var(--cr-accent); color: #fff; }
+.cr-btn {
+  height: 32px; padding: 0 12px; border: 1px solid var(--cr-border); border-radius: 8px;
+  background: var(--cr-card); color: var(--cr-text); font-size: 0.82rem; cursor: pointer;
+}
+.cr-btn:hover { border-color: var(--cr-accent); color: var(--cr-accent); }
+
+/* ── Turmas ──────────────────────────────────────────────────────────────── */
+.cr-turmas {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 12px; padding: 0 24px;
+}
+.cr-turma {
+  background: var(--cr-card); border: 1px solid var(--cr-border); border-radius: 12px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+}
+.cr-turma.inactiva { opacity: 0.6; }
+.cr-turma:has(.cr-table-inner) { grid-column: 1 / -1; }
+.cr-turma-head { display: flex; justify-content: space-between; gap: 12px; }
+.cr-turma-nome { font-weight: 600; font-size: 0.95rem; }
+.cr-turma-meta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 6px 0 0; font-size: 0.8rem; color: var(--cr-muted); }
+.cr-turma-count { text-align: right; line-height: 1.1; }
+.cr-turma-count b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.cr-turma-count span { font-size: 0.72rem; color: var(--cr-muted); }
+.cr-turma-cats { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; border-top: 1px dashed var(--cr-border); border-bottom: 1px dashed var(--cr-border); }
+.cr-pessoa { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 0.85rem; }
+.cr-papel { font-size: 0.7rem; text-transform: uppercase; color: var(--cr-muted); width: 82px; flex-shrink: 0; }
+.cr-pessoa-nome { font-weight: 500; }
+.cr-turma-foot { display: flex; align-items: center; gap: 14px; font-size: 0.8rem; color: var(--cr-muted); flex-wrap: wrap; }
+.cr-link-btn { border: 0; background: none; color: var(--cr-accent); font-size: 0.8rem; cursor: pointer; padding: 0; }
+
+/* ── Phone / badges ──────────────────────────────────────────────────────── */
+#consulta-app .cr-phone { color: var(--cr-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#consulta-app .cr-wa {
+  display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 4px;
+  font-size: 0.65rem; font-weight: 700; line-height: 16px;
+  background: rgba(22, 163, 74, 0.12); color: var(--cr-wa);
+}
+.cr-badge {
+  display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; margin-left: 4px;
+  background: var(--cr-accent-soft); color: var(--cr-accent); font-weight: 500;
+}
+.cr-badge-grey { background: rgba(107, 114, 128, 0.15); color: var(--cr-muted); }
+.cr-muted { color: var(--cr-muted); }
+.cr-small { font-size: 0.8rem; }
+.cr-empty { padding: 40px; text-align: center; color: var(--cr-muted); grid-column: 1 / -1; }
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+.cr-table-wrap { margin: 0 24px; overflow-x: auto; background: var(--cr-card); border: 1px solid var(--cr-border); border-radius: 12px; }
+.cr-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.cr-table th {
+  text-align: left; padding: 10px 12px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em;
+  color: var(--cr-muted); border-bottom: 1px solid var(--cr-border); white-space: nowrap; background: var(--cr-card);
+  position: sticky; top: 0;
+}
+.cr-table td { padding: 8px 12px; border-bottom: 1px solid var(--cr-border); vertical-align: top; }
+.cr-table tr:last-child td { border-bottom: 0; }
+.cr-table tbody tr:hover td { background: var(--cr-accent-soft); }
+.cr-table tr.inativo td { opacity: 0.55; }
+.cr-table-inner { border: 1px solid var(--cr-border); border-radius: 8px; }
+.cr-sortable { cursor: pointer; user-select: none; }
+.cr-sortable:hover { color: var(--cr-accent); }
+.cr-sacr span {
+  display: inline-block; width: 18px; text-align: center; font-size: 0.7rem; font-weight: 700;
+  border-radius: 4px; margin-right: 2px; color: var(--cr-muted); opacity: 0.35;
+}
+.cr-sacr span.on { opacity: 1; background: rgba(22, 163, 74, 0.12); color: var(--cr-wa); }
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .cr-toolbar, .cr-fases, .cr-cards, .cr-tabs-bar, .cr-turmas { padding-left: 16px; padding-right: 16px; }
+  .cr-hint { padding: 0 16px; }
+  .cr-table-wrap { margin: 0 16px; }
+  .cr-turmas { grid-template-columns: 1fr; }
+  .cr-search-wrap { min-width: 100%; order: 3; }
+}

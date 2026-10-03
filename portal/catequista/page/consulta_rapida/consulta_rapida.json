@@ -1,0 +1,18 @@
+{
+ "content": "1",
+ "creation": "2026-10-03 00:00:00.000000",
+ "doctype": "Page",
+ "modified": "2026-10-03 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequista",
+ "name": "consulta-rapida",
+ "owner": "Administrator",
+ "page_name": "consulta-rapida",
+ "restrict_to_domain": "",
+ "roles": [
+  {"role": "System Manager"},
+  {"role": "Coordenador Catequese"}
+ ],
+ "system_page": 0,
+ "title": "Consulta Rápida"
+}
