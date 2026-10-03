@@ -2,3 +2,4 @@
 portal.patches.v1_0.adoptar_doctypes_catequese
 
 [post_model_sync]
+portal.patches.v1_0.remover_scripts_convertidos

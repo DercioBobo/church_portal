@@ -8,8 +8,9 @@ app_version = "0.0.1"
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 # Synced automatically on bench migrate.
-# DocTypes da catequese (módulos Catequese e Paroquia) cujos scripts,
-# formatos de impressão e relatórios são versionados como fixtures.
+# DocTypes da catequese (módulos Catequese e Paroquia) cujos formatos de
+# impressão, relatórios e Property Setters são versionados como fixtures.
+# A lógica (antigos Client/Server Scripts) está nos controladores de cada DocType.
 CATEQUESE_DOCTYPES = [
     "Alocacao Pendente Item", "Alocacao Turma Item", "Alocacao em Massa", "Ano Lectivo",
     "Apuramento Item", "Apuramento Novas Turmas Table", "Apuramento Turmas Table",
@@ -25,8 +26,6 @@ fixtures = [
     {"dt": "Property Setter", "filters": [["doc_type", "in", CATEQUESE_DOCTYPES]]},
     {"dt": "Sacramento"},
     {"dt": "Fase"},
-    {"dt": "Server Script", "filters": [["reference_doctype", "in", CATEQUESE_DOCTYPES]]},
-    {"dt": "Client Script", "filters": [["dt", "in", CATEQUESE_DOCTYPES]]},
     {"dt": "Print Format", "filters": [["doc_type", "in", CATEQUESE_DOCTYPES + ["Plano de Retiro"]]]},
     {"dt": "Report", "filters": [["ref_doctype", "in", CATEQUESE_DOCTYPES]]},
 ]
@@ -35,6 +34,8 @@ fixtures = [
 # A página pública da paróquia usa estes URLs; continuam a funcionar depois de
 # remover a pnsa_app.
 override_whitelisted_methods = {
+    # antigo Server Script do tipo API
+    "mover_catecumenos_em_massa": "portal.catequese.turma.mover_catecumenos_em_massa",
     "pnsa_app.paroquia_app.catequese.scheduler.get_catecumenos_aniversariantes":
         "portal.catequese.scheduler.get_catecumenos_aniversariantes",
     "pnsa_app.paroquia_app.catequese.turma.get_turma_catecumenos":
