@@ -48,6 +48,10 @@ function rpApi(method, args) {
   });
 }
 
+function rpNorm(s) {
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
 function rpDia(d) {
   if (!d) return '';
   const [y, m, day] = String(d).split('-').map(Number);
@@ -131,22 +135,50 @@ function createRolloverApp() {
       </p>
     </div>
 
+    <div class="rp-barra">
+      <div class="rp-pesquisa">
+        <input v-model="pesquisa" placeholder="Pesquisar actividade, tipologia, local, responsável ou notas…"
+               @keydown.escape="pesquisa = ''">
+        <button v-if="pesquisa" class="rp-limpar" @click="pesquisa = ''">✕</button>
+      </div>
+      <span v-if="pesquisa" class="rp-muted">{{ visiveis.length }} de {{ linhas.length }}</span>
+      <template v-if="!finalizada">
+        <div style="flex:1"></div>
+        <button class="rp-btn" :disabled="!visiveis.length" @click="seleccionarVisiveis">
+          ☑ Seleccionar {{ pesquisa ? 'resultados' : 'todas' }}
+        </button>
+        <template v-if="seleccionadas.length">
+          <button class="rp-btn" @click="seleccionadas = []">Limpar selecção</button>
+          <button class="rp-btn rp-btn-danger" @click="apagarSeleccionadas">🗑 Apagar seleccionadas ({{ seleccionadas.length }})</button>
+        </template>
+      </template>
+    </div>
+    <div v-if="pesquisa && !visiveis.length" class="rp-vazio">Nenhuma actividade corresponde à pesquisa.</div>
+
     <section v-for="g in grupos" :key="g.chave" class="rp-mes">
-      <h3>{{ g.titulo }} <span>{{ g.linhas.length }}</span></h3>
+      <h3>
+        <input v-if="!finalizada" type="checkbox" class="rp-sel" :checked="todasSel(g.linhas)"
+               :indeterminate.prop="algumasSel(g.linhas)" @change="toggleGrupo(g.linhas)" title="Seleccionar o mês">
+        {{ g.titulo }} <span>{{ g.linhas.length }}</span>
+      </h3>
       <div class="rp-table-wrap">
         <table class="rp-table">
           <thead>
             <tr>
+              <th v-if="!finalizada" class="c-sel"></th>
               <th class="c-data">Data</th><th class="c-data">Fim</th><th class="c-act">Actividade</th><th class="c-tip">Tipologia</th>
               <th class="c-txt">Local</th><th class="c-txt">Responsável</th><th class="c-num">Orçamento</th><th class="c-notas">Notas da reunião</th>
               <th v-if="!finalizada" class="c-x"></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="l in g.linhas" :key="l._k" :class="{ choque: l.data && choques.has(l.data) }">
+            <tr v-for="l in g.linhas" :key="l._k"
+                :class="{ choque: l.data && choques.has(l.data), sel: seleccionadas.includes(l._k) }">
               <template v-if="!finalizada">
+                <td class="c-sel"><input type="checkbox" class="rp-sel" :checked="seleccionadas.includes(l._k)" @change="toggle(l)"></td>
                 <td class="c-data">
-                  <input type="date" v-model="l.data" @input="marcar">
+                  <input type="date" :value="l.data" @blur="definirData(l, $event)"
+                         @keydown.enter.prevent="$event.target.blur()" title="A linha muda de mês ao sair do campo">
                   <small>{{ dia(l.data) }}<span v-if="l.data_origem"> · antes {{ curta(l.data_origem) }}</span></small>
                 </td>
                 <td class="c-data"><input type="date" v-model="l.data_fim" @input="marcar"></td>
@@ -206,6 +238,8 @@ function createRolloverApp() {
       const notasGerais = ref('');
       const tipologias = ref([]);
       const sujo = ref(false);
+      const pesquisa = ref('');
+      const seleccionadas = ref([]);   // _k das linhas seleccionadas
 
       const origem = ref('');
       const manterOrador = ref(true);
@@ -221,9 +255,16 @@ function createRolloverApp() {
       });
 
       // Agrupadas por mês da data (sem data no fim); dentro do mês, por data
+      const visiveis = computed(() => {
+        const q = rpNorm(pesquisa.value.trim());
+        if (!q) return linhas.value;
+        return linhas.value.filter((l) =>
+          [l.actividade, l.tipologia, l.local, l.orador, l.notas].some((v) => rpNorm(v).includes(q)));
+      });
+
       const grupos = computed(() => {
         const m = {};
-        linhas.value.forEach((l) => {
+        visiveis.value.forEach((l) => {
           const k = l.data ? Number(String(l.data).slice(5, 7)) - 1 : 12;
           (m[k] = m[k] || []).push(l);
         });
@@ -245,6 +286,7 @@ function createRolloverApp() {
           return l;
         });
         notasGerais.value = (estado.proposta && estado.proposta.notas) || '';
+        seleccionadas.value = [];
         origem.value = estado.origem_sugerida && anos.value.includes(estado.origem_sugerida)
           ? estado.origem_sugerida : (anos.value.find((a) => a !== ano.value) || '');
         sujo.value = false;
@@ -261,6 +303,15 @@ function createRolloverApp() {
       }
 
       function marcar() { sujo.value = true; }
+
+      // A data só é aplicada ao sair do campo (ou Enter): enquanto se escreve, a linha não muda de sítio
+      function definirData(l, e) {
+        const v = e.target.value || '';
+        if (v !== (l.data || '')) {
+          l.data = v;
+          marcar();
+        }
+      }
 
       async function gerar() {
         ocupado.value = true;
@@ -307,7 +358,33 @@ function createRolloverApp() {
         const nome = l.actividade || __('esta linha');
         frappe.confirm(__('Apagar "{0}" da proposta?', [nome]), () => {
           linhas.value = linhas.value.filter((x) => x !== l);
+          seleccionadas.value = seleccionadas.value.filter((k) => k !== l._k);
           marcar();
+        });
+      }
+
+      function toggle(l) {
+        const i = seleccionadas.value.indexOf(l._k);
+        if (i >= 0) seleccionadas.value.splice(i, 1); else seleccionadas.value.push(l._k);
+      }
+      const todasSel = (ls) => ls.length > 0 && ls.every((l) => seleccionadas.value.includes(l._k));
+      const algumasSel = (ls) => !todasSel(ls) && ls.some((l) => seleccionadas.value.includes(l._k));
+      function toggleGrupo(ls) {
+        const ks = ls.map((l) => l._k);
+        if (todasSel(ls)) seleccionadas.value = seleccionadas.value.filter((k) => !ks.includes(k));
+        else seleccionadas.value = [...new Set([...seleccionadas.value, ...ks])];
+      }
+      function seleccionarVisiveis() {
+        seleccionadas.value = [...new Set([...seleccionadas.value, ...visiveis.value.map((l) => l._k)])];
+      }
+      function apagarSeleccionadas() {
+        const n = seleccionadas.value.length;
+        frappe.confirm(__('Apagar {0} actividade(s) da proposta? (Só fica definitivo quando guardar.)', [n]), () => {
+          const ks = new Set(seleccionadas.value);
+          linhas.value = linhas.value.filter((l) => !ks.has(l._k));
+          seleccionadas.value = [];
+          marcar();
+          frappe.show_alert({ message: __('{0} actividade(s) apagadas — guarde para confirmar', [n]), indicator: 'orange' });
         });
       }
 
@@ -347,7 +424,9 @@ function createRolloverApp() {
       return {
         anos, ano, loading, ocupado, info, proposta, linhas, notasGerais, tipologias, sujo,
         origem, manterOrador, manterFds, finalizada, novas, semData, choques, grupos,
-        carregar, marcar, gerar, guardar, adicionar, apagar, imprimir, finalizar,
+        pesquisa, visiveis, seleccionadas, toggle, todasSel, algumasSel, toggleGrupo, seleccionarVisiveis,
+        apagarSeleccionadas,
+        carregar, marcar, definirData, gerar, guardar, adicionar, apagar, imprimir, finalizar,
         dia: rpDia, curta: rpCurta,
       };
     },
