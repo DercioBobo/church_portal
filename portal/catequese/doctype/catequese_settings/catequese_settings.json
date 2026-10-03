@@ -29,6 +29,14 @@
   "valores_sacramento",
   "sec_documentos_sacramento",
   "documentos_html",
+  "tab_plano",
+  "sec_organizadores",
+  "palavras_zona",
+  "palavras_vigararia",
+  "cb_org",
+  "palavras_arquidiocese",
+  "sec_rollover",
+  "rollover_copiar_extraordinarias",
   "tab_portal",
   "editor_section",
   "layout_preview",
@@ -181,6 +189,51 @@
    "options": "<p class=\"text-muted small\">Os documentos exigidos estão em cada registo de <a href=\"/app/sacramento\">Sacramento</a> (campo \"Documentos Exigidos\") e são copiados automaticamente para cada nova Preparação.</p>"
   },
   {
+   "fieldname": "tab_plano",
+   "fieldtype": "Tab Break",
+   "label": "Plano Anual"
+  },
+  {
+   "description": "Palavras (separadas por vírgulas) procuradas na actividade, tipologia e responsável. Ignora maiúsculas e acentos. Quando encontradas, a actividade é desse organizador e, no rollover, fica com a data \"a confirmar\".",
+   "fieldname": "sec_organizadores",
+   "fieldtype": "Section Break",
+   "label": "Actividades de outros organizadores"
+  },
+  {
+   "default": "ZV, Zona V, Zona 5",
+   "fieldname": "palavras_zona",
+   "fieldtype": "Small Text",
+   "label": "Zona V"
+  },
+  {
+   "default": "Vigararia, Vigararias",
+   "fieldname": "palavras_vigararia",
+   "fieldtype": "Small Text",
+   "label": "Vigararia"
+  },
+  {
+   "fieldname": "cb_org",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Arquidiocese, Arquidiocesano, Arquidiocesana",
+   "fieldname": "palavras_arquidiocese",
+   "fieldtype": "Small Text",
+   "label": "Arquidiocese"
+  },
+  {
+   "fieldname": "sec_rollover",
+   "fieldtype": "Section Break",
+   "label": "Rollover"
+  },
+  {
+   "default": "0",
+   "description": "Desmarcado: as extraordinárias ficam em \"Não copiadas\" na proposta (podem ser incluídas).",
+   "fieldname": "rollover_copiar_extraordinarias",
+   "fieldtype": "Check",
+   "label": "Copiar actividades \"Só este ano\""
+  },
+  {
    "fieldname": "tab_portal",
    "fieldtype": "Tab Break",
    "label": "Portal do Catequista"
@@ -218,7 +271,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-03 20:51:53.000000",
+ "modified": "2026-10-04 00:26:35.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Catequese Settings",

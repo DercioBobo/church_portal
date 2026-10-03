@@ -161,7 +161,7 @@ function createPlanoAnualApp() {
           </tr>
           <tr v-for="(act, i) in group.items" :key="act.name">
             <td class="pa-pt-n">{{ i + 1 }}</td>
-            <td v-if="exportFields.actividade" class="pa-pt-bold">{{ act.actividade }}</td>
+            <td v-if="exportFields.actividade" class="pa-pt-bold">{{ act.actividade }}<span v-if="act.a_confirmar" class="pa-conf-tag">a confirmar{{ act.organizador && act.organizador !== 'Paróquia' ? ' · ' + act.organizador : '' }}</span></td>
             <td v-if="exportFields.tipologia">{{ act.tipologia || '—' }}</td>
             <td v-if="exportFields.data" class="pa-pt-nowrap">{{ formatDate(act.data) }}</td>
             <td v-if="exportFields.data_original" class="pa-pt-nowrap">{{ act.data_original ? formatDate(act.data_original) : '—' }}</td>
@@ -443,7 +443,7 @@ function createPlanoAnualApp() {
               <input v-if="!act._is_retiro" type="checkbox" class="pa-card-check" :checked="selected.has(act.name)" @click.stop="toggleSelect(act.name)" @change.stop data-no-print>
               <svg v-if="act._is_retiro" class="pa-card-retiro-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" data-no-print><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               <span v-if="!act._is_retiro" class="pa-card-drag-handle" title="Arrastar" @click.stop>⠿</span>
-              <span class="pa-card-title">{{ act.actividade }}</span>
+              <span class="pa-card-title">{{ act.actividade }}<span v-if="act.organizador && act.organizador !== 'Paróquia'" class="pa-org-tag" :title="'Organizado por ' + act.organizador">{{ act.organizador }}</span><span v-if="act.a_confirmar" class="pa-conf-tag" title="Data a confirmar com o organizador">a confirmar</span><span v-if="act.so_este_ano" class="pa-extra-tag" title="Extraordinária: não se repete">só este ano</span></span>
               <span class="pa-card-status" :class="statusClass(act.estado)"
                 @click.stop="cycleStatus(act)"
                 :title="act._is_retiro ? act.estado : 'Clique para avançar estado'"
@@ -583,7 +583,7 @@ function createPlanoAnualApp() {
                 </td>
                 <td class="pa-list-num">{{ i + 1 }}</td>
                 <td>
-                  <span class="pa-list-act-name">{{ act.actividade }}</span>
+                  <span class="pa-list-act-name">{{ act.actividade }}</span><span v-if="act.organizador && act.organizador !== 'Paróquia'" class="pa-org-tag" :title="'Organizado por ' + act.organizador">{{ act.organizador }}</span><span v-if="act.a_confirmar" class="pa-conf-tag" title="Data a confirmar com o organizador">a confirmar</span><span v-if="act.so_este_ano" class="pa-extra-tag" title="Extraordinária: não se repete">só este ano</span>
                   <span v-if="isOverdue(act)" class="pa-list-overdue-tag">⚠ Vencida</span>
                 </td>
                 <td>

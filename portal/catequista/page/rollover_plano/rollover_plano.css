@@ -151,3 +151,31 @@
 @media (max-width: 760px) {
   .rp-toolbar { padding: 12px 16px; }
 }
+
+/* ── Organizador, a confirmar, só este ano ───────────────────────────────── */
+.rp-resumo > div.aviso { border-color: var(--rp-warn); }
+.rp-resumo > div.aviso b { color: var(--rp-warn); }
+.rp-filtros { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--rp-border); border-radius: 8px; }
+.rp-filtros button {
+  border: 0; background: none; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; color: var(--rp-muted); cursor: pointer;
+}
+.rp-filtros button span { margin-left: 3px; font-weight: 700; }
+.rp-filtros button.on { background: var(--rp-accent); color: #fff; }
+.rp-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 0 6px 4px; }
+.rp-table .rp-org {
+  width: auto; height: 20px; padding: 0 4px; font-size: 0.7rem; border: 1px solid var(--rp-border); border-radius: 4px;
+  color: var(--rp-muted);
+}
+.rp-table .rp-org.ext { border-color: var(--rp-warn); color: var(--rp-warn); font-weight: 700; }
+.rp-tag {
+  display: inline-flex; align-items: center; gap: 3px; margin: 0; padding: 0 6px; height: 20px; border-radius: 4px;
+  font-size: 0.68rem; font-weight: 600; color: var(--rp-muted); border: 1px dashed var(--rp-border); cursor: pointer;
+}
+.rp-tag input[type="checkbox"] { width: 11px; height: 11px; margin: 0; }
+.rp-tag.on { border-style: solid; border-color: var(--rp-warn); color: var(--rp-warn); background: rgba(217, 119, 6, 0.08); }
+.rp-table input.tentativa { border: 1px dashed var(--rp-warn); color: var(--rp-warn); }
+.rp-tent { color: var(--rp-warn); font-weight: 700; margin-left: 4px; }
+.rp-nao-copiadas h3 span { background: rgba(100, 116, 139, 0.15); color: var(--rp-muted); }
+.rp-nao-copiadas .rp-table { min-width: 0; table-layout: auto; }
+.rp-nao-copiadas td { padding: 8px 10px; color: var(--rp-muted); }
+.rp-table .c-acoes { width: 150px; text-align: right; white-space: nowrap; }

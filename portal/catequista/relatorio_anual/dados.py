@@ -12,6 +12,8 @@ from datetime import date
 import frappe
 from frappe.utils import getdate, nowdate
 
+from portal.catequese.utils import e_externa
+
 MESES = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
@@ -49,7 +51,7 @@ def _limite(ano):
 def _actividades(ano_lectivo):
     return frappe.db.sql("""
         SELECT name, actividade, estado, data, data_fim, data_original,
-               orador, local, notas_execucao
+               orador, local, notas_execucao, organizador, so_este_ano
         FROM `tabActividade do Plano`
         WHERE ano_lectivo = %s
         ORDER BY data IS NULL, data, name
@@ -82,9 +84,13 @@ def resumo_actividades(ano_lectivo):
     limite = _limite(ano)
     acts = _actividades(ano_lectivo)
 
-    previstas = [a for a in acts if a.data and getdate(a.data) <= limite]
+    datadas = [a for a in acts if a.data and getdate(a.data) <= limite]
+    # Canceladas por outros organizadores (zona, vigararia, arquidiocese) não contam para a percentagem
+    canceladas_ext = [a for a in datadas if a.estado == "Cancelada" and e_externa(a.organizador)]
+    previstas = [a for a in datadas if a not in canceladas_ext]
     realizadas = [a for a in previstas if a.estado == "Realizada"]
     nao_realizadas = [a for a in previstas if a.estado in ("Cancelada", "Adiada", "Pendente")]
+    extraordinarias = [a for a in realizadas if a.so_este_ano]
 
     taxa = round(100.0 * len(realizadas) / len(previstas)) if previstas else 0
 
@@ -101,8 +107,15 @@ def resumo_actividades(ano_lectivo):
         + "; ".join(partes) + "."
     ) if partes else ""
 
+    texto_ext = (
+        "Actividades de outros organizadores que foram canceladas (não contam para a percentagem): "
+        + "; ".join(f"{a.actividade} ({a.organizador})" for a in canceladas_ext) + "."
+    ) if canceladas_ext else ""
+
     return {
         "taxa": taxa,
+        "canceladas_externas": texto_ext,
+        "extraordinarias": [_frase_actividade(a) for a in extraordinarias],
         "previstas": len(previstas),
         "realizadas": len(realizadas),
         "total_plano": len(acts),
@@ -114,6 +127,8 @@ def resumo_actividades(ano_lectivo):
             f"Canceladas: {sum(a.estado == 'Cancelada' for a in previstas)}; "
             f"adiadas: {sum(a.estado == 'Adiada' for a in previstas)}; "
             f"pendentes: {sum(a.estado == 'Pendente' for a in previstas)}."
+            + (f" Canceladas pela zona/vigararia/arquidiocese (não contam): {len(canceladas_ext)}."
+               if canceladas_ext else "")
         ),
         "itens": [
             {

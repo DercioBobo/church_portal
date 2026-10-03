@@ -654,3 +654,57 @@ class TestPropostaPlano(BaseCatequese):
         self.assertEqual(_um_ano_depois(date(2026, 2, 7)), date(2027, 2, 6))   # sábado → sábado
         self.assertEqual(_um_ano_depois(date(2026, 3, 18)), date(2027, 3, 18))  # dia útil: mesma data
         self.assertEqual(_um_ano_depois(date(2024, 2, 29)), date(2025, 2, 28))
+
+    def test_externas_a_confirmar_e_extraordinarias_excluidas(self):
+        from portal.catequista.doctype.proposta_do_plano.proposta_do_plano import finalizar
+
+        frappe.get_doc({"doctype": "Actividade do Plano", "actividade": "Formação da Zona", "estado": "Realizada",
+                        "ano_lectivo": self.origem, "data": f"{self.origem}-04-04", "orador": "Coordenação ZV"}).insert()
+        frappe.get_doc({"doctype": "Actividade do Plano", "actividade": "Feira Bíblica", "estado": "Realizada",
+                        "ano_lectivo": self.origem, "data": f"{self.origem}-10-04", "so_este_ano": 1}).insert()
+        p = self.gerar()
+        itens = {i.actividade: i for i in p.itens}
+        self.assertEqual((itens["Formação da Zona"].organizador, itens["Formação da Zona"].a_confirmar), ("Zona V", 1))
+        self.assertEqual(itens["Feira Bíblica"].incluir, 0)
+        self.assertEqual(itens["Festa de Teste"].a_confirmar, 0)
+
+        finalizar(p.name)
+        criadas = set(frappe.get_all("Actividade do Plano", filters={"proposta": p.name}, pluck="actividade"))
+        self.assertNotIn("Feira Bíblica", criadas)
+        self.assertIn("Formação da Zona", criadas)
+        self.assertEqual(frappe.db.get_value("Actividade do Plano", {"proposta": p.name, "actividade": "Formação da Zona"},
+                                             ["organizador", "a_confirmar"]), ("Zona V", 1))
+
+
+class TestOrganizador(BaseCatequese):
+    def test_classificar_pelas_palavras(self):
+        from portal.catequese.utils import classificar_organizador
+
+        self.assertEqual(classificar_organizador("Actualização dos programas", "Formação", "Coordenação ZV"), "Zona V")
+        self.assertEqual(classificar_organizador("Dia Arquidiocesano do Catequista", "", "Vigararia"), "Arquidiocese")
+        self.assertEqual(classificar_organizador("Formação a nível das vigararias"), "Vigararia")
+        self.assertEqual(classificar_organizador("Festa da Criança", "Festa", "Coordenação"), "Paróquia")
+
+    def test_relatorio_ignora_canceladas_por_outros(self):
+        from portal.catequista.relatorio_anual.dados import resumo_actividades
+
+        a = ano("2019")  # ano passado: o relatório só conta actividades até hoje
+        for nome, estado, org in (("P1", "Realizada", "Paróquia"), ("P2", "Realizada", "Paróquia"),
+                                  ("P3", "Cancelada", "Paróquia"), ("Z1", "Cancelada", "Zona V")):
+            frappe.get_doc({"doctype": "Actividade do Plano", "actividade": f"_Teste Rel {nome}", "estado": estado,
+                            "ano_lectivo": a, "data": f"{a}-03-01", "organizador": org}).insert()
+        r = resumo_actividades(a)
+        self.assertEqual((r["realizadas"], r["previstas"]), (2, 3))   # a da zona não conta
+        self.assertEqual(r["taxa"], 67)
+        self.assertIn("_Teste Rel Z1", r["canceladas_externas"])
+        self.assertNotIn("_Teste Rel Z1", r["nao_realizadas"])
+
+    def test_qualidade_classifica_actividades_existentes(self):
+        from portal.catequese.page.qualidade_dados.qualidade_dados import corrigir, get_registos
+
+        act = frappe.get_doc({"doctype": "Actividade do Plano", "actividade": "_Teste Dia do catequista da Zona V",
+                              "estado": "Pendente", "ano_lectivo": ANO, "data": f"{ANO}-07-11"}).insert()
+        self.assertIn(act.name, {r.name for r in get_registos("plano_externas_por_classificar")})
+        corrigir("plano_externas_por_classificar", json.dumps([act.name]))
+        self.assertEqual(frappe.db.get_value("Actividade do Plano", act.name, ["organizador", "a_confirmar"]),
+                         ("Zona V", 1))

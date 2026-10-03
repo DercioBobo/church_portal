@@ -17,7 +17,11 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, getdate, now_datetime
 
-CAMPOS_ITEM = ("data", "data_fim", "actividade", "tipologia", "local", "orador", "orcamento", "notas")
+from portal.catequese.utils import PAROQUIA, classificar_organizador, definicao, e_externa
+
+CAMPOS_ITEM = ("data", "data_fim", "actividade", "tipologia", "local", "orador", "orcamento", "notas",
+               "organizador")
+CHECKS_ITEM = ("a_confirmar", "so_este_ano", "incluir")
 
 
 class PropostadoPlano(Document):
@@ -38,11 +42,14 @@ class PropostadoPlano(Document):
         self.itens.sort(key=lambda r: (r.data is None, getdate(r.data) if r.data else date.max, r.actividade or ""))
         for i, item in enumerate(self.itens, 1):
             item.idx = i
-        self.total_actividades = len(self.itens)
+        self.total_actividades = len([i for i in self.itens if i.incluir])
 
     def on_submit(self):
-        """Cria as actividades no Plano Anual, cada uma ligada à proposta e à sua linha."""
+        """Cria as actividades no Plano Anual (só as incluídas), ligadas à proposta e à sua linha."""
+        criadas = 0
         for item in self.itens:
+            if not item.incluir:
+                continue
             act = frappe.get_doc({
                 "doctype": "Actividade do Plano",
                 "actividade": item.actividade.strip(),
@@ -54,11 +61,15 @@ class PropostadoPlano(Document):
                 "orador": item.orador,
                 "local": item.local,
                 "orcamento": item.orcamento,
+                "organizador": item.organizador or PAROQUIA,
+                "a_confirmar": item.a_confirmar,
+                "so_este_ano": item.so_este_ano,
                 "proposta": self.name,
             }).insert(ignore_permissions=True)
             item.db_set("actividade_criada", act.name, update_modified=False)
+            criadas += 1
         self.db_set("finalizada_em", now_datetime(), update_modified=False)
-        frappe.msgprint(_("{0} actividades criadas no Plano Anual de {1}.").format(len(self.itens), self.ano_destino),
+        frappe.msgprint(_("{0} actividades criadas no Plano Anual de {1}.").format(criadas, self.ano_destino),
                         indicator="green", alert=True)
 
     def on_cancel(self):
@@ -114,8 +125,10 @@ def gerar_proposta(ano_origem, ano_destino, manter_orador=1, manter_fim_de_seman
         frappe.throw(_("Já existe a {0} para {1}.").format(frappe.bold(existente), ano_destino))
 
     origem = frappe.get_all("Actividade do Plano", filters={"ano_lectivo": ano_origem},
-                            fields=["actividade", "tipologia", "data", "data_fim", "orador", "local", "orcamento"],
+                            fields=["actividade", "tipologia", "data", "data_fim", "orador", "local", "orcamento",
+                                    "organizador", "so_este_ano"],
                             order_by="data asc, name asc")
+    copiar_extra = cint(definicao("rollover_copiar_extraordinarias"))
     if not origem:
         frappe.throw(_("O ano {0} não tem actividades para copiar.").format(ano_origem))
 
@@ -128,11 +141,17 @@ def gerar_proposta(ano_origem, ano_destino, manter_orador=1, manter_fim_de_seman
     for a in origem:
         if a.actividade in ja_existem:
             continue
+        # Organizador: o registado; se for da paróquia (ou vazio), confirma pelas palavras das definições
+        organizador = a.organizador if e_externa(a.organizador) else             classificar_organizador(a.actividade, a.tipologia, a.orador)
         doc.append("itens", {
             "actividade": a.actividade, "tipologia": a.tipologia,
             "data": _um_ano_depois(a.data, fds), "data_fim": _um_ano_depois(a.data_fim, fds),
             "orador": a.orador if cint(manter_orador) else None,
             "local": a.local, "orcamento": a.orcamento,
+            "organizador": organizador,
+            "a_confirmar": 1 if e_externa(organizador) else 0,   # data decidida por outros
+            "so_este_ano": a.so_este_ano,
+            "incluir": 0 if (a.so_este_ano and not copiar_extra) else 1,
             "origem": "Rollover", "data_origem": a.data,
         })
     doc.insert(ignore_permissions=True)
@@ -171,6 +190,9 @@ def guardar_itens(nome, itens, notas=None):
     doc.set("itens", [])
     for l in linhas:
         valores = {k: (l.get(k) or None) for k in CAMPOS_ITEM}
+        valores.update({k: 1 if cint(l.get(k)) else 0 for k in CHECKS_ITEM})
+        if "incluir" not in l:
+            valores["incluir"] = 1
         anterior = antigas.get(l.get("name"))
         valores["origem"] = anterior.origem if anterior else "Nova"
         valores["data_origem"] = anterior.data_origem if anterior else None
@@ -188,8 +210,8 @@ def finalizar(nome):
     doc = frappe.get_doc("Proposta do Plano", nome)
     if doc.docstatus != 0:
         frappe.throw(_("A proposta já foi finalizada."))
-    if not doc.itens:
-        frappe.throw(_("A proposta não tem actividades."))
+    if not any(i.incluir for i in doc.itens):
+        frappe.throw(_("A proposta não tem actividades incluídas."))
     doc.submit()
     return doc.name
 

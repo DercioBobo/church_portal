@@ -1773,3 +1773,12 @@
   .pa-search-input:focus { width: 200px; }
   .pa-cal-grid { padding: 12px 14px; grid-template-columns: 1fr; }
 }
+
+/* ── Organizador / a confirmar / só este ano ─────────────────────────────── */
+.pa-org-tag, .pa-conf-tag, .pa-extra-tag {
+  display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 4px; vertical-align: middle;
+  font-size: 0.66rem; font-weight: 700; line-height: 16px; white-space: nowrap;
+}
+.pa-org-tag { background: rgba(79, 70, 229, 0.1); color: #4f46e5; }
+.pa-conf-tag { background: rgba(217, 119, 6, 0.12); color: #b45309; border: 1px dashed #d97706; }
+.pa-extra-tag { background: rgba(100, 116, 139, 0.14); color: #475569; }

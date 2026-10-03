@@ -16,10 +16,10 @@ import frappe
 from frappe import _
 from frappe.utils import getdate
 
-from portal.catequese.utils import ano_actual, definicao
+from portal.catequese.utils import PAROQUIA, ano_actual, classificar_organizador, definicao, e_externa
 
 LIMITE = 1000
-AREAS = ["Catecúmenos", "Sacramentos", "Turmas", "Catequistas"]
+AREAS = ["Catecúmenos", "Sacramentos", "Turmas", "Catequistas", "Plano"]
 VIVOS = "c.status IN ('Activo', 'Pendente')"
 
 VERIFICACOES = {}
@@ -438,6 +438,38 @@ def _catequista_sem_acesso():
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# Plano anual
+# ═════════════════════════════════════════════════════════════════════════════
+
+@verificacao("plano_externas_por_classificar", "Plano", "Parecem de outro organizador, mas estão como da paróquia",
+             "Pelas palavras das Catequese Settings (separador Plano Anual) estas actividades são da zona, "
+             "vigararia ou arquidiocese. A correcção define o organizador e marca \"a confirmar\" as datas futuras.",
+             "Actividade do Plano", ["ano_lectivo", "data", "organizador_sugerido"],
+             {"accao": "classificar_organizador", "rotulo": "Definir o organizador sugerido"}, nome="actividade")
+def _plano_externas_por_classificar():
+    out = []
+    for a in _sql("SELECT name, actividade, tipologia, orador, ano_lectivo, data FROM `tabActividade do Plano` "
+                  "WHERE IFNULL(organizador, '') IN ('', %s) ORDER BY ano_lectivo DESC, data", PAROQUIA):
+        sugerido = classificar_organizador(a.actividade, a.tipologia, a.orador)
+        if e_externa(sugerido):
+            a.organizador_sugerido = sugerido
+            out.append(a)
+    return out
+
+
+@verificacao("plano_a_confirmar_proximas", "Plano", "Datas por confirmar nos próximos 30 dias",
+             "Actividades com a data \"a confirmar\" que se aproximam. Confirme com o organizador e corrija a data "
+             "no Plano Anual; depois marque-as como confirmadas.",
+             "Actividade do Plano", ["data", "organizador", "local"],
+             {"accao": "confirmar_data", "rotulo": "Marcar a data como confirmada"}, nome="actividade")
+def _plano_a_confirmar_proximas():
+    hoje = date.today()
+    return _sql("SELECT name, actividade, data, organizador, local FROM `tabActividade do Plano` "
+                "WHERE a_confirmar = 1 AND estado = 'Pendente' AND data BETWEEN %s AND %s ORDER BY data",
+                hoje, hoje + timedelta(days=30))
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # Correcções (acções fixas)
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -512,6 +544,25 @@ def _inactivar_turma(nomes, chave):
     return len(nomes)
 
 
+def _classificar_organizador(nomes, chave):
+    linhas = _linhas(chave)
+    hoje = date.today()
+    for nome in nomes:
+        if nome in linhas:
+            a = linhas[nome]
+            valores = {"organizador": a.organizador_sugerido}
+            if a.data and getdate(a.data) >= hoje:
+                valores["a_confirmar"] = 1
+            frappe.db.set_value("Actividade do Plano", nome, valores)
+    return len([n for n in nomes if n in linhas])
+
+
+def _confirmar_data(nomes, chave):
+    for nome in nomes:
+        frappe.db.set_value("Actividade do Plano", nome, "a_confirmar", 0)
+    return len(nomes)
+
+
 ACCOES = {
     "alinhar_turma": _alinhar_turma,
     "alinhar_fase": _alinhar_fase,
@@ -521,6 +572,8 @@ ACCOES = {
     "marcar_crisma": _marcar_crisma,
     "baptismo_do_livro": _baptismo_do_livro,
     "inactivar_turma": _inactivar_turma,
+    "classificar_organizador": _classificar_organizador,
+    "confirmar_data": _confirmar_data,
 }
 
 

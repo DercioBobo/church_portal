@@ -20,7 +20,7 @@ def get_actividades(ano_lectivo):
         SELECT
             a.name, a.actividade, a.data, a.data_fim, a.data_original,
             a.orador, a.local, a.orcamento,
-            a.tipologia, a.estado, a.notas_execucao,
+            a.tipologia, a.estado, a.notas_execucao, a.organizador, a.a_confirmar, a.so_este_ano,
             a.ano_lectivo,
             t.cor AS tipologia_cor,
             t.icone AS tipologia_icone
@@ -116,7 +116,7 @@ def create_actividade(data_json):
     row = frappe.db.sql("""
         SELECT a.name, a.actividade, a.data, a.data_fim, a.data_original,
                a.orador, a.local, a.orcamento,
-               a.tipologia, a.estado, a.notas_execucao, a.ano_lectivo,
+               a.tipologia, a.estado, a.notas_execucao, a.organizador, a.a_confirmar, a.so_este_ano, a.ano_lectivo,
                t.cor AS tipologia_cor, t.icone AS tipologia_icone
         FROM `tabActividade do Plano` a
         LEFT JOIN `tabTipologia Actividade` t ON t.name = a.tipologia
@@ -152,7 +152,7 @@ def update_actividade(name, data_json):
     row = frappe.db.sql("""
         SELECT a.name, a.actividade, a.data, a.data_fim, a.data_original,
                a.orador, a.local, a.orcamento,
-               a.tipologia, a.estado, a.notas_execucao, a.ano_lectivo,
+               a.tipologia, a.estado, a.notas_execucao, a.organizador, a.a_confirmar, a.so_este_ano, a.ano_lectivo,
                t.cor AS tipologia_cor, t.icone AS tipologia_icone
         FROM `tabActividade do Plano` a
         LEFT JOIN `tabTipologia Actividade` t ON t.name = a.tipologia
@@ -232,7 +232,7 @@ def export_actividades(ano_lectivo, estado="", tipologias_json="", month="", sea
         SELECT
             a.name, a.actividade, a.data, a.data_original,
             a.orador, a.local, a.orcamento,
-            a.tipologia, a.estado, a.notas_execucao
+            a.tipologia, a.estado, a.notas_execucao, a.organizador, a.a_confirmar, a.so_este_ano
         FROM `tabActividade do Plano` a
         WHERE {where}
         ORDER BY a.data IS NULL ASC, a.data ASC, a.name ASC
@@ -581,7 +581,7 @@ def copy_from_previous_year(target_ano_lectivo):
     rows = frappe.db.sql(f"""
         SELECT a.name, a.actividade, a.data, a.data_fim, a.data_original,
                a.orador, a.local, a.orcamento,
-               a.tipologia, a.estado, a.notas_execucao, a.ano_lectivo,
+               a.tipologia, a.estado, a.notas_execucao, a.organizador, a.a_confirmar, a.so_este_ano, a.ano_lectivo,
                t.cor AS tipologia_cor, t.icone AS tipologia_icone
         FROM `tabActividade do Plano` a
         LEFT JOIN `tabTipologia Actividade` t ON t.name = a.tipologia

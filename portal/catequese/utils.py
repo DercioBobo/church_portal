@@ -19,6 +19,10 @@ PADROES = {
     "fase_apos_baptismo": "1º Ano de Aprofundamento",
     "link_validade_dias": 7,
     "link_permite_editar": 1,
+    "palavras_zona": "ZV, Zona V, Zona 5",
+    "palavras_vigararia": "Vigararia, Vigararias",
+    "palavras_arquidiocese": "Arquidiocese, Arquidiocesano, Arquidiocesana",
+    "rollover_copiar_extraordinarias": 0,
 }
 
 
@@ -35,6 +39,43 @@ def definicao(campo):
     if valor in (None, "") or (campo in ZERO_E_VAZIO and not valor):
         return PADROES.get(campo)
     return valor
+
+
+# ── Organizador das actividades do plano ──────────────────────────────────────
+
+PAROQUIA = "Paróquia"
+# Ordem de verificação: o mais abrangente primeiro
+ORGANIZADORES_EXTERNOS = (
+    ("Arquidiocese", "palavras_arquidiocese"),
+    ("Vigararia", "palavras_vigararia"),
+    ("Zona V", "palavras_zona"),
+)
+
+
+def _sem_acentos(texto):
+    import unicodedata
+    return unicodedata.normalize("NFD", str(texto or "")).encode("ascii", "ignore").decode().lower()
+
+
+def classificar_organizador(*textos):
+    """
+    Organizador sugerido pelas palavras das Catequese Settings (separador Plano Anual),
+    procuradas como palavras inteiras em actividade / tipologia / responsável.
+    Devolve "Paróquia" quando nada corresponde.
+    """
+    import re
+
+    alvo = " " + re.sub(r"[^a-z0-9]+", " ", _sem_acentos(" ".join(t or "" for t in textos))) + " "
+    for organizador, campo in ORGANIZADORES_EXTERNOS:
+        for palavra in str(definicao(campo) or "").split(","):
+            p = re.sub(r"[^a-z0-9]+", " ", _sem_acentos(palavra)).strip()
+            if p and f" {p} " in alvo:
+                return organizador
+    return PAROQUIA
+
+
+def e_externa(organizador):
+    return bool(organizador) and organizador != PAROQUIA
 
 
 def tamanhos_turma():

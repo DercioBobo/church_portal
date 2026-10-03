@@ -27,10 +27,13 @@
   "ao_longo_do_ano",
   "cb_ano",
   "extraordinarias",
+  "incluir_extraordinarias_sistema",
+  "extraordinarias_sistema",
   "sec_desafios",
   "desafios",
   "incluir_nao_realizadas",
   "nao_realizadas",
+  "canceladas_externas",
   "cb_desafios",
   "propostas",
   "sec_catequistas",
@@ -202,6 +205,18 @@
    "description": "Um ponto por linha."
   },
   {
+   "fieldname": "incluir_extraordinarias_sistema",
+   "fieldtype": "Check",
+   "label": "Incluir as actividades \"Só este ano\" do plano",
+   "default": "1"
+  },
+  {
+   "fieldname": "extraordinarias_sistema",
+   "fieldtype": "Small Text",
+   "label": "Extraordinárias do plano (automático)",
+   "read_only": 1
+  },
+  {
    "fieldname": "sec_desafios",
    "fieldtype": "Section Break",
    "label": "Desafios e Propostas"
@@ -223,6 +238,13 @@
    "fieldtype": "Small Text",
    "label": "Actividades não realizadas (automático)",
    "read_only": 1
+  },
+  {
+   "fieldname": "canceladas_externas",
+   "fieldtype": "Small Text",
+   "label": "Canceladas pela zona/vigararia/arquidiocese (automático)",
+   "read_only": 1,
+   "description": "Não contam para a percentagem de actividades realizadas."
   },
   {
    "fieldname": "cb_desafios",
@@ -371,7 +393,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-03 20:44:36.000000",
+ "modified": "2026-10-04 00:26:35.000000",
  "modified_by": "Administrator",
  "module": "Catequista",
  "name": "Relatorio Anual",

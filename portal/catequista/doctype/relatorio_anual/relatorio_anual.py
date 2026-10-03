@@ -64,6 +64,8 @@ class RelatorioAnual(Document):
         self.taxa_realizacao = acts["taxa"]
         self.resumo_actividades = acts["resumo"]
         self.nao_realizadas = acts["nao_realizadas"]
+        self.canceladas_externas = acts["canceladas_externas"]
+        self.extraordinarias_sistema = "\n".join(acts["extraordinarias"])
         self.resumo_retiros = dados.resumo_retiros(ano)
         self._juntar_meses(acts["itens"] + dados.itens_sacramentos(ano))
 

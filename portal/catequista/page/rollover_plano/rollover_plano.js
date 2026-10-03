@@ -35,7 +35,9 @@ const RP_METODO = 'portal.catequista.doctype.proposta_do_plano.proposta_do_plano
 const RP_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto',
                   'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const RP_DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-const RP_CAMPOS = ['data', 'data_fim', 'actividade', 'tipologia', 'local', 'orador', 'orcamento', 'notas'];
+const RP_CAMPOS = ['data', 'data_fim', 'actividade', 'tipologia', 'local', 'orador', 'orcamento', 'notas', 'organizador'];
+const RP_CHECKS = ['a_confirmar', 'so_este_ano', 'incluir'];
+const RP_ORGANIZADORES = ['Paróquia', 'Zona V', 'Vigararia', 'Arquidiocese', 'Outro'];
 
 function rpApi(method, args) {
   return new Promise((resolve, reject) => {
@@ -89,7 +91,7 @@ function createRolloverApp() {
       <button class="rp-btn" @click="imprimir">🖨 Imprimir</button>
       <template v-if="!finalizada">
         <button class="rp-btn" :disabled="!sujo || ocupado" @click="guardar">💾 Guardar</button>
-        <button class="rp-btn rp-btn-primary" :disabled="ocupado || !linhas.length" @click="finalizar">✓ Finalizar</button>
+        <button class="rp-btn rp-btn-primary" :disabled="ocupado || !incluidas.length" @click="finalizar">✓ Finalizar</button>
       </template>
       <a v-else class="rp-btn rp-btn-primary" href="/app/plano-anual">Abrir Plano Anual →</a>
     </template>
@@ -124,9 +126,11 @@ function createRolloverApp() {
   <!-- ── Proposta ──────────────────────────────────────────────────── -->
   <div v-else class="rp-wrap rp-wrap-wide">
     <div class="rp-resumo">
-      <div><b>{{ linhas.length }}</b><span>actividades</span></div>
+      <div><b>{{ incluidas.length }}</b><span>actividades</span></div>
       <div><b>{{ novas }}</b><span>novas</span></div>
       <div><b>{{ semData }}</b><span>sem data</span></div>
+      <div :class="{ aviso: aConfirmar }"><b>{{ aConfirmar }}</b><span>a confirmar</span></div>
+      <div v-if="naoCopiadas.length"><b>{{ naoCopiadas.length }}</b><span>não copiadas</span></div>
       <div :class="{ alerta: choques.size }"><b>{{ choques.size }}</b><span>dias com várias actividades</span></div>
       <p v-if="proposta.ano_origem" class="rp-muted">Baseada no plano de {{ proposta.ano_origem }}.</p>
       <p v-if="finalizada" class="rp-muted">
@@ -141,7 +145,12 @@ function createRolloverApp() {
                @keydown.escape="pesquisa = ''">
         <button v-if="pesquisa" class="rp-limpar" @click="pesquisa = ''">✕</button>
       </div>
-      <span v-if="pesquisa" class="rp-muted">{{ visiveis.length }} de {{ linhas.length }}</span>
+      <div class="rp-filtros">
+        <button :class="{ on: filtro === 'todas' }" @click="filtro = 'todas'">Todas</button>
+        <button :class="{ on: filtro === 'confirmar' }" @click="filtro = 'confirmar'">A confirmar <span>{{ aConfirmar }}</span></button>
+        <button :class="{ on: filtro === 'externas' }" @click="filtro = 'externas'">Externas <span>{{ externas }}</span></button>
+      </div>
+      <span v-if="pesquisa || filtro !== 'todas'" class="rp-muted">{{ visiveis.length }} de {{ incluidas.length }}</span>
       <template v-if="!finalizada">
         <div style="flex:1"></div>
         <button class="rp-btn" :disabled="!visiveis.length" @click="seleccionarVisiveis">
@@ -177,14 +186,27 @@ function createRolloverApp() {
               <template v-if="!finalizada">
                 <td class="c-sel"><input type="checkbox" class="rp-sel" :checked="seleccionadas.includes(l._k)" @change="toggle(l)"></td>
                 <td class="c-data">
-                  <input type="date" :value="l.data" @blur="definirData(l, $event)"
+                  <input type="date" :value="l.data" :class="{ tentativa: l.a_confirmar }" @blur="definirData(l, $event)"
                          @keydown.enter.prevent="$event.target.blur()" title="A linha muda de mês ao sair do campo">
-                  <small>{{ dia(l.data) }}<span v-if="l.data_origem"> · antes {{ curta(l.data_origem) }}</span></small>
+                  <small>{{ dia(l.data) }}<span v-if="l.data_origem"> · antes {{ curta(l.data_origem) }}</span>
+                    <b v-if="l.a_confirmar" class="rp-tent">a confirmar</b></small>
                 </td>
                 <td class="c-data"><input type="date" v-model="l.data_fim" @input="marcar"></td>
                 <td>
                   <input v-model="l.actividade" @input="marcar" placeholder="Nome da actividade">
-                  <span v-if="l.origem !== 'Rollover'" class="rp-nova">NOVA</span>
+                  <div class="rp-tags">
+                    <select v-model="l.organizador" @change="mudarOrganizador(l)" class="rp-org" :class="{ ext: externa(l) }"
+                            title="Organizador">
+                      <option v-for="o in organizadores" :key="o" :value="o">{{ o }}</option>
+                    </select>
+                    <label class="rp-tag" :class="{ on: l.a_confirmar }" title="A data é uma estimativa">
+                      <input type="checkbox" v-model="l.a_confirmar" :true-value="1" :false-value="0" @change="marcar"> a confirmar
+                    </label>
+                    <label class="rp-tag" :class="{ on: l.so_este_ano }" title="Extraordinária: não se repete nos próximos anos">
+                      <input type="checkbox" v-model="l.so_este_ano" :true-value="1" :false-value="0" @change="marcar"> só este ano
+                    </label>
+                    <span v-if="l.origem !== 'Rollover'" class="rp-nova">NOVA</span>
+                  </div>
                 </td>
                 <td class="c-tip">
                   <select v-model="l.tipologia" @change="marcar">
@@ -204,10 +226,35 @@ function createRolloverApp() {
                 <td>
                   <a v-if="l.actividade_criada" :href="'/app/actividade-do-plano/' + encodeURIComponent(l.actividade_criada)">{{ l.actividade }}</a>
                   <span v-else>{{ l.actividade }}</span>
+                  <div class="rp-tags">
+                    <span v-if="externa(l)" class="rp-tag on">{{ l.organizador }}</span>
+                    <span v-if="l.a_confirmar" class="rp-tag on">a confirmar</span>
+                    <span v-if="l.so_este_ano" class="rp-tag on">só este ano</span>
+                  </div>
                 </td>
                 <td class="c-tip">{{ l.tipologia }}</td><td>{{ l.local }}</td><td>{{ l.orador }}</td>
                 <td class="c-num">{{ l.orcamento || '' }}</td><td>{{ l.notas }}</td>
               </template>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section v-if="naoCopiadas.length" class="rp-mes rp-nao-copiadas">
+      <h3>Não copiadas <span>{{ naoCopiadas.length }}</span></h3>
+      <p class="rp-muted">Actividades extraordinárias ("só este ano") do plano de origem. Não são criadas ao finalizar, a não ser que as inclua.</p>
+      <div class="rp-table-wrap">
+        <table class="rp-table rp-table-simples">
+          <tbody>
+            <tr v-for="l in naoCopiadas" :key="l._k">
+              <td class="c-data">{{ curta(l.data) || '—' }} <small>{{ dia(l.data) }}</small></td>
+              <td>{{ l.actividade }}</td>
+              <td class="c-txt">{{ l.organizador }}</td>
+              <td v-if="!finalizada" class="c-acoes">
+                <button class="rp-btn" @click="incluir(l)">+ Incluir</button>
+                <button class="rp-x" title="Apagar" @click="apagar(l)">✕</button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -240,26 +287,35 @@ function createRolloverApp() {
       const sujo = ref(false);
       const pesquisa = ref('');
       const seleccionadas = ref([]);   // _k das linhas seleccionadas
+      const filtro = ref('todas');      // todas | confirmar | externas
 
       const origem = ref('');
       const manterOrador = ref(true);
       const manterFds = ref(true);
 
       const finalizada = computed(() => proposta.value && proposta.value.docstatus === 1);
-      const novas = computed(() => linhas.value.filter((l) => l.origem !== 'Rollover').length);
-      const semData = computed(() => linhas.value.filter((l) => !l.data).length);
+      const externa = (l) => !!l.organizador && l.organizador !== 'Paróquia';
+      const incluidas = computed(() => linhas.value.filter((l) => l.incluir));
+      const naoCopiadas = computed(() => linhas.value.filter((l) => !l.incluir));
+      const novas = computed(() => incluidas.value.filter((l) => l.origem !== 'Rollover').length);
+      const semData = computed(() => incluidas.value.filter((l) => !l.data).length);
+      const aConfirmar = computed(() => incluidas.value.filter((l) => l.a_confirmar).length);
+      const externas = computed(() => incluidas.value.filter(externa).length);
       const choques = computed(() => {
         const n = {};
-        linhas.value.forEach((l) => { if (l.data) n[l.data] = (n[l.data] || 0) + 1; });
+        incluidas.value.forEach((l) => { if (l.data) n[l.data] = (n[l.data] || 0) + 1; });
         return new Set(Object.keys(n).filter((d) => n[d] > 1));
       });
 
       // Agrupadas por mês da data (sem data no fim); dentro do mês, por data
       const visiveis = computed(() => {
         const q = rpNorm(pesquisa.value.trim());
-        if (!q) return linhas.value;
-        return linhas.value.filter((l) =>
-          [l.actividade, l.tipologia, l.local, l.orador, l.notas].some((v) => rpNorm(v).includes(q)));
+        let ls = incluidas.value;
+        if (filtro.value === 'confirmar') ls = ls.filter((l) => l.a_confirmar);
+        if (filtro.value === 'externas') ls = ls.filter(externa);
+        if (!q) return ls;
+        return ls.filter((l) =>
+          [l.actividade, l.tipologia, l.local, l.orador, l.notas, l.organizador].some((v) => rpNorm(v).includes(q)));
       });
 
       const grupos = computed(() => {
@@ -283,6 +339,8 @@ function createRolloverApp() {
           const l = { _k: ++rpChave, name: r.name, origem: r.origem, data_origem: r.data_origem,
                       actividade_criada: r.actividade_criada };
           RP_CAMPOS.forEach((c) => { l[c] = r[c] == null ? '' : r[c]; });
+          RP_CHECKS.forEach((c) => { l[c] = r[c] ? 1 : 0; });
+          if (!l.organizador) l.organizador = 'Paróquia';
           return l;
         });
         notasGerais.value = (estado.proposta && estado.proposta.notas) || '';
@@ -333,6 +391,7 @@ function createRolloverApp() {
           const itens = linhas.value.map((l) => {
             const r = { name: l.name };
             RP_CAMPOS.forEach((c) => { r[c] = l[c] === '' ? null : l[c]; });
+            RP_CHECKS.forEach((c) => { r[c] = l[c] ? 1 : 0; });
             return r;
           });
           const doc = await rpApi('guardar_itens', {
@@ -350,7 +409,8 @@ function createRolloverApp() {
 
       function adicionar() {
         linhas.value.push({ _k: ++rpChave, origem: 'Nova', data: '', data_fim: '', actividade: '', tipologia: '',
-                            local: '', orador: '', orcamento: '', notas: '' });
+                            local: '', orador: '', orcamento: '', notas: '', organizador: 'Paróquia',
+                            a_confirmar: 0, so_este_ano: 0, incluir: 1 });
         marcar();
       }
 
@@ -361,6 +421,16 @@ function createRolloverApp() {
           seleccionadas.value = seleccionadas.value.filter((k) => k !== l._k);
           marcar();
         });
+      }
+
+      // Mudar para um organizador externo marca a data como "a confirmar"
+      function mudarOrganizador(l) {
+        if (externa(l)) l.a_confirmar = 1;
+        marcar();
+      }
+      function incluir(l) {
+        l.incluir = 1;
+        marcar();
       }
 
       function toggle(l) {
@@ -398,7 +468,7 @@ function createRolloverApp() {
       function finalizar() {
         frappe.confirm(
           __('Criar {0} actividades no Plano Anual de {1}? Depois de finalizada, a proposta já não pode ser editada.',
-             [linhas.value.length, ano.value]),
+             [incluidas.value.length, ano.value]),
           async () => {
             if (sujo.value && !(await guardar())) return;
             ocupado.value = true;
@@ -424,7 +494,8 @@ function createRolloverApp() {
       return {
         anos, ano, loading, ocupado, info, proposta, linhas, notasGerais, tipologias, sujo,
         origem, manterOrador, manterFds, finalizada, novas, semData, choques, grupos,
-        pesquisa, visiveis, seleccionadas, toggle, todasSel, algumasSel, toggleGrupo, seleccionarVisiveis,
+        pesquisa, visiveis, seleccionadas, filtro, incluidas, naoCopiadas, aConfirmar, externas, externa,
+        mudarOrganizador, incluir, organizadores: RP_ORGANIZADORES, toggle, todasSel, algumasSel, toggleGrupo, seleccionarVisiveis,
         apagarSeleccionadas,
         carregar, marcar, definirData, gerar, guardar, adicionar, apagar, imprimir, finalizar,
         dia: rpDia, curta: rpCurta,

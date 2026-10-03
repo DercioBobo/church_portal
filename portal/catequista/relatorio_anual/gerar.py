@@ -52,7 +52,8 @@ def contexto(doc):
     meses = [{"nome": m, "itens": por_mes[m]} for m in dados.MESES if m in por_mes]
 
     ao_longo = ([doc.resumo_retiros] if doc.incluir_resumo_retiros and doc.resumo_retiros else []) \
-        + linhas(doc.ao_longo_do_ano)
+        + linhas(doc.ao_longo_do_ano) \
+        + ([doc.canceladas_externas] if doc.get("canceladas_externas") else [])
 
     desafios = linhas(doc.desafios)
     if doc.incluir_nao_realizadas and doc.nao_realizadas:
@@ -109,7 +110,8 @@ def contexto(doc):
         })],
         "meses": meses,
         "ao_longo_do_ano": ao_longo,
-        "extraordinarias": linhas(doc.extraordinarias),
+        "extraordinarias": (linhas(doc.get("extraordinarias_sistema"))
+                            if doc.get("incluir_extraordinarias_sistema") else []) + linhas(doc.extraordinarias),
         "desafios": desafios,
         "propostas": linhas(doc.propostas),
         "estatistica_paragrafos": est_par,

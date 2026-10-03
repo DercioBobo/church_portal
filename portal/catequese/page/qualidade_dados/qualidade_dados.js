@@ -51,9 +51,10 @@ const QD_ROTULOS = {
   data_do_crisma: 'Data do crisma', data_do_livro: 'Data no Livro', ano: 'Ano', sem_data: 'Sem data',
   preparacao: 'Preparação', falta: 'Falta', catecumenos: 'Catecúmenos', maximo: 'Máximo',
   dia: 'Dia', hora: 'Hora', local: 'Local', catequista_inactivo: 'Catequista inactivo',
+  data: 'Data', organizador: 'Organizador', organizador_sugerido: 'Organizador sugerido',
 };
 
-const QD_ICONE_AREA = { 'Catecúmenos': '👦', 'Sacramentos': '✝️', 'Turmas': '👥', 'Catequistas': '🙋' };
+const QD_ICONE_AREA = { 'Catecúmenos': '👦', 'Sacramentos': '✝️', 'Turmas': '👥', 'Catequistas': '🙋', 'Plano': '🗓️' };
 
 function createQualidadeApp() {
   const { createApp, ref, computed, onMounted } = Vue;
