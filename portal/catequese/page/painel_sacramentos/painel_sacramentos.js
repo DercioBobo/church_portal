@@ -124,7 +124,8 @@ function createSacramentosApp() {
     <!-- Barra de selecção -->
     <div v-if="seleccionados.size" class="ps-massa">
       <b>{{ seleccionados.size }} seleccionado(s)</b>
-      <button class="ps-btn ps-btn-ouro" @click="arquivarSel">🗂 Arquivar com decisão…</button>
+      <button class="ps-btn ps-btn-ouro" @click="segundaOportunidade">✝️ 2ª oportunidade…</button>
+      <button class="ps-btn" @click="arquivarSel">🗂 Arquivar com decisão…</button>
       <button class="ps-link" @click="seleccionados.clear()">limpar</button>
     </div>
 
@@ -141,11 +142,12 @@ function createSacramentosApp() {
           <th class="ps-c-sel"><input type="checkbox" :checked="todos(pendentes)" @change="marcarTodos(pendentes, $event.target.checked)"></th>
           <th>Catecúmeno</th><th>Motivo</th><th>Preparação</th><th>Agora</th><th>Encarregado</th><th></th></tr></thead>
         <tbody>
-          <tr v-for="r in pendentes" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno) }">
+          <tr v-for="r in pendentes" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno), agendado: r.agendado }">
             <td class="ps-c-sel"><input type="checkbox" :checked="seleccionados.has(r.catecumeno)" @change="alternar(r)"></td>
             <td data-l="Catecúmeno">
               <a class="ps-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a>
               <span v-if="r.vezes > 1" class="ps-chip erro" :title="'Falhou ' + r.vezes + ' vezes'">{{ r.vezes }}×</span>
+              <a v-if="r.agendado" class="ps-chip ok" :href="'/app/gerir-preparacao/' + encodeURIComponent(r.agendado)" title="Já está nesta preparação para receber">✓ {{ r.agendado }}</a>
             </td>
             <td data-l="Motivo">
               <span class="ps-motivo" :class="cls(r.motivo)">{{ r.motivo || 'Sem motivo' }}</span>
@@ -184,9 +186,10 @@ function createSacramentosApp() {
           <th class="ps-c-sel"><input type="checkbox" :checked="todos(fora)" @change="marcarTodos(fora, $event.target.checked)"></th>
           <th>Catecúmeno</th><th>Fase · Turma</th><th>Estado</th><th>Encarregado</th><th></th></tr></thead>
         <tbody>
-          <tr v-for="r in fora" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno) }">
+          <tr v-for="r in fora" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno), agendado: r.agendado }">
             <td class="ps-c-sel"><input type="checkbox" :checked="seleccionados.has(r.catecumeno)" @change="alternar(r)"></td>
-            <td data-l="Catecúmeno"><a class="ps-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a></td>
+            <td data-l="Catecúmeno"><a class="ps-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a>
+              <a v-if="r.agendado" class="ps-chip ok" :href="'/app/gerir-preparacao/' + encodeURIComponent(r.agendado)" title="Já está nesta preparação para receber">✓ {{ r.agendado }}</a></td>
             <td data-l="Fase · Turma" class="ps-small">{{ [r.fase, r.turma].filter(Boolean).join(' · ') || '—' }}</td>
             <td data-l="Estado"><span class="ps-estado" :class="estadoCls(r.status)">{{ r.status }}</span></td>
             <td data-l="Encarregado"><div class="ps-small">{{ r.encarregado || '—' }}</div><span v-if="r.contacto" v-html="tel(r.contacto)"></span></td>
@@ -210,9 +213,10 @@ function createSacramentosApp() {
           <th class="ps-c-sel"><input type="checkbox" :checked="todos(semMotivo)" @change="marcarTodos(semMotivo, $event.target.checked)"></th>
           <th>Catecúmeno</th><th>Fase · Turma</th><th>Estado</th><th>Encarregado</th><th></th></tr></thead>
         <tbody>
-          <tr v-for="r in semMotivo" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno) }">
+          <tr v-for="r in semMotivo" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno), agendado: r.agendado }">
             <td class="ps-c-sel"><input type="checkbox" :checked="seleccionados.has(r.catecumeno)" @change="alternar(r)"></td>
-            <td data-l="Catecúmeno"><a class="ps-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a></td>
+            <td data-l="Catecúmeno"><a class="ps-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a>
+              <a v-if="r.agendado" class="ps-chip ok" :href="'/app/gerir-preparacao/' + encodeURIComponent(r.agendado)" title="Já está nesta preparação para receber">✓ {{ r.agendado }}</a></td>
             <td data-l="Fase · Turma" class="ps-small">{{ [r.fase, r.turma].filter(Boolean).join(' · ') || '—' }}</td>
             <td data-l="Estado"><span class="ps-estado" :class="estadoCls(r.status)">{{ r.status }}</span></td>
             <td data-l="Encarregado"><div class="ps-small">{{ r.encarregado || '—' }}</div><span v-if="r.contacto" v-html="tel(r.contacto)"></span></td>
@@ -270,7 +274,7 @@ function createSacramentosApp() {
       onMounted(carregar);
       function mudar(i) { activo.value = i; motivo.value = ''; busca.value = ''; seleccionados.clear(); }
 
-      const VAZIO = { pendentes: [], fora: [], sem_motivo: [], resolvidos: [], arquivados: [], preparacoes: [], fases: [] };
+      const VAZIO = { pendentes: [], fora: [], sem_motivo: [], resolvidos: [], arquivados: [], preparacoes: [], fases: [], rascunhos: [] };
       const sac = computed(() => (activo.value !== 'arq' && (dados.value.sacramentos || [])[activo.value]) || VAZIO);
       const bate = (r) => {
         const q = busca.value.trim().toLowerCase();
@@ -339,13 +343,69 @@ function createSacramentosApp() {
         });
         d.show();
       }
+      function segundaOportunidade() {
+        const linhas = [...seleccionados.values()];
+        const s = sac.value;
+        const NOVA = __('Nova preparação (2ª oportunidade)');
+        const JUNTAR = __('Juntar a uma preparação em rascunho');
+        const rascunhos = s.rascunhos || [];
+        const d = new frappe.ui.Dialog({
+          title: __('2ª oportunidade — {0} ({1})', [s.rotulo, linhas.length]),
+          fields: [
+            { fieldname: 'modo', fieldtype: 'Select', label: __('Como'), reqd: 1,
+              options: (rascunhos.length ? [NOVA, JUNTAR] : [NOVA]).join('\n'), default: NOVA },
+            { fieldname: 'preparacao', fieldtype: 'Select', label: __('Preparação em rascunho'),
+              options: [''].concat(rascunhos.map((x) => x.name)).join('\n'),
+              depends_on: `eval:doc.modo=='${JUNTAR}'`, mandatory_depends_on: `eval:doc.modo=='${JUNTAR}'`,
+              description: __('Ex.: a do próximo ano, para quem repete com o grupo seguinte.') },
+            { fieldname: 'ano', fieldtype: 'Link', options: 'Ano Lectivo', label: __('Ano lectivo'), default: dados.value.ano,
+              depends_on: `eval:doc.modo=='${NOVA}'`, mandatory_depends_on: `eval:doc.modo=='${NOVA}'` },
+            { fieldname: 'data', fieldtype: 'Date', label: __('Data do sacramento'), depends_on: `eval:doc.modo=='${NOVA}'`,
+              description: __('Pode ficar vazia agora; é obrigatória para submeter.') },
+            { fieldname: 'turma_destino', fieldtype: 'Link', options: 'Turma', label: __('Turma de destino (opcional)'),
+              get_query: () => ({ filters: { status: 'Activo' } }),
+              depends_on: `eval:doc.modo=='${NOVA}' && ${JSON.stringify(s.sacramento)}=='Baptismo'`,
+              description: __('Depois do baptismo passam para esta turma (ex.: a da fase seguinte onde estão os colegas). Vazio: ficam onde estão.') },
+            { fieldname: 'nomes', fieldtype: 'HTML',
+              options: `<p class="text-muted small">${linhas.map((r) => frappe.utils.escape_html(r.catecumeno)).join(', ')}</p>` },
+          ],
+          primary_action_label: __('Criar'),
+          primary_action(v) {
+            d.hide();
+            frappe.call({
+              method: API + 'segunda_oportunidade',
+              args: {
+                catecumenos: linhas.map((r) => r.catecumeno),
+                falhou_em: linhas.map((r) => r.preparacao || null),
+                sacramento: s.sacramento,
+                preparacao: v.modo === JUNTAR ? v.preparacao : null,
+                ano: v.ano, data: v.data || null, turma_destino: v.turma_destino || null,
+              },
+              freeze: true,
+              callback: (r) => {
+                const m = r.message;
+                seleccionados.clear();
+                carregar();
+                frappe.msgprint({
+                  title: __('2ª oportunidade'), indicator: 'green',
+                  message: `<p>${__('{0} adicionado(s) e {1} reposto(s) em <b>{2}</b>.', [m.adicionados, m.repostos, m.preparacao])}</p>
+                    <p><a class="btn btn-primary btn-sm" href="/app/gerir-preparacao/${encodeURIComponent(m.preparacao)}">${__('Abrir na página Gerir Preparação')}</a></p>`,
+                });
+              },
+            });
+          },
+        });
+        d.show();
+      }
+
       function reabrir(r) {
         frappe.confirm(__('Reabrir {0}? O registo da decisão é apagado e a pessoa volta ao acompanhamento.', [r.catecumeno]), () => {
           frappe.call({ method: API + 'reabrir', args: { nome: r.name }, callback: carregar });
         });
       }
 
-      const total = (s) => s.pendentes.length + s.fora.length + s.sem_motivo.length;
+      // quem já está numa preparação para receber não conta como pendente
+      const total = (s) => [...s.pendentes, ...s.fora, ...s.sem_motivo].filter((r) => !r.agendado).length;
       const dia = (d) => (d ? frappe.datetime.str_to_user(String(d).split(' ')[0]) : '—');
       const tel = (n) => (window.cq ? window.cq.telefone(n) : frappe.utils.escape_html(n));
       const MOT = { Comportamento: 'm1', Faltas: 'm2', Documentos: 'm3', Desistiu: 'm4', 'Repete a fase': 'm5', Outro: 'm6' };
@@ -355,7 +415,7 @@ function createSacramentosApp() {
       return {
         dados, loading, activo, busca, motivo, verResolvidos, fSac, fAno, fDecisao, seleccionados, carregar, mudar,
         sac, pendentes, fora, semMotivo, motivos, todosArquivados, arqSacramentos, arqAnos, arquivadosVisiveis,
-        alternar, todos, marcarTodos, arquivarSel, arquivar, reabrir,
+        alternar, todos, marcarTodos, arquivarSel, arquivar, reabrir, segundaOportunidade,
         total, dia, tel, cls, estadoCls,
       };
     },

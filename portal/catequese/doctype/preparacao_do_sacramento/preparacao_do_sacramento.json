@@ -6,7 +6,7 @@
  "allow_guest_to_view": 0,
  "allow_import": 0,
  "allow_rename": 1,
- "autoname": "format:{sacramento}-{ano_lectivo}",
+ "autoname": "",
  "beta": 0,
  "creation": "2025-04-04 12:03:53.607821",
  "custom": 0,
@@ -25,6 +25,8 @@
   "sacramento",
   "column_break_boej",
   "data_do_sacramento",
+  "tipo",
+  "turma_destino",
   "section_break_yegd",
   "documentos_exigidos",
   "column_break_nvwy",
@@ -279,6 +281,24 @@
    "sort_options": 0,
    "translatable": 0,
    "unique": 0
+  },
+  {
+   "default": "Normal",
+   "description": "2ª oportunidade: criada na página Sacramentos para quem não recebeu ou ficou fora da preparação.",
+   "fieldname": "tipo",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Tipo",
+   "options": "Normal\n2ª oportunidade"
+  },
+  {
+   "depends_on": "eval:doc.tipo=='2ª oportunidade' && doc.sacramento=='Baptismo'",
+   "description": "Opcional. Ao submeter, os baptizados passam para esta turma (normalmente a da fase seguinte onde estão os colegas). Vazio: ficam na turma actual.",
+   "fieldname": "turma_destino",
+   "fieldtype": "Link",
+   "label": "Turma de destino",
+   "options": "Turma"
   },
   {
    "allow_bulk_edit": 0,
@@ -831,11 +851,11 @@
  "links": [],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-04 12:31:06.000000",
+ "modified": "2026-10-04 15:18:14.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Preparacao do Sacramento",
- "naming_rule": "Expression",
+ "naming_rule": "By script",
  "owner": "Administrator",
  "permissions": [
   {

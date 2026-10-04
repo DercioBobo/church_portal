@@ -30,6 +30,8 @@
   "pre_avaliacao",
   "nr_de_faltas",
   "renovacao",
+  "valor_renovacao",
+  "data_renovacao",
   "ficha_de_catecumeno",
   "padrinhos",
   "contacto_padrinhos"
@@ -577,6 +579,7 @@
    "bold": 0,
    "collapsible": 0,
    "columns": 0,
+   "description": "Desistente: deixou de vir; no apuramento fica Inactivo e não conta como esperado na renovação.",
    "fetch_if_empty": 0,
    "fieldname": "pre_avaliacao",
    "fieldtype": "Select",
@@ -597,7 +600,7 @@
    "make_attachment_public": 0,
    "no_copy": 0,
    "non_negative": 0,
-   "options": "\nTransita\nPermanece",
+   "options": "\nTransita\nPermanece\nDesistente",
    "permlevel": 0,
    "precision": "",
    "print_hide": 0,
@@ -686,7 +689,7 @@
    "make_attachment_public": 0,
    "no_copy": 0,
    "non_negative": 0,
-   "options": "\nSim\nNão",
+   "options": "\nSim\nNão\nIsento",
    "permlevel": 0,
    "precision": "",
    "print_hide": 0,
@@ -703,6 +706,19 @@
    "sort_options": 0,
    "translatable": 0,
    "unique": 0
+  },
+  {
+   "depends_on": "eval:doc.renovacao=='Sim' || doc.renovacao=='Isento'",
+   "description": "Preenchido com o valor das Catequese Settings ao marcar Sim (Isento = 0).",
+   "fieldname": "valor_renovacao",
+   "fieldtype": "Currency",
+   "label": "Valor da Renovação"
+  },
+  {
+   "depends_on": "eval:doc.renovacao=='Sim' || doc.renovacao=='Isento'",
+   "fieldname": "data_renovacao",
+   "fieldtype": "Date",
+   "label": "Data da Renovação"
   },
   {
    "allow_bulk_edit": 0,
@@ -853,7 +869,7 @@
  "links": [],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-03 18:42:19.000000",
+ "modified": "2026-10-04 15:05:42.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Turma Catecumenos",

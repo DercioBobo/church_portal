@@ -51,6 +51,10 @@ PAGINAS = {
         "icone": "⛪", "grupo": "Planeamento", "ordem": 3,
         "descricao": "Retiros por fase: datas, locais, oradores e programa.",
     },
+    "renovacoes": {
+        "icone": "🔁", "grupo": "Finanças", "ordem": 2,
+        "descricao": "Quem renovou e quanto, por turma e por ano, e o que cada catequista já entregou.",
+    },
     "despesas-catequese": {
         "icone": "💰", "grupo": "Finanças", "ordem": 1,
         "descricao": "Receitas, despesas e quotas do ministério.",

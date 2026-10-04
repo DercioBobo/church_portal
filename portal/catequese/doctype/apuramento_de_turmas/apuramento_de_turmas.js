@@ -76,11 +76,11 @@ frappe.ui.form.on('Apuramento de Turmas', {
         // Verificar se todos têm resultado
         let sem_resultado = (frm.doc.apuramento_item || []).filter(function (row) {
             let res = (row.resultado || '').trim();
-            return res !== 'Transita' && res !== 'Permanece';
+            return !['Transita', 'Permanece', 'Desistente'].includes(res);
         });
 
         if (sem_resultado.length > 0) {
-            frappe.msgprint(__('Existem {0} catecúmeno(s) sem resultado definido. Defina Transita ou Permanece para todos.', [sem_resultado.length]));
+            frappe.msgprint(__('Existem {0} catecúmeno(s) sem resultado definido. Defina Transita, Permanece ou Desistente para todos.', [sem_resultado.length]));
             return;
         }
 
@@ -313,11 +313,11 @@ frappe.ui.form.on('Apuramento de Turmas', {
         // Verificar se todos têm resultado
         let sem_resultado = (frm.doc.apuramento_item || []).filter(function (row) {
             let res = (row.resultado || '').trim();
-            return res !== 'Transita' && res !== 'Permanece';
+            return !['Transita', 'Permanece', 'Desistente'].includes(res);
         });
 
         if (sem_resultado.length > 0) {
-            frappe.msgprint(__('Existem {0} catecúmeno(s) sem resultado definido. Defina Transita ou Permanece para todos.', [sem_resultado.length]));
+            frappe.msgprint(__('Existem {0} catecúmeno(s) sem resultado definido. Defina Transita, Permanece ou Desistente para todos.', [sem_resultado.length]));
             return;
         }
 

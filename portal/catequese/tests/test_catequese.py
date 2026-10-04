@@ -496,6 +496,86 @@ class TestSituacaoSacramento(BaseCatequese):
         self.assertIn(falhou.name, {r.catecumeno for r in crisma()["pendentes"]})
 
 
+class TestSegundaOportunidade(BaseCatequese):
+    """Da página Sacramentos: escolher quem tem 2ª oportunidade e pô-los numa preparação."""
+    _ano = 2700
+
+    def novo_ano(self):
+        TestSegundaOportunidade._ano += 1
+        return ano(str(TestSegundaOportunidade._ano))
+
+    def test_segunda_preparacao_no_mesmo_ano_tem_sufixo(self):
+        a = self.novo_ano()
+        p1 = frappe.get_doc({"doctype": "Preparacao do Sacramento", "sacramento": "Eucaristia", "ano_lectivo": a}).insert()
+        p2 = frappe.get_doc({"doctype": "Preparacao do Sacramento", "sacramento": "Eucaristia", "ano_lectivo": a}).insert()
+        import re
+        m1, m2 = (re.fullmatch(rf"Eucaristia-{a[-2:]}-(\d{{2,}})", p.name) for p in (p1, p2))
+        self.assertTrue(m1 and m2, (p1.name, p2.name))
+        self.assertEqual(int(m2.group(1)), int(m1.group(1)) + 1)
+
+    def test_baptismo_em_nova_preparacao_com_turma_de_destino(self):
+        from portal.catequese.page.painel_sacramentos.painel_sacramentos import get_dados, segunda_oportunidade
+
+        a = self.novo_ano()
+        falhou = catecumeno("_Teste 2op Falhou", baptismo=0)
+        antiga = turma(FASE_A, [falhou], ano_nome=a)
+        destino = turma(FASE_APOS_BAPTISMO, [], ano_nome=a)
+        principal = frappe.get_doc({
+            "doctype": "Preparacao do Sacramento", "sacramento": "Baptismo", "ano_lectivo": a,
+            "data_do_sacramento": f"{a}-06-07",
+            "candidatos_sacramento_table": [{"catecumeno": falhou.name, "turma": antiga.name,
+                                             "situacao": "Não vai receber", "motivo_nao_recebe": "Faltas"}],
+        }).insert()
+        principal.submit()
+
+        r = segunda_oportunidade([falhou.name], "Baptismo", ano=a, data=f"{a}-09-20",
+                                 turma_destino=destino.name, falhou_em=[principal.name])
+        nova = frappe.get_doc("Preparacao do Sacramento", r["preparacao"])
+        self.assertTrue(nova.name.startswith(f"Baptismo-{a[-2:]}-") and nova.name != principal.name)
+        self.assertEqual((nova.tipo, r["adicionados"]), ("2ª oportunidade", 1))
+        self.assertIn(principal.name, nova.candidatos_sacramento_table[0].obs)
+
+        bap = next(x for x in get_dados()["sacramentos"] if x["sacramento"] == "Baptismo")
+        linha = next((x for x in bap["pendentes"] if x.catecumeno == falhou.name), None)
+        if linha:   # (só aparece se o ano for o actual; quando aparece, está marcado como agendado)
+            self.assertEqual(linha.agendado, nova.name)
+
+        nova.submit()
+        self.assertEqual(frappe.db.get_value("Catecumeno", falhou.name, ["baptismo", "turma"]), (1, destino.name))
+        self.assertEqual(str(frappe.db.get_value("Catecumeno", falhou.name, "data_do_baptismo")), f"{a}-09-20")
+        self.assertNotIn(falhou.name, nomes_na_turma(antiga.name))
+        self.assertIn(falhou.name, nomes_na_turma(destino.name))
+        self.assertTrue(frappe.db.exists("Livro de Baptismo", falhou.name))
+
+    def test_baptismo_sem_destino_fica_na_turma(self):
+        from portal.catequese.page.painel_sacramentos.painel_sacramentos import segunda_oportunidade
+
+        a = self.novo_ano()
+        c = catecumeno("_Teste 2op Sem Destino", baptismo=0)
+        t = turma(FASE_A, [c], ano_nome=a)
+        r = segunda_oportunidade([c.name], "Baptismo", ano=a, data=f"{a}-09-20")
+        frappe.get_doc("Preparacao do Sacramento", r["preparacao"]).submit()
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["baptismo", "turma"]), (1, t.name))
+
+    def test_juntar_a_rascunho_repoe_e_acrescenta(self):
+        from portal.catequese.page.painel_sacramentos.painel_sacramentos import segunda_oportunidade
+
+        a = self.novo_ano()
+        ja = catecumeno("_Teste 2op Ja Na Lista")
+        fora = catecumeno("_Teste 2op Fora")
+        rasc = frappe.get_doc({
+            "doctype": "Preparacao do Sacramento", "sacramento": "Crisma", "ano_lectivo": a,
+            "candidatos_sacramento_table": [{"catecumeno": ja.name, "situacao": "Não vai receber", "motivo_nao_recebe": "Documentos"}],
+        }).insert()
+        r = segunda_oportunidade([ja.name, fora.name], "Crisma", preparacao=rasc.name)
+        self.assertEqual((r["preparacao"], r["adicionados"], r["repostos"]), (rasc.name, 1, 1))
+        rasc.reload()
+        self.assertEqual({x.catecumeno: x.situacao for x in rasc.candidatos_sacramento_table},
+                         {ja.name: "Vai receber", fora.name: "Vai receber"})
+        # preparação de outro sacramento ou já submetida: recusado
+        self.assertRaises(frappe.ValidationError, segunda_oportunidade, [fora.name], "Eucaristia", preparacao=rasc.name)
+
+
 class TestSubmeterPreparacao(BaseCatequese):
     """Correcções na submissão (Baptismo/Eucaristia/Crisma) e no link dos encarregados."""
     _ano = 2400
@@ -688,6 +768,17 @@ class TestApuramento(BaseCatequese):
         self.assertEqual(t2.fase, "_Teste Apur Fase 1")
         self.assertEqual(frappe.db.get_value("Turma", t0.turma, "ano_lectivo"), ANO_SEGUINTE)
         self.assertEqual(nomes_na_turma(t0.turma), {cs[0].name, cs[1].name})
+
+    def test_desistente_fica_inactivo_e_sem_turma_nova(self):
+        fica = catecumeno("_Teste Apur Fica")
+        sai = catecumeno("_Teste Apur Desistente")
+        origem = turma(fase("_Teste Apur Fase Desist", fase_seguinte_transita=FASE_B), [fica, sai])
+        self.apuramento(origem, {fica.name: "Transita", sai.name: "Desistente"}).submit()
+
+        self.assertEqual(frappe.db.get_value("Catecumeno", sai.name, "status"), "Inactivo")
+        self.assertEqual(frappe.db.get_value("Catecumeno", sai.name, "turma"), origem.name)   # não foi para turma nova
+        self.assertEqual(frappe.db.get_value("Turma Catecumenos", {"parent": origem.name, "catecumeno": sai.name}, "estado"), "Inativo")
+        self.assertEqual(frappe.db.get_value("Catecumeno", fica.name, "fase"), FASE_B)
 
     def test_sem_resultado_e_recusado(self):
         c = catecumeno("_Teste Apur Sem Resultado")
@@ -886,6 +977,76 @@ class TestQualidadeDados(BaseCatequese):
 
 
 # ── Definições e ano lectivo ──────────────────────────────────────────────────
+
+class TestRenovacao(BaseCatequese):
+    """Renovação marcada na turma: valor e data, página Renovações e entrega do dinheiro."""
+
+    def setUp(self):
+        frappe.set_user("Administrator")
+        s = frappe.get_single("Catequese Settings")
+        s.valor_renovacao = 500
+        s.save()
+        frappe.clear_document_cache("Catequese Settings", "Catequese Settings")
+
+    def tearDown(self):
+        frappe.clear_document_cache("Catequese Settings", "Catequese Settings")
+
+    def marcar(self, t, cat, valor):
+        t.reload()
+        next(r for r in t.lista_catecumenos if r.catecumeno == cat).renovacao = valor
+        t.save()
+        return frappe.db.get_value("Turma Catecumenos", {"parent": t.name, "catecumeno": cat},
+                                   ["renovacao", "valor_renovacao", "data_renovacao"], as_dict=True)
+
+    def test_sim_isento_e_nao(self):
+        c = catecumeno("_Teste Renov Linha")
+        t = turma(FASE_A, [c])
+        r = self.marcar(t, c.name, "Sim")
+        self.assertEqual((r.valor_renovacao, str(r.data_renovacao)), (500, frappe.utils.today()))
+        r = self.marcar(t, c.name, "Isento")
+        self.assertEqual(r.valor_renovacao, 0)
+        self.assertTrue(r.data_renovacao)
+        r = self.marcar(t, c.name, "Não")
+        self.assertEqual((r.valor_renovacao, r.data_renovacao), (0, None))
+
+    def test_mudar_o_valor_nas_definicoes_nao_altera_as_feitas(self):
+        c = catecumeno("_Teste Renov Historico")
+        t = turma(FASE_A, [c])
+        self.marcar(t, c.name, "Sim")
+        s = frappe.get_single("Catequese Settings")
+        s.valor_renovacao = 700
+        s.save()
+        frappe.clear_document_cache("Catequese Settings", "Catequese Settings")
+        t.reload()
+        t.save()
+        self.assertEqual(frappe.db.get_value("Turma Catecumenos", {"parent": t.name, "catecumeno": c.name}, "valor_renovacao"), 500)
+
+    def test_pagina_e_entrega(self):
+        from portal.catequese.page.renovacoes.renovacoes import get_dados, registar_entrega
+
+        cs = [catecumeno(f"_Teste Renov Pag {i}") for i in range(4)]
+        t = turma(FASE_A, cs, ano_nome=ano("2601"))
+        self.marcar(t, cs[0].name, "Sim")
+        self.marcar(t, cs[1].name, "Isento")
+        t.reload()
+        next(r for r in t.lista_catecumenos if r.catecumeno == cs[3].name).pre_avaliacao = "Desistente"
+        t.save()
+
+        def linha():
+            return next(x for x in get_dados("2601")["turmas"] if x["name"] == t.name)
+
+        x = linha()
+        # o desistente não conta como esperado
+        self.assertEqual((x["esperados"], x["renovados"], x["isentos"], x["valor"]), (3, 2, 1, 500))
+        self.assertIn(cs[2].name, {r.catecumeno for r in get_dados("2601")["por_renovar"]})
+
+        r = registar_entrega(t.name)
+        self.assertEqual(r["valor"], 500)
+        receita = frappe.get_doc("Receita Catequese", r["receita"])
+        self.assertEqual((receita.fonte, receita.ano_lectivo, receita.turma), ("Renovação", "2601", t.name))
+        self.assertEqual(linha()["por_entregar"], 0)
+        self.assertRaises(frappe.ValidationError, registar_entrega, t.name)
+
 
 class TestDefinicoesEAno(BaseCatequese):
     def tearDown(self):

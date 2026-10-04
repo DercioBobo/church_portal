@@ -5,6 +5,7 @@ from portal.catequese.utils import tamanhos_turma
 
 TABELA_TURMA = "lista_catecumenos"
 ESTADOS_FORA = ("inactivo", "inativo", "desistente")
+RESULTADOS = ("Transita", "Permanece", "Desistente")
 
 
 class ApuramentodeTurmas(Document):
@@ -67,12 +68,12 @@ class ApuramentodeTurmas(Document):
                          + ", ".join(f"{a.turma} (em {a.name})" for a in ja_apuradas))
 
         sem_resultado = [i.get("catecumeno") for i in itens
-                         if (i.get("resultado") or "").strip() not in ("Transita", "Permanece")]
+                         if (i.get("resultado") or "").strip() not in RESULTADOS]
         if sem_resultado:
             if len(sem_resultado) <= 5:
                 frappe.throw("Os seguintes catecúmenos não têm resultado definido: " + ", ".join(sem_resultado))
             frappe.throw(f"Existem {len(sem_resultado)} catecúmenos sem resultado definido. "
-                         "Defina Transita ou Permanece para todos.")
+                         "Defina Transita, Permanece ou Desistente para todos.")
 
         lista = [i.get("catecumeno") for i in itens if i.get("catecumeno")]
         vistos, duplicados = set(), []
@@ -113,9 +114,12 @@ class ApuramentodeTurmas(Document):
         except Exception:
             opcoes = {}
 
-        transitam, permanecem = [], []
+        transitam, permanecem, desistentes = [], [], []
         for item in self.get("apuramento_item") or []:
             if (item.get("status") or "").lower() in ESTADOS_FORA:
+                continue
+            if (item.get("resultado") or "").strip() == "Desistente":
+                desistentes.append(item)
                 continue
             dados = {
                 "catecumeno": item.get("catecumeno"),
@@ -155,6 +159,14 @@ class ApuramentodeTurmas(Document):
         for tc in criadas:
             self.append("apuramento_novas_turmas", tc)
 
+        # Desistentes: ficam Inactivos (e "Inativo" na lista da turma antiga); não vão para turma nova
+        for item in desistentes:
+            frappe.db.set_value("Catecumeno", item.get("catecumeno"), "status", "Inactivo")
+            if item.get("turma_nome"):
+                frappe.db.sql("""UPDATE `tabTurma Catecumenos` SET estado = 'Inativo'
+                                 WHERE parent = %s AND parenttype = 'Turma' AND catecumeno = %s""",
+                              (item.get("turma_nome"), item.get("catecumeno")))
+
         for t in self._turmas_incluidas():
             if t not in a_inactivar:
                 a_inactivar.append(t)
@@ -163,6 +175,8 @@ class ApuramentodeTurmas(Document):
             frappe.db.set_value("Turma", t, "status", "Inactivo")
 
         msg = f"Apuramento concluído! Criadas {len(criadas)} turma(s)."
+        if desistentes:
+            msg += f" {len(desistentes)} desistente(s) ficaram inactivos."
         if "juntar" in accoes.values():
             msg += " Turmas existentes foram combinadas."
         frappe.msgprint(msg)

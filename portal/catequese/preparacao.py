@@ -64,7 +64,7 @@ def listar_preparacoes():
     """Preparações (mais recentes primeiro) para o selector da página."""
     frappe.has_permission(DOCTYPE, "read", throw=True)
     return frappe.db.sql(f"""
-        SELECT p.name, p.sacramento, p.ano_lectivo, p.data_do_sacramento AS data, p.docstatus,
+        SELECT p.name, p.sacramento, p.ano_lectivo, p.data_do_sacramento AS data, p.docstatus, p.tipo,
                COALESCE(SUM(c.name IS NOT NULL AND IFNULL(c.situacao, '') != %(nao)s), 0) AS vao,
                COALESCE(SUM(c.situacao = %(nao)s), 0) AS nao
         FROM `tab{DOCTYPE}` p
@@ -87,6 +87,8 @@ def get_preparacao(nome):
         "sacramento": doc.sacramento,
         "ano_lectivo": doc.ano_lectivo,
         "data_do_sacramento": doc.data_do_sacramento,
+        "tipo": doc.tipo,
+        "turma_destino": doc.turma_destino,
         "docstatus": doc.docstatus,
         "modified": str(doc.modified),
         "observacoes": doc.observacoes,

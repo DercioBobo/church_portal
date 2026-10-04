@@ -1004,6 +1004,18 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
         gravar_no_catecumeno(catecumeno_nome, cat_updates)
         _registar_alteracao_catequista(catecumeno_nome, cat_name, antes, cat_updates)
 
+    if "renovacao" in row_updates:
+        from portal.catequese.renovacao import preencher
+
+        # Só quando a renovação muda (ex.: vazio → Sim): grava valor e data; senão fica o que já estava
+        antes = frappe.db.get_value("Turma Catecumenos", row_name, "renovacao") or ""
+        if antes != (row_updates["renovacao"] or ""):
+            row_updates.update(preencher({
+                "renovacao": row_updates["renovacao"],
+                "valor_renovacao": row_updates.get("valor_renovacao"),
+                "data_renovacao": row_updates.get("data_renovacao"),
+            }))
+
     if row_updates:
         frappe.db.set_value("Turma Catecumenos", row_name, row_updates, update_modified=False)
         frappe.db.set_value("Turma", turma_name, "modified", frappe.utils.now(), update_modified=False)

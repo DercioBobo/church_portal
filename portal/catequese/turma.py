@@ -103,7 +103,7 @@ def adicionar_a_turma(turma, catecumenos):
 
     # Sanear também as linhas já existentes
     for row in doc.lista_catecumenos:
-        if row.renovacao not in ("Sim", "Não"):
+        if row.renovacao not in ("Sim", "Não", "Isento"):
             row.renovacao = ""
     doc.save(ignore_permissions=True)
     return doc

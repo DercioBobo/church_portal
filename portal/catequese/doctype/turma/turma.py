@@ -1,11 +1,18 @@
 import frappe
 from frappe.model.document import Document
 
-from portal.catequese import sincronizacao
+from portal.catequese import renovacao, sincronizacao
 
 
 class Turma(Document):
     def validate(self):
+        # Valor e data da renovação só quando a renovação muda (as antigas ficam como estavam)
+        antes = self.get_doc_before_save()
+        # (por catecúmeno: o botão "Listar" da turma recria as linhas com nomes novos)
+        renov_antes = {r.catecumeno: (r.renovacao or "") for r in (antes.get("lista_catecumenos") if antes else [])}
+        for linha in self.get("lista_catecumenos"):
+            if renov_antes.get(linha.catecumeno) != (linha.renovacao or ""):
+                renovacao.preencher(linha)
         # Linhas novas juntam-se aos dados do catecúmeno; as alteradas seguem para ele no on_update
         sincronizacao.turma_validate(self)
 

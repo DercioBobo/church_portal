@@ -9,3 +9,4 @@ portal.patches.v1_0.remover_pagina_ano_lectivo
 portal.patches.v1_0.classificar_propostas_existentes
 portal.patches.v1_0.preencher_situacao_candidatos
 portal.patches.v1_0.sincronizar_turmas_catecumenos
+portal.patches.v1_0.opcoes_portal_renovacao

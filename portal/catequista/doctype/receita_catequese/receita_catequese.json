@@ -8,6 +8,7 @@
   "fonte",
   "column_break_1",
   "ano_lectivo",
+  "turma",
   "data",
   "section_valor",
   "valor",
@@ -18,18 +19,18 @@
   {
    "fieldname": "descricao",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Descrição",
-   "reqd": 1,
-   "in_list_view": 1
+   "reqd": 1
   },
   {
+   "default": "Fichas",
    "fieldname": "fonte",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Fonte",
-   "options": "Fichas\nInscrição\nDonativo\nSubsídio Paroquial\nOutro",
-   "default": "Fichas",
-   "reqd": 1,
-   "in_list_view": 1
+   "options": "Fichas\nInscrição\nRenovação\nDonativo\nSubsídio Paroquial\nOutro",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_1",
@@ -38,18 +39,26 @@
   {
    "fieldname": "ano_lectivo",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Ano Lectivo",
    "options": "Ano Lectivo",
-   "reqd": 1,
-   "in_list_view": 1
+   "reqd": 1
   },
   {
+   "depends_on": "eval:doc.fonte=='Renovação'",
+   "description": "Renovações entregues pelo catequista desta turma (página Renovações).",
+   "fieldname": "turma",
+   "fieldtype": "Link",
+   "label": "Turma",
+   "options": "Turma"
+  },
+  {
+   "default": "Today",
    "fieldname": "data",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Data",
-   "default": "Today",
-   "reqd": 1,
-   "in_list_view": 1
+   "reqd": 1
   },
   {
    "fieldname": "section_valor",
@@ -59,9 +68,9 @@
   {
    "fieldname": "valor",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Valor",
-   "reqd": 1,
-   "in_list_view": 1
+   "reqd": 1
   },
   {
    "fieldname": "section_notas",
@@ -69,32 +78,32 @@
    "label": "Notas"
   },
   {
+   "description": "Observações sobre esta receita",
    "fieldname": "notas",
    "fieldtype": "Small Text",
-   "label": "Notas",
-   "description": "Observações sobre esta receita"
+   "label": "Notas"
   }
  ],
  "links": [],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-10-04 15:05:42.000000",
  "modified_by": "Administrator",
  "module": "Catequista",
  "name": "Receita Catequese",
  "owner": "Administrator",
  "permissions": [
   {
-   "role": "System Manager",
-   "read": 1,
-   "write": 1,
    "create": 1,
-   "delete": 1
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
   },
   {
-   "role": "Coordenador Catequese",
-   "read": 1,
-   "write": 1,
    "create": 1,
-   "delete": 1
+   "delete": 1,
+   "read": 1,
+   "role": "Coordenador Catequese",
+   "write": 1
   }
  ],
  "sort_field": "data",

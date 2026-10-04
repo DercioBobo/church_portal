@@ -62,8 +62,8 @@ function createGerirPreparacaoApp() {
       <div class="gp-ano-titulo">{{ g.ano }}</div>
       <div class="gp-grid">
         <a v-for="p in g.itens" :key="p.name" class="gp-prep-card" :href="'/app/gerir-preparacao/' + encodeURIComponent(p.name)">
-          <b>{{ p.sacramento }}</b>
-          <small>{{ p.data ? dia(p.data) : 'Sem data' }}</small>
+          <b>{{ p.sacramento }} <span v-if="p.tipo === '2ª oportunidade'" class="gp-chip ouro">2ª oportunidade</span></b>
+          <small>{{ p.name }} · {{ p.data ? dia(p.data) : 'Sem data' }}</small>
           <span class="gp-chips">
             <span class="gp-chip ok">{{ p.vao }} vão</span>
             <span v-if="p.nao" class="gp-chip erro">{{ p.nao }} não</span>
@@ -85,6 +85,7 @@ function createGerirPreparacaoApp() {
           <div>
             <h1>{{ p.sacramento }} {{ p.ano_lectivo }}
               <span class="gp-chip" :class="p.docstatus ? 'ouro' : 'rasc'">{{ p.docstatus ? 'Submetida' : 'Rascunho' }}</span>
+              <span v-if="p.tipo === '2ª oportunidade'" class="gp-chip ouro">2ª oportunidade<template v-if="p.turma_destino"> → {{ p.turma_destino }}</template></span>
               <span v-if="linkActivo" class="gp-chip ok">Link activo até {{ dia(p.link.expira_em) }}</span>
             </h1>
             <p class="gp-muted">📅 {{ p.data_do_sacramento ? dia(p.data_do_sacramento) : 'Sem data definida' }}

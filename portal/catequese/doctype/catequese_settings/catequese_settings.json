@@ -20,6 +20,8 @@
   "tamanho_minimo",
   "tamanho_ideal",
   "tamanho_maximo",
+  "sec_renovacao",
+  "valor_renovacao",
   "tab_sacramentos",
   "fase_apos_baptismo",
   "cb_sac",
@@ -135,6 +137,17 @@
    "fieldtype": "Int",
    "label": "Tamanho máximo",
    "non_negative": 1
+  },
+  {
+   "fieldname": "sec_renovacao",
+   "fieldtype": "Section Break",
+   "label": "Renovação"
+  },
+  {
+   "description": "Valor por catecúmeno. Gravado em cada linha da turma quando o catequista marca a renovação (mudar aqui não altera as renovações já feitas).",
+   "fieldname": "valor_renovacao",
+   "fieldtype": "Currency",
+   "label": "Valor da renovação"
   },
   {
    "fieldname": "tab_sacramentos",
@@ -271,7 +284,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-04 00:26:35.000000",
+ "modified": "2026-10-04 15:05:42.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Catequese Settings",

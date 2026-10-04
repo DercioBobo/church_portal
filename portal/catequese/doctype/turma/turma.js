@@ -39,9 +39,11 @@ frappe.ui.form.on('Turma', {
                 const preserved = {};
                 (frm.doc.lista_catecumenos || []).forEach(row => {
                     preserved[row.catecumeno] = {
-                        pre_avaliacao: row.pre_avaliacao || '',
-                        renovacao:     row.renovacao     || 0,
-                        nr_de_faltas:  row.nr_de_faltas  || 0
+                        pre_avaliacao:   row.pre_avaliacao   || '',
+                        renovacao:       row.renovacao       || '',
+                        valor_renovacao: row.valor_renovacao || 0,
+                        data_renovacao:  row.data_renovacao  || null,
+                        nr_de_faltas:    row.nr_de_faltas    || 0
                     };
                 });
 
@@ -78,7 +80,9 @@ frappe.ui.form.on('Turma', {
 
                     // Campos preservados da turma (não sobrescrever com dados do catecúmeno)
                     row.pre_avaliacao = prev.pre_avaliacao !== undefined ? prev.pre_avaliacao : '';
-                    row.renovacao     = prev.renovacao     !== undefined ? prev.renovacao     : 0;
+                    row.renovacao       = prev.renovacao       !== undefined ? prev.renovacao       : '';
+                    row.valor_renovacao = prev.valor_renovacao !== undefined ? prev.valor_renovacao : 0;
+                    row.data_renovacao  = prev.data_renovacao  !== undefined ? prev.data_renovacao  : null;
                     row.nr_de_faltas  = prev.nr_de_faltas  !== undefined ? prev.nr_de_faltas  : 0;
                 });
 

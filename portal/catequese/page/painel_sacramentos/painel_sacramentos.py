@@ -72,6 +72,15 @@ def _sacramento(sac, rotulo, campo, campo_data, fases, ordem, ano):
     sem_motivo = _sem_motivo(campo, ordem, ordem_sac, ja_listados) if ordem_sac else []
     sem_motivo = [r for r in sem_motivo if r.catecumeno not in ano_arquivo]
 
+    # Já estão numa preparação em rascunho para receber (ex.: 2ª oportunidade marcada)
+    agendados = dict(frappe.db.sql("""
+        SELECT c.catecumeno, p.name FROM `tabCandidatos ao Sacramento Table` c
+        JOIN `tabPreparacao do Sacramento` p ON p.name = c.parent AND p.docstatus = 0 AND p.sacramento = %s
+        WHERE c.parenttype = 'Preparacao do Sacramento' AND IFNULL(c.situacao, '') != %s
+    """, (sac, NAO_RECEBE)))
+    for r in pendentes + fora + sem_motivo:
+        r.agendado = agendados.get(r.catecumeno)
+
     return {
         "sacramento": sac,
         "rotulo": rotulo,
@@ -82,6 +91,11 @@ def _sacramento(sac, rotulo, campo, campo_data, fases, ordem, ano):
         "resolvidos": resolvidos,
         "arquivados": arquivados,
         "preparacoes": preparacoes,
+        # preparações em rascunho (qualquer ano) onde se pode juntar quem tem 2ª oportunidade
+        "rascunhos": frappe.get_all("Preparacao do Sacramento",
+                                    filters={"sacramento": sac, "docstatus": 0},
+                                    fields=["name", "ano_lectivo", "data_do_sacramento", "tipo"],
+                                    order_by="ano_lectivo desc, creation desc"),
     }
 
 
@@ -162,7 +176,7 @@ def _arquivados(sac, campo):
 
 def _preparacoes(sac, ano):
     return frappe.db.sql("""
-        SELECT p.name, p.data_do_sacramento AS data, p.docstatus,
+        SELECT p.name, p.data_do_sacramento AS data, p.docstatus, p.tipo,
                COALESCE(SUM(c.name IS NOT NULL AND IFNULL(c.situacao, '') != %(nao)s), 0) AS vao,
                COALESCE(SUM(c.situacao = %(nao)s), 0) AS nao
         FROM `tabPreparacao do Sacramento` p
@@ -211,3 +225,56 @@ def arquivar(catecumenos, sacramento, decisao, motivo=None, nota=None, preparaco
 def reabrir(nome):
     """Apaga o registo: a pessoa volta às listas de acompanhamento."""
     frappe.delete_doc(REGISTO, nome)
+
+
+# ── 2ª oportunidade ──────────────────────────────────────────────────────────
+
+@frappe.whitelist()
+def segunda_oportunidade(catecumenos, sacramento, preparacao=None, ano=None, data=None,
+                         turma_destino=None, falhou_em=None):
+    """Põe os catecúmenos escolhidos numa preparação para receberem o sacramento:
+    numa preparação em rascunho já existente (`preparacao`) ou numa nova do tipo
+    "2ª oportunidade" (`ano`, `data`, `turma_destino` para o Baptismo).
+    `falhou_em` (lista, mesma ordem) é a Preparação onde cada um não recebeu, para a observação.
+    Devolve o nome da preparação."""
+    catecumenos = frappe.parse_json(catecumenos) if isinstance(catecumenos, str) else (catecumenos or [])
+    falhou_em = (frappe.parse_json(falhou_em) if isinstance(falhou_em, str) else falhou_em) or []
+    if not catecumenos:
+        frappe.throw(_("Nenhum catecúmeno seleccionado."))
+
+    if preparacao:
+        doc = frappe.get_doc("Preparacao do Sacramento", preparacao)
+        doc.check_permission("write")
+        if doc.docstatus != 0:
+            frappe.throw(_("A preparação {0} já foi submetida; escolha uma em rascunho ou crie uma nova.").format(preparacao))
+        if doc.sacramento != sacramento:
+            frappe.throw(_("A preparação {0} é de {1}, não de {2}.").format(preparacao, doc.sacramento, sacramento))
+    else:
+        frappe.has_permission("Preparacao do Sacramento", "create", throw=True)
+        doc = frappe.new_doc("Preparacao do Sacramento")
+        doc.update({
+            "sacramento": sacramento, "ano_lectivo": ano or ano_actual(), "data_do_sacramento": data or None,
+            "tipo": "2ª oportunidade", "turma_destino": turma_destino if sacramento == "Baptismo" else None,
+        })
+
+    existentes = {r.catecumeno: r for r in doc.get("candidatos_sacramento_table")}
+    adicionados = repostos = 0
+    for i, cat in enumerate(catecumenos):
+        origem = falhou_em[i] if i < len(falhou_em) else None
+        nota = _("2ª oportunidade (não recebeu em {0})").format(origem) if origem else _("2ª oportunidade")
+        if cat in existentes:
+            r = existentes[cat]
+            if r.situacao == NAO_RECEBE:
+                r.situacao, r.motivo_nao_recebe, r.detalhe_situacao = "Vai receber", None, None
+                repostos += 1
+            continue
+        c = frappe.db.get_value("Catecumeno", cat, ["name", "turma", "fase", "comunidade"], as_dict=True)
+        if not c:
+            continue
+        doc.append("candidatos_sacramento_table", {
+            "catecumeno": cat, "turma": c.turma, "fase": c.fase, "comunidade": c.comunidade,
+            "situacao": "Vai receber", "ficha": 0, "documentos_padrinhos": 0, "obs": nota,
+        })
+        adicionados += 1
+    doc.save()
+    return {"preparacao": doc.name, "adicionados": adicionados, "repostos": repostos}

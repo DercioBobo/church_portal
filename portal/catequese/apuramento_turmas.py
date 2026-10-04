@@ -216,6 +216,8 @@ def preview_distribuicao(apuramento_items_json, tamanho_min=None, tamanho_ideal=
             transitam.append(item)
         elif resultado == "Permanece":
             permanecem.append(item)
+        elif resultado == "Desistente":
+            continue  # fica Inactivo no apuramento
         else:
             sem_resultado.append(item)
     
@@ -422,6 +424,7 @@ def calcular_totais(apuramento_items_json):
     
     transitam = 0
     permanecem = 0
+    desistentes = 0
     sem_resultado = 0
     
     for item in items:
@@ -435,12 +438,15 @@ def calcular_totais(apuramento_items_json):
             transitam += 1
         elif resultado == "Permanece":
             permanecem += 1
+        elif resultado == "Desistente":
+            desistentes += 1
         else:
             sem_resultado += 1
     
     return {
         "transitam": transitam,
         "permanecem": permanecem,
+        "desistentes": desistentes,
         "sem_resultado": sem_resultado,
         "total": transitam + permanecem
     }
@@ -661,7 +667,7 @@ def criar_novas_turmas(apuramento_name):
         sem_resultado = []
         for item in apuramento_items:
             res = (item.get("resultado") or "").strip()
-            if res not in ["Transita", "Permanece"]:
+            if res not in ["Transita", "Permanece", "Desistente"]:
                 sem_resultado.append(item.get("catecumeno"))
         
         if sem_resultado:
@@ -679,10 +685,12 @@ def criar_novas_turmas(apuramento_name):
             status = (item.get("status") or "").lower()
             
             # Se Inativo/Desistente - guardar para actualizar status mas não incluir em turmas
-            if status in ["inactivo", "inativo", "desistente"]:
+            # ("Inactivo" é o valor válido no Catecúmeno; "Inativo" é o da linha da turma)
+            if status in ["inactivo", "inativo", "desistente"] or resultado == "Desistente":
                 inativos.append({
                     "catecumeno": item.get("catecumeno"),
-                    "status": item.get("status") or "Inativo"
+                    "status": "Inactivo",
+                    "turma": item.get("turma_nome"),
                 })
                 continue
             
@@ -1017,8 +1025,12 @@ def criar_novas_turmas(apuramento_name):
         # === ACTUALIZAR INATIVOS (manter turma/fase antiga, só mudar status) ===
         for inativo in inativos:
             frappe.db.set_value("Catecumeno", inativo.get("catecumeno"), {
-                "status": inativo.get("status") or "Inativo"
+                "status": "Inactivo"
             })
+            if inativo.get("turma"):
+                frappe.db.sql("""UPDATE `tabTurma Catecumenos` SET estado = 'Inativo'
+                                 WHERE parent = %s AND parenttype = 'Turma' AND catecumeno = %s""",
+                              (inativo.get("turma"), inativo.get("catecumeno")))
         
         # === REGISTAR TURMAS CRIADAS NO DOCUMENTO ===
         for tc in turmas_criadas:
@@ -1028,7 +1040,7 @@ def criar_novas_turmas(apuramento_name):
         
         # === INACTIVAR TURMAS ANTIGAS ===
         for turma_nome in turmas_a_inactivar:
-            frappe.db.set_value("Turma", turma_nome, "status", "Inativo")
+            frappe.db.set_value("Turma", turma_nome, "status", "Inactivo")  # valor válido na Turma
         
         frappe.db.commit()
         

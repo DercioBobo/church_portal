@@ -6,7 +6,7 @@ from frappe.model.document import Document
 from frappe.utils import add_to_date, get_datetime, get_url, now_datetime
 
 from portal.catequese import sincronizacao
-from portal.catequese.utils import definicao, valores_sacramento
+from portal.catequese.utils import definicao, nome_com_serie, valores_sacramento
 
 NAO_RECEBE = "Não vai receber"
 
@@ -16,6 +16,10 @@ def nao_recebe(row):
 
 
 class PreparacaodoSacramento(Document):
+    def autoname(self):
+        # Baptismo-26-01, Baptismo-26-02 (2ª oportunidade)… — as antigas mantêm o nome que tinham
+        self.name = nome_com_serie(self.sacramento, self.ano_lectivo)
+
     def vao_receber(self):
         """Candidatos que recebem o sacramento (quem não vai receber fica na lista, com o motivo)."""
         return [r for r in self.candidatos_sacramento_table if r.catecumeno and not nao_recebe(r)]
@@ -116,6 +120,9 @@ class PreparacaodoSacramento(Document):
         quem tem turma vai, com os colegas já baptizados, para uma turma nova da fase seguinte;
         quem não tem turma (ex.: Santa Ana) só muda de fase.
         Quem já está na fase seguinte (ex.: preparação emendada) não é movido outra vez."""
+        if self.tipo == "2ª oportunidade":
+            return self._baptismo_segunda_oportunidade()
+
         nova_fase = definicao("fase_apos_baptismo")
 
         por_turma = {}
@@ -195,6 +202,39 @@ class PreparacaodoSacramento(Document):
             turma_antiga.save()
 
         frappe.msgprint(f"Transição concluída: baptizados registados no Livro e passados para {nova_fase}.")
+
+    def _baptismo_segunda_oportunidade(self):
+        """2ª oportunidade: baptiza e regista no Livro, sem criar turmas novas. Se houver Turma de
+        destino, passam para lá (sai da turma antiga); senão ficam onde estão."""
+        destino = frappe.get_doc("Turma", self.turma_destino) if self.turma_destino else None
+        movidos = []
+        for row, c in self._receptores():
+            frappe.db.set_value("Catecumeno", row.catecumeno, {
+                "baptismo": 1,
+                "data_do_baptismo": self._data(row),
+                "padrinhos": row.padrinhos,
+                "contacto_padrinhos": row.contacto_padrinhos,
+            })
+            self._registar_livro_baptismo(row)
+            if not destino or c.turma == destino.name:
+                continue
+            if c.turma and frappe.db.exists("Turma", c.turma):
+                antiga = frappe.get_doc("Turma", c.turma)
+                antiga.lista_catecumenos = [r for r in antiga.lista_catecumenos if r.catecumeno != row.catecumeno]
+                if not antiga.lista_catecumenos:
+                    antiga.status = "Inactivo"
+                antiga.save()
+            if not any(r.catecumeno == row.catecumeno for r in destino.lista_catecumenos):
+                destino.append("lista_catecumenos", {"catecumeno": row.catecumeno, "estado": "Activo",
+                                                     "fase": destino.fase, "turma": destino.name})
+            frappe.db.set_value("Catecumeno", row.catecumeno, {"turma": destino.name, "fase": destino.fase})
+            movidos.append(row.catecumeno)
+        if movidos:
+            destino.save()
+        frappe.msgprint(
+            f"2ª oportunidade concluída: baptizados registados no Livro."
+            + (f" {len(movidos)} passaram para a turma {destino.name}." if movidos else
+               " Continuam nas turmas actuais (sem Turma de destino)." if not destino else ""))
 
     def _registar_livro_baptismo(self, row):
         # O Livro de Baptismo tem o nome do catecúmeno: se já existe (registo manual ou emenda), não duplica

@@ -23,11 +23,23 @@ PADROES = {
     "palavras_vigararia": "Vigararia, Vigararias",
     "palavras_arquidiocese": "Arquidiocese, Arquidiocesano, Arquidiocesana",
     "rollover_copiar_extraordinarias": 0,
+    "valor_renovacao": 0,
 }
 
 
 # Campos numéricos em que 0 significa "não preenchido" (o Frappe grava Int vazio como 0)
 ZERO_E_VAZIO = {"tamanho_minimo", "tamanho_ideal", "tamanho_maximo", "link_validade_dias"}
+
+
+def nome_com_serie(prefixo, ano_lectivo):
+    """Nome no padrão {prefixo}-{AA}-{##}, ex.: Baptismo-26-01. AA vem do ano lectivo
+    (não da data de criação); o contador é por prefixo e ano."""
+    from frappe.model.naming import make_autoname
+    from frappe.utils import nowdate
+
+    ano = str(ano_lectivo or "")
+    aa = ano[-2:] if ano.isdigit() else nowdate()[2:4]
+    return make_autoname(f"{prefixo}-{aa}-.##")
 
 
 def definicao(campo):

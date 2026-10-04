@@ -203,6 +203,21 @@ São livros físicos diferentes. Têm campos comuns e alguns exclusivos (**à es
 
 ---
 
+## 🔁 Renovações e desistentes (feito)
+- **Renovação na linha da turma** (o catequista marca no portal): Sim / Não / **Isento**.
+  - Ao marcar Sim grava o valor das Catequese Settings (separador Turmas) e a data.
+  - Isento = renovado, valor 0.
+  - Mudar o valor nas Settings não altera as renovações já feitas.
+- **O ano é o da turma:** renovar em 2027 numa turma de 2026 conta para 2026.
+- **Página Renovações** (`/app/renovacoes`):
+  - renovados/esperados, recebido vs esperado, entregue, por entregar;
+  - por turma, "Ainda não renovaram" (com WA) e "Renovados";
+  - exportar CSV.
+- **"Recebido do catequista":** cria uma Receita (fonte Renovação, ano da turma, ligada à turma).
+- **Pré-avaliação "Desistente":**
+  - não conta como esperado na renovação;
+  - no Apuramento fica Inactivo (e "Inativo" na turma antiga) e não vai para turma nova.
+
 ## 🔜 Fase 1: resto
 
 ### 1. Certificados de sacramento
