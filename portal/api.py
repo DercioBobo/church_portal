@@ -398,7 +398,7 @@ def atualizar_candidato_sacramento(
         if encarregado is not None:
             cat_updates["encarregado"] = encarregado
         if contacto_encarregado is not None:
-            cat_updates["contacto_encarregado"] = contacto_encarregado
+            cat_updates["contacto"] = contacto_encarregado   # no Catecúmeno o campo chama-se "contacto"
         if padrinhos is not None:
             cat_updates["padrinhos"] = padrinhos
         if contacto_padrinhos is not None:
@@ -408,11 +408,8 @@ def atualizar_candidato_sacramento(
         if data_de_nascimento is not None:
             cat_updates["data_de_nascimento"] = data_de_nascimento
 
-        if cat_updates:
-            try:
-                frappe.db.set_value("Catecumeno", row.catecumeno, cat_updates)
-            except Exception:
-                pass  # Catecumeno may not exist; non-critical
+        if cat_updates and frappe.db.exists("Catecumeno", row.catecumeno):
+            frappe.db.set_value("Catecumeno", row.catecumeno, cat_updates)
 
     return {"success": True}
 

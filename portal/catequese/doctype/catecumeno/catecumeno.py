@@ -42,7 +42,8 @@ class Catecumeno(Document):
                 limit=50,
             )
             for row in linhas:
-                if frappe.db.get_value("Preparacao do Sacramento", row.parent, "docstatus") == 2:
+                # só preparações em rascunho: as submetidas são o registo do que aconteceu
+                if frappe.db.get_value("Preparacao do Sacramento", row.parent, "docstatus") != 0:
                     continue
                 frappe.db.set_value("Candidatos ao Sacramento Table", row.name, {
                     "catecumeno": self.name,

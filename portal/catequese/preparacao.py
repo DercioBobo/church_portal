@@ -276,7 +276,7 @@ def sincronizar(nome, aplicar=0):
 def actualizar_catecumenos(nome):
     """Copia encarregado, padrinhos, contactos, sexo e idade da lista para os Catecúmenos."""
     doc = _doc(nome, "write")
-    feitos = 0
+    feitos, falhas = 0, []
     for r in doc.get(TABELA):
         if not r.catecumeno or not frappe.db.exists("Catecumeno", r.catecumeno):
             continue
@@ -286,9 +286,16 @@ def actualizar_catecumenos(nome):
             "padrinhos": r.padrinhos, "contacto_padrinhos": r.contacto_padrinhos,
             "sexo": r.sexo, "idade": r.idade,
         })
-        c.save()
-        feitos += 1
-    return {"actualizados": feitos}
+        frappe.db.savepoint("actualizar_catecumeno")
+        try:
+            c.save()
+            feitos += 1
+        except frappe.ValidationError as e:
+            frappe.db.rollback(save_point="actualizar_catecumeno")
+            # um registo com problemas não impede os outros
+            falhas.append({"catecumeno": r.catecumeno, "erro": frappe.utils.strip_html(str(e))})
+    frappe.clear_messages()
+    return {"actualizados": feitos, "falhas": falhas}
 
 
 # ── Link e submissão ─────────────────────────────────────────────────────────

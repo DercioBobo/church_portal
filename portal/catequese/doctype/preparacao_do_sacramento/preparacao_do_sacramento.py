@@ -68,6 +68,13 @@ class PreparacaodoSacramento(Document):
         self.db_set({"link_token": None, "link_expira_em": None, "link_url": None}, update_modified=False)
         self.add_comment("Info", _("Link para encarregados revogado."))
 
+    def before_submit(self):
+        # A data do sacramento é a de cada candidato (coluna Data) ou, se vazia, a da Preparação
+        sem_data = [r.catecumeno for r in self.vao_receber() if not self._data(r)]
+        if sem_data:
+            frappe.throw(_("Defina a Data do Sacramento (ou a data de cada candidato). Sem data: {0}").format(
+                ", ".join(sem_data[:10]) + ("…" if len(sem_data) > 10 else "")))
+
     def on_submit(self):
         # (eram os Server Scripts "PS Baptismo Script", "PS Eucaristia Script" e "Finalize Crisma")
         # Só quem "Vai receber"; os outros ficam na lista e aparecem na página Sacramentos.
@@ -83,26 +90,57 @@ class PreparacaodoSacramento(Document):
             self.add_comment("Info", _("Não receberam o sacramento ({0}): {1}").format(
                 len(falharam), ", ".join(f"{r.catecumeno} ({r.motivo_nao_recebe})" for r in falharam)))
 
+    def _data(self, row):
+        return row.date or self.data_do_sacramento
+
+    def _receptores(self):
+        """(linha, catecúmeno actual) de quem vai receber e existe."""
+        out = []
+        for row in self.vao_receber():
+            c = frappe.db.get_value("Catecumeno", row.catecumeno,
+                                    ["name", "turma", "fase", "baptismo", "status"], as_dict=True)
+            if c:
+                out.append((row, c))
+        return out
+
     # ── Baptismo ──────────────────────────────────────────────────────────────
 
     def _finalizar_baptismo(self):
-        """Move os baptizados (e os já baptizados da mesma turma) para novas turmas
-        da fase seguinte e regista cada um no Livro de Baptismo."""
+        """Marca os baptizados, regista-os no Livro de Baptismo e passa-os para a fase seguinte:
+        quem tem turma vai, com os colegas já baptizados, para uma turma nova da fase seguinte;
+        quem não tem turma (ex.: Santa Ana) só muda de fase.
+        Quem já está na fase seguinte (ex.: preparação emendada) não é movido outra vez."""
         nova_fase = definicao("fase_apos_baptismo")
 
         por_turma = {}
-        for row in self.vao_receber():
-            if row.turma:
-                por_turma.setdefault(row.turma, []).append(row)
+        for row, c in self._receptores():
+            frappe.db.set_value("Catecumeno", row.catecumeno, {
+                "baptismo": 1,
+                "data_do_baptismo": self._data(row),
+                "encarregado": row.encarregado,
+                "contacto": row.contacto_encarregado,
+                "sexo": row.sexo,
+                "padrinhos": row.padrinhos,
+                "contacto_padrinhos": row.contacto_padrinhos,
+            })
+            self._registar_livro_baptismo(row)
+
+            if c.fase == nova_fase:
+                continue
+            if c.turma and frappe.db.exists("Turma", c.turma):
+                por_turma.setdefault(c.turma, []).append(row)
+            else:
+                frappe.db.set_value("Catecumeno", row.catecumeno, "fase", nova_fase)
 
         for turma_antiga_nome, candidatos in por_turma.items():
             turma_antiga = frappe.get_doc("Turma", turma_antiga_nome)
             ids = [r.catecumeno for r in candidatos]
 
-            # Já baptizados na turma antiga mas não listados na preparação
+            # Colegas já baptizados (e activos) na turma antiga que não estavam na preparação
             adicionais = frappe.get_all(
                 "Catecumeno",
-                filters={"turma": turma_antiga_nome, "baptismo": 1, "name": ["not in", ids]},
+                filters={"turma": turma_antiga_nome, "baptismo": 1, "name": ["not in", ids],
+                         "status": ["in", ["Activo", "Pendente"]]},
                 fields=["name", "idade", "contacto", "encarregado", "sexo"],
             )
 
@@ -128,72 +166,71 @@ class PreparacaodoSacramento(Document):
                     "fase": nova_fase,
                     "turma": nova_turma.name,
                 })
-                frappe.db.set_value("Catecumeno", row.catecumeno, {
-                    "fase": nova_fase,
-                    "turma": nova_turma.name,
-                    "baptismo": 1,
-                    "data_do_baptismo": self.data_do_sacramento,
-                    "encarregado": row.encarregado,
-                    "contacto": row.contacto_encarregado,
-                    "sexo": row.sexo,
-                    "padrinhos": row.padrinhos,
-                    "contacto_padrinhos": row.contacto_padrinhos,
-                })
-
-                livro = frappe.new_doc("Livro de Baptismo")
-                livro.nome_completo = row.catecumeno
-                livro.data_de_nascimento = frappe.db.get_value("Catecumeno", row.catecumeno, "data_de_nascimento")
-                livro.data_do_baptismo = self.data_do_sacramento
-                livro.encarregado = row.encarregado
-                livro.contacto = row.contacto_encarregado
-                livro.padrinhos = row.padrinhos
-                livro.contacto_padrinhos = row.contacto_padrinhos
-                livro.ano = self.ano_lectivo
-                livro.sacerdote = row.sacerdote
-                livro.insert()
-
             for c in adicionais:
                 nova_turma.append("lista_catecumenos", {
                     "catecumeno": c.name,
                     "idade": c.idade,
                     "contacto": c.contacto,
+                    "encarregado": c.encarregado,
+                    "sexo": c.sexo,
                     "fase": nova_fase,
                     "turma": nova_turma.name,
                 })
-                frappe.db.set_value("Catecumeno", c.name, {"fase": nova_fase, "turma": nova_turma.name})
-
             nova_turma.save()
 
             movidos = ids + [c.name for c in adicionais]
+            for nome in movidos:
+                frappe.db.set_value("Catecumeno", nome, {"fase": nova_fase, "turma": nova_turma.name})
+
             turma_antiga.lista_catecumenos = [
                 r for r in turma_antiga.lista_catecumenos if r.catecumeno not in movidos
             ]
-            turma_antiga.db_set("status", "Inactivo" if not turma_antiga.lista_catecumenos else "Activo")
+            turma_antiga.status = "Activo" if turma_antiga.lista_catecumenos else "Inactivo"
             turma_antiga.save()
 
-        frappe.msgprint(f"Transição concluída: catecúmenos movidos para novas turmas ({nova_fase}).")
+        frappe.msgprint(f"Transição concluída: baptizados registados no Livro e passados para {nova_fase}.")
+
+    def _registar_livro_baptismo(self, row):
+        # O Livro de Baptismo tem o nome do catecúmeno: se já existe (registo manual ou emenda), não duplica
+        if frappe.db.exists("Livro de Baptismo", row.catecumeno):
+            return
+        livro = frappe.new_doc("Livro de Baptismo")
+        livro.nome_completo = row.catecumeno
+        livro.data_de_nascimento = row.data_de_nascimento or frappe.db.get_value(
+            "Catecumeno", row.catecumeno, "data_de_nascimento")
+        livro.data_do_baptismo = self._data(row)
+        livro.encarregado = row.encarregado
+        livro.contacto = row.contacto_encarregado
+        livro.padrinhos = row.padrinhos
+        livro.contacto_padrinhos = row.contacto_padrinhos
+        livro.ano = self.ano_lectivo
+        livro.sacerdote = row.sacerdote
+        livro.comunidade = row.comunidade
+        livro.insert()
 
     # ── Eucaristia ────────────────────────────────────────────────────────────
 
     def _finalizar_eucaristia(self):
-        rows = self.vao_receber()
-        for row in rows:
-            frappe.db.set_value("Catecumeno", row.catecumeno, {
-                "eucaristia": 1,
-                "data_da_eucaristia": self.data_do_sacramento,
-            })
-        frappe.msgprint(
-            f"Concluído: {len(rows)} catecúmeno(s) receberam a Eucaristia em {self.data_do_sacramento}."
-        )
+        receptores = self._receptores()
+        for row, c in receptores:
+            valores = {"eucaristia": 1, "data_da_eucaristia": self._data(row)}
+            if not c.baptismo:
+                valores["baptismo"] = 1   # quem comunga é baptizado (a data fica por preencher)
+            frappe.db.set_value("Catecumeno", row.catecumeno, valores)
+        frappe.msgprint(f"Concluído: {len(receptores)} catecúmeno(s) receberam a Eucaristia.")
 
     # ── Crisma ────────────────────────────────────────────────────────────────
 
     def _finalizar_crisma(self):
-        """Marca os crismados como finalizados e cria-lhes um registo de Fiel."""
-        rows = self.vao_receber()
+        """Marca os crismados como finalizados (saem da turma, que fica no histórico como Inativo)
+        e cria-lhes um registo de Fiel."""
+        receptores = self._receptores()
         criados = ja_existiam = 0
+        turmas = {}
 
-        for row in rows:
+        for row, c in receptores:
+            if c.turma:
+                turmas.setdefault(c.turma, set()).add(row.catecumeno)
             # Quem chega ao Crisma tem Baptismo e Eucaristia (sem mexer nas datas)
             frappe.db.set_value("Catecumeno", row.catecumeno, {
                 "status": "Crismado",
@@ -202,7 +239,7 @@ class PreparacaodoSacramento(Document):
                 "baptismo": 1,
                 "eucaristia": 1,
                 "crisma": 1,
-                "data_do_crisma": self.data_do_sacramento,
+                "data_do_crisma": self._data(row),
             })
 
             c = frappe.get_doc("Catecumeno", row.catecumeno)
@@ -226,9 +263,21 @@ class PreparacaodoSacramento(Document):
             f.insert(ignore_permissions=True)
             criados += 1
 
+        # Na lista da turma, os crismados ficam como "Inativo"; a turma fecha quando não resta ninguém activo
+        for nome_turma, crismados in turmas.items():
+            if not frappe.db.exists("Turma", nome_turma):
+                continue
+            t = frappe.get_doc("Turma", nome_turma)
+            for r in t.lista_catecumenos:
+                if r.catecumeno in crismados:
+                    r.estado = "Inativo"
+            if not any(r.estado in ("Activo", "Pendente") for r in t.lista_catecumenos):
+                t.status = "Inactivo"
+            t.save()
+
         frappe.msgprint(
             "Crisma concluído:\n"
-            f"- Catecúmenos actualizados: {len(rows)}\n"
+            f"- Catecúmenos actualizados: {len(receptores)}\n"
             f"- Fiéis criados: {criados}\n"
             f"- Fiéis já existentes (ignorado): {ja_existiam}"
         )

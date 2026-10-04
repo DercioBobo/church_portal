@@ -443,6 +443,8 @@ function createGerirPreparacaoApp() {
           frappe.confirm(__('Copiar encarregados, padrinhos, contactos, sexo e idade desta lista para os Catecúmenos?'), async () => {
             const r = await gpApi('actualizar_catecumenos', { nome: nome.value });
             frappe.show_alert({ message: __('{0} catecúmeno(s) actualizado(s).', [r.actualizados]), indicator: 'green' });
+            if (r.falhas && r.falhas.length) frappe.msgprint({ title: __('Não actualizados'), indicator: 'orange',
+              message: r.falhas.map((f) => `<b>${frappe.utils.escape_html(f.catecumeno)}</b>: ${frappe.utils.escape_html(f.erro)}`).join('<br>') });
           });
         }
       }

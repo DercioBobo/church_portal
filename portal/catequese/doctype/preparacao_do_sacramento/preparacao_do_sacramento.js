@@ -46,7 +46,8 @@ frappe.ui.form.on('Preparacao do Sacramento', {
             frappe.confirm('Deseja actualizar os dados dos Catecúmenos com as informações desta tabela?', async () => {
                 if (frm.is_dirty()) await frm.save();
                 const r = await ps_chamar(frm, 'actualizar_catecumenos');
-                frappe.msgprint(`Dados actualizados em ${r.actualizados} catecúmeno(s).`);
+                const falhas = (r.falhas || []).map((f) => `<li><b>${frappe.utils.escape_html(f.catecumeno)}</b>: ${frappe.utils.escape_html(f.erro)}</li>`).join('');
+                frappe.msgprint(`Dados actualizados em ${r.actualizados} catecúmeno(s).` + (falhas ? `<p>Não actualizados:</p><ul>${falhas}</ul>` : ''));
             });
         });
     },
@@ -334,44 +335,6 @@ function _show_atribuir_dialog(frm, selected) {
         $(this).data('enabled', true);
     });
 }
-
-// ── Update child with parent on Sacramento ────────────────────────────────
-
-frappe.ui.form.on("Candidatos ao Sacramento Table", {
-
-    valor_fotos: function(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-        // Só actua se estiver null/undefined — 0 digitado manualmente não activa
-        if (row.valor_fotos === null || row.valor_fotos === undefined) {
-            const val = frm.doc.valor_fotos;
-            if (val && val > 0) frappe.model.set_value(cdt, cdn, "valor_fotos", val);
-        }
-    },
-
-    valor_cracha: function(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-        if (row.valor_cracha === null || row.valor_cracha === undefined) {
-            const val = frm.doc.valor_cracha;
-            if (val && val > 0) frappe.model.set_value(cdt, cdn, "valor_cracha", val);
-        }
-    },
-
-    valor_ofertorio: function(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-        if (row.valor_ofertorio === null || row.valor_ofertorio === undefined) {
-            const val = frm.doc.valor_ofertorio;
-            if (val && val > 0) frappe.model.set_value(cdt, cdn, "valor_ofertorio", val);
-        }
-    },
-
-    valor_accao_gracas: function(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-        if (row.valor_accao_gracas === null || row.valor_accao_gracas === undefined) {
-            const val = frm.doc.valor_accao_gracas;
-            if (val && val > 0) frappe.model.set_value(cdt, cdn, "valor_accao_gracas", val);
-        }
-    }
-});
 
 // ── Link para encarregados ────────────────────────────────────────────────
 

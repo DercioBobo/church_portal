@@ -336,6 +336,83 @@ class TestSituacaoSacramento(BaseCatequese):
         self.assertIn(falhou.name, {r.catecumeno for r in s["resolvidos"]})
 
 
+class TestSubmeterPreparacao(BaseCatequese):
+    """Correcções na submissão (Baptismo/Eucaristia/Crisma) e no link dos encarregados."""
+    _ano = 2400
+
+    def preparacao(self, sac, linhas, data=True):
+        TestSubmeterPreparacao._ano += 1
+        a = str(TestSubmeterPreparacao._ano)
+        return frappe.get_doc({
+            "doctype": "Preparacao do Sacramento", "sacramento": sac, "ano_lectivo": ano(a),
+            "data_do_sacramento": f"{a}-06-07" if data else None, "candidatos_sacramento_table": linhas,
+        }).insert()
+
+    def test_sem_data_nao_submete(self):
+        c = catecumeno("_Teste Sub Sem Data")
+        prep = self.preparacao("Eucaristia", [{"catecumeno": c.name}], data=False)
+        self.assertRaises(frappe.ValidationError, prep.submit)
+
+    def test_data_de_cada_candidato_prevalece(self):
+        a = catecumeno("_Teste Sub Data A")
+        b = catecumeno("_Teste Sub Data B", baptismo=0)
+        prep = self.preparacao("Eucaristia", [{"catecumeno": a.name, "date": "2401-07-12"}, {"catecumeno": b.name}])
+        prep.submit()
+        self.assertEqual(str(frappe.db.get_value("Catecumeno", a.name, "data_da_eucaristia")), "2401-07-12")
+        self.assertEqual(frappe.db.get_value("Catecumeno", b.name, "data_da_eucaristia"), frappe.utils.getdate(prep.data_do_sacramento))
+        # quem comunga fica baptizado
+        self.assertEqual(frappe.db.get_value("Catecumeno", b.name, "baptismo"), 1)
+
+    def test_baptismo_sem_turma_e_livro_ja_existente(self):
+        sem_turma = catecumeno("_Teste Sub Bap Sem Turma", baptismo=0, comunidade="Santa Ana")
+        com_livro = catecumeno("_Teste Sub Bap Com Livro", baptismo=0)
+        frappe.get_doc({"doctype": "Livro de Baptismo", "nome_completo": com_livro.name, "livro": "3"}).insert()
+
+        self.preparacao("Baptismo", [{"catecumeno": sem_turma.name, "comunidade": "Santa Ana"},
+                                     {"catecumeno": com_livro.name}]).submit()
+
+        self.assertEqual(frappe.db.get_value("Catecumeno", sem_turma.name, ["baptismo", "fase"]), (1, FASE_APOS_BAPTISMO))
+        self.assertEqual(frappe.db.get_value("Livro de Baptismo", sem_turma.name, "comunidade"), "Santa Ana")
+        self.assertEqual(frappe.db.get_value("Livro de Baptismo", com_livro.name, "livro"), "3")   # não duplicou nem mudou
+        self.assertEqual(frappe.db.get_value("Catecumeno", com_livro.name, "baptismo"), 1)
+
+    def test_baptismo_nao_move_colegas_inactivos(self):
+        cand = catecumeno("_Teste Sub Bap Cand", baptismo=0)
+        inactivo = catecumeno("_Teste Sub Bap Inactivo", baptismo=1)
+        antiga = turma(FASE_A, [cand, inactivo], catequista=None)
+        frappe.db.set_value("Catecumeno", inactivo.name, "status", "Inactivo")
+        self.preparacao("Baptismo", [{"catecumeno": cand.name, "turma": antiga.name}]).submit()
+        self.assertEqual(frappe.db.get_value("Catecumeno", inactivo.name, "turma"), antiga.name)
+
+    def test_crisma_fica_inativo_na_turma(self):
+        sim = catecumeno("_Teste Sub Crisma Sim")
+        nao = catecumeno("_Teste Sub Crisma Nao")
+        t = turma(FASE_A, [sim, nao])
+        self.preparacao("Crisma", [
+            {"catecumeno": sim.name},
+            {"catecumeno": nao.name, "situacao": "Não vai receber", "motivo_nao_recebe": "Faltas"},
+        ]).submit()
+        estados = {r.catecumeno: r.estado for r in frappe.get_doc("Turma", t.name).lista_catecumenos}
+        self.assertEqual(estados, {sim.name: "Inativo", nao.name: "Activo"})
+        self.assertEqual(frappe.db.get_value("Turma", t.name, "status"), "Activo")
+
+    def test_link_actualiza_contacto_no_catecumeno(self):
+        from portal.api import atualizar_candidato_sacramento
+
+        c = catecumeno("_Teste Sub Link Contacto")
+        prep = self.preparacao("Eucaristia", [{"catecumeno": c.name}])
+        token = prep.gerar_link_encarregados(dias=1, permite_editar=1).split("t=")[1]
+        linha = prep.candidatos_sacramento_table[0].name
+        try:
+            frappe.set_user("Guest")
+            atualizar_candidato_sacramento(prep.name, linha, encarregado="Mãe Nova",
+                                           contacto_encarregado="851112233", t=token)
+        finally:
+            frappe.set_user("Administrator")
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["encarregado", "contacto"]),
+                         ("Mãe Nova", "851112233"))
+
+
 class TestGerirPreparacao(BaseCatequese):
     """API da página Gerir Preparação (portal.catequese.preparacao)."""
     SAC = "_Teste Sacramento"
