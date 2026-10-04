@@ -431,9 +431,8 @@ function cq_resumo_catecumeno(frm) {
                     `<span>🏫 ${turmaHtml}</span>${catequistas}`,
                     `${cq.marca(d.baptismo, 'Baptismo', d.data_do_baptismo && frappe.datetime.str_to_user(d.data_do_baptismo))}
                      ${cq.marca(d.eucaristia, 'Eucaristia', d.data_da_eucaristia && frappe.datetime.str_to_user(d.data_da_eucaristia))}
-                     ${cq.marca(d.crisma, 'Crisma', d.data_do_crisma && frappe.datetime.str_to_user(d.data_do_crisma))}`,
-                    `<span><small>Encarregado:</small> ${cq.esc(d.encarregado || '—')} ${d.contacto ? cq.telefone(d.contacto) : ''}</span>`
-                    + (d.padrinhos ? `<span><small>Padrinhos:</small> ${cq.esc(d.padrinhos)} ${d.contacto_padrinhos ? cq.telefone(d.contacto_padrinhos) : ''}</span>` : ''),
+                     ${cq.marca(d.crisma, 'Crisma', d.data_do_crisma && frappe.datetime.str_to_user(d.data_do_crisma))}
+                     <span><small>Encarregado:</small> ${cq.esc(d.encarregado || '—')} ${d.contacto ? cq.telefone(d.contacto) : ''}</span>`,
                 ],
                 aviso,
                 acoes,
@@ -449,7 +448,10 @@ function cq_historico_catecumeno(frm) {
         method: 'portal.catequese.catecumeno_historico_api.get_historico_catecumeno',
         args: { catecumeno: frm.doc.name },
         callback(r) {
-            const eventos = (r.message && r.message.eventos) || [];
+            // mais recente primeiro; eventos sem data vão para o fim
+            const quando = (e) => (e.data && e.data !== 'None' ? String(e.data) : '');
+            const eventos = ((r.message && r.message.eventos) || []).slice()
+                .sort((x, y) => quando(y).localeCompare(quando(x)));
             if (!eventos.length) {
                 $w.html('<div class="cq-vazio">Ainda não há eventos no histórico.</div>');
                 return;

@@ -16,8 +16,9 @@
  "email_append_to": 0,
  "engine": "InnoDB",
  "field_order": [
-  "cq_resumo",
   "tab_dados",
+  "sec_resumo",
+  "cq_resumo",
   "sec_identificacao",
   "nome_completo",
   "data_de_nascimento",
@@ -70,14 +71,18 @@
  ],
  "fields": [
   {
-   "fieldname": "cq_resumo",
-   "fieldtype": "HTML",
-   "label": "Resumo"
-  },
-  {
    "fieldname": "tab_dados",
    "fieldtype": "Tab Break",
    "label": "Dados"
+  },
+  {
+   "fieldname": "sec_resumo",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cq_resumo",
+   "fieldtype": "HTML",
+   "label": "Resumo"
   },
   {
    "fieldname": "sec_identificacao",
@@ -1525,7 +1530,7 @@
  "links": [],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-04 10:42:31.000000",
+ "modified": "2026-10-04 11:10:30.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Catecumeno",
