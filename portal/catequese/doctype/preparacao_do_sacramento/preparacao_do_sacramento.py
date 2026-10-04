@@ -5,7 +5,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_to_date, get_datetime, get_url, now_datetime
 
-from portal.catequese import sincronizacao
+from portal.catequese import livros, sincronizacao
 from portal.catequese.utils import definicao, nome_com_serie, valores_sacramento
 
 NAO_RECEBE = "Não vai receber"
@@ -136,7 +136,7 @@ class PreparacaodoSacramento(Document):
                 "padrinhos": row.padrinhos,
                 "contacto_padrinhos": row.contacto_padrinhos,
             })
-            self._registar_livro_baptismo(row)
+            self._registar_livro(row)
 
             if c.fase == nova_fase:
                 continue
@@ -215,7 +215,7 @@ class PreparacaodoSacramento(Document):
                 "padrinhos": row.padrinhos,
                 "contacto_padrinhos": row.contacto_padrinhos,
             })
-            self._registar_livro_baptismo(row)
+            self._registar_livro(row)
             if not destino or c.turma == destino.name:
                 continue
             if c.turma and frappe.db.exists("Turma", c.turma):
@@ -236,23 +236,15 @@ class PreparacaodoSacramento(Document):
             + (f" {len(movidos)} passaram para a turma {destino.name}." if movidos else
                " Continuam nas turmas actuais (sem Turma de destino)." if not destino else ""))
 
-    def _registar_livro_baptismo(self, row):
-        # O Livro de Baptismo tem o nome do catecúmeno: se já existe (registo manual ou emenda), não duplica
-        if frappe.db.exists("Livro de Baptismo", row.catecumeno):
-            return
-        livro = frappe.new_doc("Livro de Baptismo")
-        livro.nome_completo = row.catecumeno
-        livro.data_de_nascimento = row.data_de_nascimento or frappe.db.get_value(
-            "Catecumeno", row.catecumeno, "data_de_nascimento")
-        livro.data_do_baptismo = self._data(row)
-        livro.encarregado = row.encarregado
-        livro.contacto = row.contacto_encarregado
-        livro.padrinhos = row.padrinhos
-        livro.contacto_padrinhos = row.contacto_padrinhos
-        livro.ano = self.ano_lectivo
-        livro.sacerdote = row.sacerdote
-        livro.comunidade = row.comunidade
-        livro.insert()
+    def _registar_livro(self, row):
+        # Um registo por catecúmeno em cada livro: se já existe (registo manual ou emenda), não duplica
+        livros.registar(
+            self.sacramento, row.catecumeno, data=self._data(row),
+            origem=livros.ORIGEM_SEGUNDA if self.tipo == "2ª oportunidade" else livros.ORIGEM_CATEQUESE,
+            ano=self.ano_lectivo, preparacao=self.name, sacerdote=row.sacerdote, comunidade=row.comunidade,
+            data_de_nascimento=row.data_de_nascimento, sexo=row.sexo, encarregado=row.encarregado,
+            contacto=row.contacto_encarregado, padrinhos=row.padrinhos, contacto_padrinhos=row.contacto_padrinhos,
+        )
 
     # ── Eucaristia ────────────────────────────────────────────────────────────
 
@@ -263,13 +255,14 @@ class PreparacaodoSacramento(Document):
             if not c.baptismo:
                 valores["baptismo"] = 1   # quem comunga é baptizado (a data fica por preencher)
             frappe.db.set_value("Catecumeno", row.catecumeno, valores)
-        frappe.msgprint(f"Concluído: {len(receptores)} catecúmeno(s) receberam a Eucaristia.")
+            self._registar_livro(row)
+        frappe.msgprint(f"Concluído: {len(receptores)} catecúmeno(s) receberam a Eucaristia (registados no Livro de Primeira Comunhão).")
 
     # ── Crisma ────────────────────────────────────────────────────────────────
 
     def _finalizar_crisma(self):
-        """Marca os crismados como finalizados (saem da turma, que fica no histórico como Inativo)
-        e cria-lhes um registo de Fiel."""
+        """Marca os crismados como finalizados (saem da turma, que fica no histórico como Inativo),
+        regista-os no Livro de Crisma e cria-lhes um registo de Fiel."""
         receptores = self._receptores()
         criados = ja_existiam = 0
         turmas = {}
@@ -287,6 +280,7 @@ class PreparacaodoSacramento(Document):
                 "crisma": 1,
                 "data_do_crisma": self._data(row),
             })
+            self._registar_livro(row)
 
             c = frappe.get_doc("Catecumeno", row.catecumeno)
             if frappe.db.exists("Fiel", {"nome_completo": c.nome_completo}):

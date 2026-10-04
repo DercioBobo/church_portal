@@ -292,8 +292,30 @@ def _sac_crismado_sem_crisma():
 def _sac_livro_sem_baptismo():
     return _sql("""
         SELECT c.name, l.data_do_baptismo AS data_do_livro, l.ano FROM `tabCatecumeno` c
-        JOIN `tabLivro de Baptismo` l ON l.nome_completo = c.name
+        JOIN `tabLivro de Baptismo` l ON l.catecumeno = c.name
         WHERE IFNULL(c.baptismo, 0) = 0 ORDER BY c.name""")
+
+
+@verificacao("sac_livro_sem_eucaristia", "Sacramentos", "No Livro de 1ª Comunhão mas sem a Eucaristia marcada",
+             "Têm registo no Livro de Primeira Comunhão, mas o catecúmeno não tem a Eucaristia assinalada.",
+             "Catecumeno", ["data_do_livro", "ano"],
+             {"accao": "eucaristia_do_livro", "rotulo": "Marcar Eucaristia (data do Livro)"})
+def _sac_livro_sem_eucaristia():
+    return _sql("""
+        SELECT c.name, l.data_da_comunhao AS data_do_livro, l.ano FROM `tabCatecumeno` c
+        JOIN `tabLivro de Primeira Comunhao` l ON l.catecumeno = c.name
+        WHERE IFNULL(c.eucaristia, 0) = 0 ORDER BY c.name""")
+
+
+@verificacao("sac_livro_sem_crisma", "Sacramentos", "No Livro de Crisma mas sem o Crisma marcado",
+             "Têm registo no Livro de Crisma, mas o catecúmeno não tem o Crisma assinalado.",
+             "Catecumeno", ["data_do_livro", "ano"],
+             {"accao": "crisma_do_livro", "rotulo": "Marcar Crisma (data do Livro)"})
+def _sac_livro_sem_crisma():
+    return _sql("""
+        SELECT c.name, l.data_do_crisma AS data_do_livro, l.ano FROM `tabCatecumeno` c
+        JOIN `tabLivro de Crisma` l ON l.catecumeno = c.name
+        WHERE IFNULL(c.crisma, 0) = 0 ORDER BY c.name""")
 
 
 @verificacao("sac_sem_data", "Sacramentos", "Sacramento marcado sem data",
@@ -531,12 +553,16 @@ def _marcar_crisma(nomes, chave):
     return len(nomes)
 
 
-def _baptismo_do_livro(nomes, chave):
-    linhas = _linhas(chave)
-    for nome in nomes:
-        if nome in linhas:
-            frappe.db.set_value("Catecumeno", nome, {"baptismo": 1, "data_do_baptismo": linhas[nome].data_do_livro})
-    return len([n for n in nomes if n in linhas])
+def _do_livro(sacramento):
+    """Acção "marcar o sacramento com a data do Livro" (e os sacramentos anteriores)."""
+    def accao(nomes, chave):
+        from portal.catequese.livros import marcar_catecumeno
+        linhas = _linhas(chave)
+        for nome in nomes:
+            if nome in linhas:
+                marcar_catecumeno(sacramento, nome, linhas[nome].data_do_livro)
+        return len([n for n in nomes if n in linhas])
+    return accao
 
 
 def _inactivar_turma(nomes, chave):
@@ -571,7 +597,9 @@ ACCOES = {
     "inativar_na_turma": _inativar_na_turma,
     "marcar_anteriores": _marcar_anteriores,
     "marcar_crisma": _marcar_crisma,
-    "baptismo_do_livro": _baptismo_do_livro,
+    "baptismo_do_livro": _do_livro("Baptismo"),
+    "eucaristia_do_livro": _do_livro("Eucaristia"),
+    "crisma_do_livro": _do_livro("Crisma"),
     "inactivar_turma": _inactivar_turma,
     "classificar_organizador": _classificar_organizador,
     "confirmar_data": _confirmar_data,

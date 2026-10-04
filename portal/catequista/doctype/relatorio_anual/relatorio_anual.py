@@ -10,7 +10,7 @@ from portal.catequista.relatorio_anual import dados, gerar
 INDICADORES = [
     ("catequizandos", "Catequizandos"),
     ("baptismo", "Baptismos (catecúmenos)"),
-    ("baptismo_criancas", "Baptismos (crianças)"),   # manual — não há registo no sistema
+    ("baptismo_criancas", "Baptismos (crianças)"),   # Livro de Baptismo, origem Extraordinário/Bebé (senão manual)
     ("eucaristia", "Eucaristia"),
     ("crisma", "Crisma"),
     ("profissao_fe", "Profissão de Fé"),
@@ -124,6 +124,10 @@ class RelatorioAnual(Document):
             "eucaristia": dados.sacramento_simples(ano, "Eucaristia"),
             "crisma": dados.sacramento_simples(ano, "Crisma"),
         }
+        # Só automático quando há baptismos extraordinários no livro (senão mantém-se o valor escrito à mão)
+        criancas = dados.baptismos_criancas(ano)
+        if criancas:
+            auto["baptismo_criancas"] = criancas
         ant = self._valores_ano_anterior(anterior)
 
         linhas = {r.chave: r for r in self.estatistica if r.chave}

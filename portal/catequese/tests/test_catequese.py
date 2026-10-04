@@ -337,6 +337,7 @@ class TestSacramentos(BaseCatequese):
         self.assertEqual((c.status, c.crisma, c.baptismo, c.eucaristia), ("Crismado", 1, 1, 1))
         self.assertFalse(c.turma)
         self.assertTrue(frappe.db.exists("Fiel", {"nome_completo": c.name}))
+        self.assertTrue(frappe.db.exists("Livro de Crisma", {"catecumeno": c.name, "origem": "Catequese"}))
 
     def test_baptismo_cria_turma_seguinte_e_livro(self):
         baptizar = catecumeno("_Teste Bap Candidato", baptismo=0)
@@ -354,8 +355,46 @@ class TestSacramentos(BaseCatequese):
         self.assertEqual(frappe.db.get_value("Turma", nova, "fase"), FASE_APOS_BAPTISMO)
         self.assertEqual(nomes_na_turma(nova), {baptizar.name, ja_baptizado.name})
         self.assertEqual(frappe.db.get_value("Turma", antiga.name, "status"), "Inactivo")
-        self.assertTrue(frappe.db.exists("Livro de Baptismo", baptizar.name))
+        self.assertTrue(frappe.db.exists("Livro de Baptismo", {"catecumeno": baptizar.name, "origem": "Catequese"}))
         self.assertEqual(frappe.db.get_value("Catecumeno", baptizar.name, "baptismo"), 1)
+
+
+class TestLivrosSacramentais(BaseCatequese):
+    """Livros de Baptismo, 1ª Comunhão e Crisma: registos de catecúmenos e extraordinários."""
+
+    def test_baptismo_extraordinario_sem_catecumeno(self):
+        bebe = frappe.get_doc({
+            "doctype": "Livro de Baptismo", "nome_completo": "_Teste Bebe", "origem": "Extraordinário",
+            "tipo_extraordinario": "Bebé", "data_do_baptismo": f"{ANO}-05-03", "comunidade": "Assunção",
+        }).insert()
+        self.assertTrue(bebe.name.startswith("BAP-"))
+        self.assertEqual(bebe.ano, ANO)
+        # o mesmo nome pode repetir-se (não é catecúmeno)
+        frappe.get_doc({"doctype": "Livro de Baptismo", "nome_completo": "_Teste Bebe",
+                        "origem": "Extraordinário", "tipo_extraordinario": "Casamento"}).insert()
+
+    def test_extraordinario_exige_tipo_e_outra_paroquia_exige_nome(self):
+        self.assertRaises(frappe.ValidationError, frappe.get_doc({
+            "doctype": "Livro de Crisma", "nome_completo": "_Teste Sem Tipo", "origem": "Extraordinário"}).insert)
+        self.assertRaises(frappe.ValidationError, frappe.get_doc({
+            "doctype": "Livro de Crisma", "nome_completo": "_Teste Sem Paroquia", "origem": "Outra paróquia"}).insert)
+
+    def test_registo_manual_marca_e_apagar_desmarca(self):
+        c = catecumeno("_Teste Livro Comunhao", baptismo=0, eucaristia=0)
+        reg = frappe.get_doc({"doctype": "Livro de Primeira Comunhao", "catecumeno": c.name,
+                              "data_da_comunhao": f"{ANO}-08-15"}).insert()
+        self.assertEqual(reg.nome_completo, c.nome_completo)
+        self.assertEqual(reg.origem, "Catequese")
+        c.reload()
+        self.assertEqual((c.eucaristia, c.baptismo, str(c.data_da_eucaristia)), (1, 1, f"{ANO}-08-15"))
+        reg.delete()
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["eucaristia", "data_da_eucaristia"]), (0, None))
+
+    def test_um_registo_por_catecumeno(self):
+        c = catecumeno("_Teste Livro Duplicado")
+        frappe.get_doc({"doctype": "Livro de Crisma", "catecumeno": c.name}).insert()
+        self.assertRaises(frappe.ValidationError, frappe.get_doc({
+            "doctype": "Livro de Crisma", "catecumeno": c.name}).insert)
 
 
 class TestSituacaoSacramento(BaseCatequese):
@@ -388,6 +427,8 @@ class TestSituacaoSacramento(BaseCatequese):
         prep.submit()
         self.assertEqual(frappe.db.get_value("Catecumeno", sim.name, "eucaristia"), 1)
         self.assertEqual(frappe.db.get_value("Catecumeno", nao.name, "eucaristia"), 0)
+        self.assertTrue(frappe.db.exists("Livro de Primeira Comunhao", {"catecumeno": sim.name, "preparacao": prep.name}))
+        self.assertFalse(frappe.db.exists("Livro de Primeira Comunhao", {"catecumeno": nao.name}))
         self.assertEqual(len(frappe.get_doc("Preparacao do Sacramento", prep.name).candidatos_sacramento_table), 2)
 
     def test_baptismo_quem_nao_recebe_fica_na_turma(self):
@@ -402,7 +443,7 @@ class TestSituacaoSacramento(BaseCatequese):
         self.assertEqual(nomes_na_turma(antiga.name), {nao.name})
         self.assertEqual(frappe.db.get_value("Turma", antiga.name, "status"), "Activo")
         self.assertEqual(frappe.db.get_value("Catecumeno", nao.name, ["turma", "baptismo"]), (antiga.name, 0))
-        self.assertFalse(frappe.db.exists("Livro de Baptismo", nao.name))
+        self.assertFalse(frappe.db.exists("Livro de Baptismo", {"catecumeno": nao.name}))
 
     def test_link_nao_mostra_nem_edita_quem_nao_recebe(self):
         from portal.api import atualizar_candidato_sacramento, get_preparacao_sacramento
@@ -545,7 +586,7 @@ class TestSegundaOportunidade(BaseCatequese):
         self.assertEqual(str(frappe.db.get_value("Catecumeno", falhou.name, "data_do_baptismo")), f"{a}-09-20")
         self.assertNotIn(falhou.name, nomes_na_turma(antiga.name))
         self.assertIn(falhou.name, nomes_na_turma(destino.name))
-        self.assertTrue(frappe.db.exists("Livro de Baptismo", falhou.name))
+        self.assertTrue(frappe.db.exists("Livro de Baptismo", {"catecumeno": falhou.name, "origem": "2ª oportunidade"}))
 
     def test_baptismo_sem_destino_fica_na_turma(self):
         from portal.catequese.page.painel_sacramentos.painel_sacramentos import segunda_oportunidade
@@ -634,14 +675,14 @@ class TestSubmeterPreparacao(BaseCatequese):
     def test_baptismo_sem_turma_e_livro_ja_existente(self):
         sem_turma = catecumeno("_Teste Sub Bap Sem Turma", baptismo=0, comunidade="Santa Ana")
         com_livro = catecumeno("_Teste Sub Bap Com Livro", baptismo=0)
-        frappe.get_doc({"doctype": "Livro de Baptismo", "nome_completo": com_livro.name, "livro": "3"}).insert()
+        frappe.get_doc({"doctype": "Livro de Baptismo", "catecumeno": com_livro.name, "livro": "3"}).insert()
 
         self.preparacao("Baptismo", [{"catecumeno": sem_turma.name, "comunidade": "Santa Ana"},
                                      {"catecumeno": com_livro.name}]).submit()
 
         self.assertEqual(frappe.db.get_value("Catecumeno", sem_turma.name, ["baptismo", "fase"]), (1, FASE_APOS_BAPTISMO))
-        self.assertEqual(frappe.db.get_value("Livro de Baptismo", sem_turma.name, "comunidade"), "Santa Ana")
-        self.assertEqual(frappe.db.get_value("Livro de Baptismo", com_livro.name, "livro"), "3")   # não duplicou nem mudou
+        self.assertEqual(frappe.db.get_value("Livro de Baptismo", {"catecumeno": sem_turma.name}, "comunidade"), "Santa Ana")
+        self.assertEqual(frappe.get_all("Livro de Baptismo", {"catecumeno": com_livro.name}, pluck="livro"), ["3"])   # não duplicou nem mudou
         self.assertEqual(frappe.db.get_value("Catecumeno", com_livro.name, "baptismo"), 1)
 
     def test_baptismo_nao_move_colegas_inactivos(self):

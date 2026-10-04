@@ -16,6 +16,7 @@ CATEQUESE_DOCTYPES = [
     "Apuramento Item", "Apuramento Novas Turmas Table", "Apuramento Turmas Table",
     "Apuramento de Turmas", "Candidatos ao Sacramento Table", "Catecumeno", "Catequista",
     "Fase", "Inactivar Catecumeno", "Inscricao", "Lista Catecumenos", "Livro de Baptismo",
+    "Livro de Primeira Comunhao", "Livro de Crisma",
     "Preparacao do Sacramento", "Profissao de Fe", "Sacramento", "Transferencia de Catecumeno",
     "Troca de Turma", "Turma", "Turma Catecumenos", "Fiel", "Nucleo",
 ]

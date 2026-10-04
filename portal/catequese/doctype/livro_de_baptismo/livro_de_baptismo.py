@@ -1,6 +1,5 @@
-import frappe
-from frappe.model.document import Document
+from portal.catequese.livros import LivroSacramental
 
 
-class LivrodeBaptismo(Document):
-    pass
+class LivrodeBaptismo(LivroSacramental):
+    sacramento = "Baptismo"

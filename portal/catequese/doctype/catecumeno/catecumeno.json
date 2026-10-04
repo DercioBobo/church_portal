@@ -1527,10 +1527,26 @@
  "is_virtual": 0,
  "issingle": 0,
  "istable": 0,
- "links": [],
+ "links": [
+  {
+   "group": "Sacramentos",
+   "link_doctype": "Livro de Baptismo",
+   "link_fieldname": "catecumeno"
+  },
+  {
+   "group": "Sacramentos",
+   "link_doctype": "Livro de Primeira Comunhao",
+   "link_fieldname": "catecumeno"
+  },
+  {
+   "group": "Sacramentos",
+   "link_doctype": "Livro de Crisma",
+   "link_fieldname": "catecumeno"
+  }
+ ],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-04 11:10:30.000000",
+ "modified": "2026-10-04 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Catecumeno",

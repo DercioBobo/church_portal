@@ -127,32 +127,30 @@ As tabelas filhas (`…_item`, `…_table`) não precisam: só aparecem dentro d
 **Problemas de hoje:**
 - Não há forma de ver quem falhou o sacramento.
 - Não há onde registar a 2ª oportunidade.
-- Baptismos de bebés, de casamento e extraordinários, e crismas feitos noutra paróquia, ficam à mão no Livro de Baptismo.
-- 1ª Comunhão e Crisma não têm livro.
+- ~~Baptismos de bebés, de casamento e extraordinários, e crismas feitos noutra paróquia, ficam à mão no Livro de Baptismo.~~ ✅ origem nos livros
+- ~~1ª Comunhão e Crisma não têm livro.~~ ✅
 
-### 1. Três livros, cada um com a sua numeração
-São livros físicos diferentes. Têm campos comuns e alguns exclusivos (**à espera das colunas de cada livro**).
+### 1. ✅ Três livros, cada um com a sua numeração (versão base — adaptar às colunas reais)
+São livros físicos diferentes, com campos comuns. Feitos com os campos genéricos; **ajustar quando houver as colunas de cada livro**.
 
-| Livro | Comunidade |
-|---|---|
-| **Livro de Baptismo** (o existente, corrigido) | um livro por comunidade (Assunção, Santa Ana) |
-| **Livro de 1ª Comunhão** (novo) | um livro por comunidade |
-| **Livro de Crisma** (novo) | **um só livro para a paróquia**; a comunidade só indica de onde vem a pessoa |
+| Livro (DocType) | Série | Comunidade |
+|---|---|---|
+| **Livro de Baptismo** (o existente, corrigido) | `BAP-2026-0001` | um livro por comunidade (Assunção, Santa Ana) |
+| **Livro de Primeira Comunhao** (novo) | `COM-2026-0001` | um livro por comunidade |
+| **Livro de Crisma** (novo) | `CRI-2026-0001` | **um só livro para a paróquia**; "Comunidade de origem" só indica de onde vem a pessoa |
 
-- **Campos comuns:**
-  - catecúmeno (opcional; bebés e adultos só com nome);
-  - data, celebrante, padrinhos, comunidade;
-  - local: esta paróquia ou outra, com o nome dessa paróquia;
-  - livro, folha e número: texto livre, **não obrigatórios**, mantidos tal como escritos porque são usados em documentos;
-  - **origem**: Catequese / 2ª oportunidade / Extraordinário (casamento, bebé, adulto, outro) / Outra paróquia.
-- **Livro de Baptismo:**
-  - os registos novos passam a ter nome por série (ex.: `BAP-2026-0001`) em vez do nome da pessoa;
-  - os registos existentes mantêm o nome;
-  - o catecúmeno passa a opcional.
-- Os visto Baptismo/Eucaristia/Crisma no Catecúmeno passam a vir **automaticamente** dos livros.
-- O mesmo trabalho resolve os itens da Fase 1 "Certificados" e "Baptismos de crianças":
-  - os certificados imprimem-se a partir do registo no livro;
-  - o Relatório Anual conta os baptismos de bebés a partir do livro.
+- **Campos comuns** (controlador comum em `portal/catequese/livros.py`):
+  - **origem**: Catequese / 2ª oportunidade / Extraordinário (bebé, casamento, adulto, outro) / Outra paróquia (com o nome da paróquia);
+  - data, ano, celebrante, comunidade; livro, folha e número em texto livre, não obrigatórios;
+  - catecúmeno **opcional** (bebés e adultos só com o nome) — ao escolhê-lo, os dados da pessoa vêm do Catecúmeno;
+  - nome, nascimento, sexo, pai, mãe, encarregado, padrinhos; preparação (ligação automática) e observações.
+- Um registo por catecúmeno em cada livro.
+- Os registos existentes do Livro de Baptismo mantêm o nome; o catecúmeno passou para o campo `catecumeno` (patch `livros_sacramentais`).
+- **Vistos automáticos:** gravar um registo com catecúmeno marca o sacramento (e os anteriores) com a data; apagar desmarca (só se a data for a do registo).
+- **Preparação submetida** regista os que receberam no livro respectivo (Baptismo, Eucaristia e Crisma), com origem Catequese ou 2ª oportunidade.
+- **Relatório Anual:** Baptismos/Eucaristia/Crisma de catecúmenos contam pelo livro (se o livro tiver registos no ano; senão, pela preparação). "Baptismos (crianças)" passa a automático quando há baptismos extraordinários de bebés no livro; casamentos/adultos vão para o detalhe.
+- No Catecúmeno, os registos dos três livros aparecem nas ligações (grupo Sacramentos).
+- [ ] Certificados impressos a partir do registo no livro (Fase 1 "Certificados").
 
 ### 2. ✅ Preparação: Situação por candidato (em vez de apagar)
 - **Vai receber** (por omissão) / **Não vai receber**, com motivo: comportamento, faltas, documentos, desistiu, repete a fase, outro.
@@ -193,11 +191,11 @@ São livros físicos diferentes. Têm campos comuns e alguns exclusivos (**à es
 - Botão e resumo **esperam pelos livros** (ponto 1).
 
 ### 5. Qualidade dos Dados (só incoerências)
-- Sacramento com visto mas sem registo no livro.
-- Registo no livro sem visto.
+- [ ] Sacramento com visto mas sem registo no livro.
+- ✅ Registo no livro sem visto (os três livros, com acção "Marcar … (data do Livro)").
 - Pessoa numa fase posterior sem o sacramento e sem motivo registado.
 
-### 6. Migração
+### 6. ✅ Migração
 - Os registos actuais do Livro de Baptismo mantêm-se (origem por omissão: Catequese).
 - Os que faltam aparecem na Qualidade dos Dados.
 
@@ -230,9 +228,9 @@ São livros físicos diferentes. Têm campos comuns e alguns exclusivos (**à es
 - Filtro por comunidade na Consulta Rápida, nos relatórios e no Relatório Anual (este deixa de ter a coluna Santa Ana manual).
 - Opcional: coordenadores de Santa Ana a introduzir os seus próprios dados (permissões por comunidade).
 
-### 3. Baptismos de crianças
-- DocType próprio, ou integração no Livro de Baptismo, para os baptismos de bebés.
-- Liga-se à linha "Baptismos (crianças)" do Relatório Anual, que hoje é manual.
+### 3. ✅ Baptismos de crianças
+- No Livro de Baptismo, origem *Extraordinário* / tipo *Bebé* (ver "Sacramentos e livros").
+- A linha "Baptismos (crianças)" do Relatório Anual passa a automática quando há registos.
 
 ---
 

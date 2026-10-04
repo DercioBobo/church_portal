@@ -217,46 +217,80 @@ def itens_sacramentos(ano_lectivo):
     return itens
 
 
-def baptismos(ano_lectivo):
+def _do_livro(ano_lectivo, sacramento):
+    """Registos do livro do sacramento no ano que contam como catecúmenos (Catequese e
+    2ª oportunidade; os extraordinários e os de outra paróquia ficam de fora)."""
+    from portal.catequese.livros import LIVROS, ORIGEM_EXTRA, ORIGEM_OUTRA
+    return frappe.db.sql(f"""
+        SELECT catecumeno, nome_completo, comunidade
+        FROM `tab{LIVROS[sacramento].doctype}`
+        WHERE ano = %s AND IFNULL(origem, '') NOT IN (%s, %s)
+    """, (ano_lectivo, ORIGEM_EXTRA, ORIGEM_OUTRA), as_dict=True)
+
+
+def sacramento_do_livro(ano_lectivo, sacramento):
     """
-    Baptismos de catecúmenos do Livro de Baptismo (programados + esporádicos).
-    Os baptismos de crianças não estão no livro — têm linha própria, manual.
+    Catecúmenos que receberam o sacramento no ano, a partir do livro (programados + esporádicos).
     Se o livro não tiver registos para o ano, usa os candidatos da preparação.
     """
-    livro = frappe.db.sql("""
-        SELECT nome_completo, comunidade
-        FROM `tabLivro de Baptismo`
-        WHERE ano = %s
-    """, (ano_lectivo,), as_dict=True)
+    livro = _do_livro(ano_lectivo, sacramento)
+    cands = _candidatos(ano_lectivo, sacramento)
 
     if not livro:
-        cands = _candidatos(ano_lectivo, "Baptismo")
         return {
             "sede": len({c.catecumeno for c in cands if not _e_santa_ana(c.comunidade)}),
             "santa_ana": len({c.catecumeno for c in cands if _e_santa_ana(c.comunidade)}),
             "detalhe": "",
         }
 
-    programados = {c.catecumeno for c in _candidatos(ano_lectivo, "Baptismo")}
+    programados = {c.catecumeno for c in cands}
     sede = [r for r in livro if not _e_santa_ana(r.comunidade)]
-    esporadicos = sum(1 for r in sede if r.nome_completo not in programados)
+    esporadicos = sum(1 for r in sede if (r.catecumeno or r.nome_completo) not in programados)
     return {
         "sede": len(sede),
         "santa_ana": len(livro) - len(sede),
         "detalhe": (
-            f"inclui {esporadicos} {'baptismo' if esporadicos == 1 else 'baptismos'} "
-            "fora das celebrações programadas (comunidade sede)"
+            f"inclui {esporadicos} fora das celebrações programadas (comunidade sede)"
             if esporadicos else ""
         ),
     }
 
 
+def baptismos(ano_lectivo):
+    return sacramento_do_livro(ano_lectivo, "Baptismo")
+
+
 def sacramento_simples(ano_lectivo, sacramento):
-    cands = _candidatos(ano_lectivo, sacramento)
+    return sacramento_do_livro(ano_lectivo, sacramento)
+
+
+def baptismos_criancas(ano_lectivo):
+    """
+    Baptismos extraordinários do Livro de Baptismo no ano: bebés na linha "Baptismos (crianças)";
+    casamentos, adultos e outros só no detalhe. None se não houver registos (a linha fica manual).
+    """
+    from portal.catequese.livros import ORIGEM_EXTRA
+    rows = frappe.db.sql("""
+        SELECT tipo_extraordinario AS tipo, comunidade
+        FROM `tabLivro de Baptismo`
+        WHERE ano = %s AND origem = %s
+    """, (ano_lectivo, ORIGEM_EXTRA), as_dict=True)
+    if not rows:
+        return None
+    bebes = [r for r in rows if r.tipo == "Bebé"]
+    sede = sum(1 for r in bebes if not _e_santa_ana(r.comunidade))
+    outros = {}
+    for r in rows:
+        if r.tipo != "Bebé":
+            t = (r.tipo or "outro").lower()
+            outros[t] = outros.get(t, 0) + 1
     return {
-        "sede": len({c.catecumeno for c in cands if not _e_santa_ana(c.comunidade)}),
-        "santa_ana": len({c.catecumeno for c in cands if _e_santa_ana(c.comunidade)}),
-        "detalhe": "",
+        "sede": sede,
+        "santa_ana": len(bebes) - sede,
+        "detalhe": (
+            "há ainda " + ", ".join(f"{n} de {t}" for t, n in sorted(outros.items()))
+            + " (baptismos extraordinários)" if outros else ""
+        ),
     }
 
 

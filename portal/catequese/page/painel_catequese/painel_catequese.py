@@ -69,6 +69,8 @@ REGISTOS = [
     ("Catequista", "Catequistas", "🙋"),
     ("Preparacao do Sacramento", "Preparações do Sacramento", "✝️"),
     ("Livro de Baptismo", "Livro de Baptismo", "📖"),
+    ("Livro de Primeira Comunhao", "Livro de 1ª Comunhão", "📖"),
+    ("Livro de Crisma", "Livro de Crisma", "📖"),
     ("Relatorio Anual", "Relatório Anual", "📄"),
     ("Catequese Settings", "Catequese Settings", "⚙️"),
 ]

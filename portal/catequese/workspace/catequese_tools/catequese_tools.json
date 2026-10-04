@@ -140,7 +140,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Sacramentos",
-   "link_count": 8,
+   "link_count": 10,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -180,6 +180,26 @@
    "label": "Livro de Baptismo",
    "link_count": 0,
    "link_to": "Livro de Baptismo",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Livro de 1ª Comunhão",
+   "link_count": 0,
+   "link_to": "Livro de Primeira Comunhao",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Livro de Crisma",
+   "link_count": 0,
+   "link_to": "Livro de Crisma",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -545,7 +565,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-04 15:10:40.931232",
+ "modified": "2026-10-04 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Catequese Tools",
