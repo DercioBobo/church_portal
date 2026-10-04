@@ -33,6 +33,7 @@
   "renovacao",
   "valor_renovacao",
   "data_renovacao",
+  "renovacao_coordenacao",
   "ficha_de_catecumeno",
   "padrinhos",
   "contacto_padrinhos"
@@ -729,6 +730,13 @@
    "label": "Data da Renovação"
   },
   {
+   "depends_on": "eval:doc.renovacao=='Sim' || doc.renovacao=='Isento'",
+   "description": "O dinheiro foi entregue directamente à coordenação (não conta como \"por entregar\" do catequista).",
+   "fieldname": "renovacao_coordenacao",
+   "fieldtype": "Check",
+   "label": "Recebido pela coordenação"
+  },
+  {
    "allow_bulk_edit": 0,
    "allow_in_quick_entry": 0,
    "allow_on_submit": 0,
@@ -877,7 +885,7 @@
  "links": [],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-04 15:31:18.000000",
+ "modified": "2026-10-04 15:52:55.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Turma Catecumenos",

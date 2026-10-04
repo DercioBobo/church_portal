@@ -1068,6 +1068,14 @@ class TestRenovacao(BaseCatequese):
         self.assertEqual((x["esperados"], x["renovados"], x["isentos"], x["valor"]), (3, 2, 1, 500))
         self.assertIn(cs[2].name, {r.catecumeno for r in get_dados("2601")["por_renovar"]})
 
+        # turmas da fase do Crisma e crismados não renovam
+        fase("_Teste Fase Crisma Final", fase_de_sacramento=1, sacramento="Crisma")
+        final = turma("_Teste Fase Crisma Final", [catecumeno("_Teste Renov Crisma Final")], ano_nome="2601")
+        self.assertNotIn(final.name, {x["name"] for x in get_dados("2601")["turmas"]})
+        frappe.db.set_value("Catecumeno", cs[2].name, "status", "Crismado")
+        self.assertEqual(linha()["esperados"], 2)
+        frappe.db.set_value("Catecumeno", cs[2].name, "status", "Activo")
+
         r = registar_entrega(t.name)
         self.assertEqual(r["valor"], 500)
         receita = frappe.get_doc("Receita Catequese", r["receita"])
@@ -1094,6 +1102,31 @@ class TestRenovacaoSemValor(BaseCatequese):
         completar([linha], valor=350)
         v = frappe.db.get_value("Turma Catecumenos", linha, ["valor_renovacao", "data_renovacao"])
         self.assertEqual((v[0], str(v[1])), (350, "2602-01-15"))   # data = última alteração
+
+
+class TestRenovacaoCoordenacao(BaseCatequese):
+    def test_marcar_renovado_pela_coordenacao(self):
+        from portal.catequese.page.renovacoes.renovacoes import get_dados, marcar_renovado
+
+        cs = [catecumeno(f"_Teste Renov Coord {i}") for i in range(2)]
+        t = turma(FASE_A, cs, ano_nome=ano("2603"))
+        linhas = [frappe.db.get_value("Turma Catecumenos", {"parent": t.name, "catecumeno": c.name}, "name") for c in cs]
+
+        r = marcar_renovado(linhas, "Sim", valor=400, data="2603-02-01")
+        self.assertEqual((r["marcadas"], r["valor"]), (2, 800))
+        v = frappe.db.get_value("Turma Catecumenos", linhas[0],
+                                ["renovacao", "valor_renovacao", "data_renovacao", "renovacao_coordenacao"], as_dict=True)
+        self.assertEqual((v.renovacao, v.valor_renovacao, str(v.data_renovacao), v.renovacao_coordenacao),
+                         ("Sim", 400, "2603-02-01", 1))
+        receita = frappe.get_doc("Receita Catequese", r["receita"])
+        self.assertEqual((receita.fonte, receita.valor, receita.ano_lectivo, receita.turma or None), ("Renovação", 800, "2603", None))
+
+        # não entra no "por entregar" do catequista, mas conta como recebido
+        d = get_dados("2603")
+        x = next(x for x in d["turmas"] if x["name"] == t.name)
+        self.assertEqual((x["renovados"], x["valor"], x["valor_coord"], x["por_entregar"]), (2, 0, 800, 0))
+        # já renovados não são marcados de novo
+        self.assertEqual(marcar_renovado(linhas, "Sim")["marcadas"], 0)
 
 
 class TestMotivoPermanencia(BaseCatequese):

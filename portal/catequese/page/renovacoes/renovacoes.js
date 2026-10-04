@@ -63,12 +63,13 @@ function createRenovacoesApp() {
         <small>{{ pct(t.renovados, t.esperados) }}%<template v-if="t.isentos"> · {{ t.isentos }} isento(s)</template></small>
       </div>
       <div class="rv-kpi">
-        <b>{{ moeda(t.valor) }}</b><span>recebido pelos catequistas</span>
-        <i><em :style="{ width: pct(t.valor, t.esperado_valor) + '%' }"></em></i>
+        <b>{{ moeda(t.recebido) }}</b><span>recebido</span>
+        <i><em :style="{ width: pct(t.recebido, t.esperado_valor) + '%' }"></em></i>
         <small v-if="t.esperado_valor">de {{ moeda(t.esperado_valor) }} esperados</small>
+        <small v-if="t.coordenacao">{{ moeda(t.valor) }} pelos catequistas · {{ moeda(t.coordenacao) }} pela coordenação</small>
       </div>
       <div class="rv-kpi"><b>{{ moeda(t.entregue) }}</b><span>entregue à coordenação</span></div>
-      <div class="rv-kpi" :class="{ alerta: t.por_entregar > 0 }"><b>{{ moeda(t.por_entregar) }}</b><span>por entregar</span></div>
+      <div class="rv-kpi" :class="{ alerta: t.por_entregar > 0 }"><b>{{ moeda(t.por_entregar) }}</b><span>por entregar (catequistas)</span></div>
     </div>
 
     <div v-if="semValor.length" class="rv-aviso-box">
@@ -104,7 +105,7 @@ function createRenovacoesApp() {
               <div class="rv-prog"><b>{{ x.renovados }}/{{ x.esperados }}</b><i><em :style="{ width: pct(x.renovados, x.esperados) + '%' }"></em></i></div>
               <div class="rv-small rv-muted"><template v-if="x.isentos">{{ x.isentos }} isento(s) </template><template v-if="x.sem_valor">· <a href="#" @click.prevent="vista = 'ren'; turma = x.name; soSemValor = true">{{ x.sem_valor }} sem valor registado</a></template></div>
             </td>
-            <td data-l="Recebido" class="num">{{ moeda(x.valor) }}</td>
+            <td data-l="Recebido" class="num">{{ moeda(x.valor) }}<div v-if="x.valor_coord" class="rv-small rv-muted">+ {{ moeda(x.valor_coord) }} coord.</div></td>
             <td data-l="Entregue" class="num">{{ moeda(x.entregue) }}</td>
             <td data-l="Por entregar" class="num"><b :class="{ 'rv-falta': x.por_entregar > 0 }">{{ moeda(x.por_entregar) }}</b></td>
             <td class="rv-acc">
@@ -118,16 +119,26 @@ function createRenovacoesApp() {
 
     <!-- Ainda não renovaram -->
     <section v-else-if="vista === 'por'" class="rv-card">
+      <div v-if="seleccionados.length" class="rv-massa">
+        <b>{{ seleccionados.length }} seleccionado(s)</b>
+        <button class="rv-btn rv-btn-ouro" @click="marcarRenovado(porVis.filter((r) => seleccionados.includes(r.linha)))">✓ Marcar renovado…</button>
+        <button class="rv-link" @click="seleccionados = []">limpar</button>
+      </div>
       <div v-if="!porVis.length" class="rv-vazio">Todos renovaram{{ busca || turma ? ' (com este filtro)' : '' }}. 🎉</div>
       <table v-else class="rv-table">
-        <thead><tr><th>Catecúmeno</th><th>Turma</th><th>Catequista</th><th>Encarregado</th></tr></thead>
+        <thead><tr>
+          <th class="rv-c-sel"><input type="checkbox" :checked="porVis.length && porVis.every((r) => seleccionados.includes(r.linha))"
+                 @change="seleccionados = $event.target.checked ? porVis.map((r) => r.linha) : []"></th>
+          <th>Catecúmeno</th><th>Turma</th><th>Catequista</th><th>Encarregado</th><th></th></tr></thead>
         <tbody>
           <tr v-for="r in porVis" :key="r.linha">
+            <td class="rv-c-sel"><input type="checkbox" :checked="seleccionados.includes(r.linha)" @change="alternar(r.linha)"></td>
             <td data-l="Catecúmeno"><a class="rv-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a>
               <span v-if="r.renovacao === 'Não'" class="rv-chip erro">Não</span></td>
             <td data-l="Turma" class="rv-small">{{ r.turma }}</td>
             <td data-l="Catequista" class="rv-small">{{ r.catequista || '—' }}</td>
             <td data-l="Encarregado"><div class="rv-small">{{ r.encarregado || '—' }}</div><span v-if="r.contacto" v-html="tel(r.contacto)"></span></td>
+            <td class="rv-acc"><button class="rv-btn" title="A coordenação recebeu o dinheiro" @click="marcarRenovado([r])">✓ Renovado…</button></td>
           </tr>
         </tbody>
       </table>
@@ -142,7 +153,8 @@ function createRenovacoesApp() {
           <tr v-for="r in renVis" :key="r.linha" :class="{ 'rv-sem-valor': r.sem_valor }">
             <td data-l="Catecúmeno"><a class="rv-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a></td>
             <td data-l="Turma" class="rv-small">{{ r.turma }}</td>
-            <td><span class="rv-chip" :class="r.renovacao === 'Isento' ? 'ouro' : 'ok'">{{ r.renovacao }}</span></td>
+            <td><span class="rv-chip" :class="r.renovacao === 'Isento' ? 'ouro' : 'ok'">{{ r.renovacao }}</span>
+              <span v-if="r.renovacao_coordenacao" class="rv-chip" title="Recebido directamente pela coordenação">coordenação</span></td>
             <td data-l="Valor" class="num">{{ r.renovacao === 'Isento' ? '—' : (r.valor_renovacao ? moeda(r.valor_renovacao) : 'sem valor') }}</td>
             <td data-l="Data" class="rv-small">
               {{ dia(r.data_renovacao) }}
@@ -165,6 +177,44 @@ function createRenovacoesApp() {
       const busca = ref('');
       const turma = ref('');
       const soSemValor = ref(false);
+      const seleccionados = ref([]);
+      const alternar = (l) => { seleccionados.value = seleccionados.value.includes(l)
+        ? seleccionados.value.filter((x) => x !== l) : seleccionados.value.concat(l); };
+
+      function marcarRenovado(linhas) {
+        if (!linhas.length) return;
+        const dlg = new frappe.ui.Dialog({
+          title: linhas.length === 1 ? __('Renovado: {0}', [linhas[0].catecumeno]) : __('Marcar {0} como renovados', [linhas.length]),
+          fields: [
+            { fieldname: 'renovacao', fieldtype: 'Select', label: __('Renovação'), options: 'Sim\nIsento', default: 'Sim', reqd: 1 },
+            { fieldname: 'valor', fieldtype: 'Currency', label: __('Valor (por catecúmeno)'), default: d.value.valor_padrao,
+              depends_on: "eval:doc.renovacao=='Sim'" },
+            { fieldname: 'data', fieldtype: 'Date', label: __('Data'), default: frappe.datetime.get_today(), reqd: 1 },
+            { fieldname: 'registar_receita', fieldtype: 'Check', default: 1, depends_on: "eval:doc.renovacao=='Sim'",
+              label: __('Registar a Receita (dinheiro recebido pela coordenação)') },
+            { fieldname: 'notas', fieldtype: 'Small Text', label: __('Notas'), depends_on: 'eval:doc.registar_receita' },
+            { fieldname: 'info', fieldtype: 'HTML', options: `<p class="text-muted small">${__('Fica marcado “Recebido pela coordenação”: não entra no valor por entregar do catequista. O catequista vê-o como renovado no portal.')}</p>` },
+          ],
+          primary_action_label: __('Marcar'),
+          primary_action(v) {
+            dlg.hide();
+            frappe.call({
+              method: API + 'marcar_renovado',
+              args: { linhas: linhas.map((r) => r.linha), renovacao: v.renovacao, valor: v.valor, data: v.data,
+                      registar_receita: v.registar_receita ? 1 : 0, notas: v.notas || null },
+              freeze: true,
+              callback: (r) => {
+                const m = r.message;
+                frappe.show_alert({ message: __('{0} marcado(s) como renovado(s).', [m.marcadas])
+                  + (m.receita ? ' ' + __('Receita: {0}', [moeda(m.valor)]) : ''), indicator: 'green' });
+                seleccionados.value = [];
+                carregar();
+              },
+            });
+          },
+        });
+        dlg.show();
+      }
 
       function carregar() {
         loading.value = true;
@@ -265,7 +315,7 @@ function createRenovacoesApp() {
       const dia = (x) => (x ? frappe.datetime.str_to_user(String(x).split(' ')[0]) : '—');
       const tel = (n) => (window.cq ? window.cq.telefone(n) : frappe.utils.escape_html(n));
 
-      return { d, ano, loading, vista, busca, turma, soSemValor, semValor, completar, carregar, t, turmasVis, porVis, renVis, entregar, exportar, pct, moeda, dia, tel };
+      return { d, ano, loading, vista, busca, turma, soSemValor, semValor, completar, seleccionados, alternar, marcarRenovado, carregar, t, turmasVis, porVis, renVis, entregar, exportar, pct, moeda, dia, tel };
     },
   });
 }

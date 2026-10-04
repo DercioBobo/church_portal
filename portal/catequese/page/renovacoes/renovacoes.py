@@ -5,7 +5,11 @@ O ano é o da turma (renovar em 2027 numa turma de 2026 conta para 2026).
 - Esperados: linhas da turma activas (não "Inativo"), não Desistentes, de catecúmenos que não
   saíram (Inactivo/Transferido) nem terminaram (Crismado) — a não ser que tenham renovado.
 - Renovados: Sim ou Isento (Isento conta como renovado, valor 0).
+- Não renovam: as turmas da fase do Crisma (última fase: Fase com sacramento Crisma) e os
+  catecúmenos Crismados — ficam fora da página, mesmo que alguém tenha marcado a renovação.
 - Entregue: Receitas com fonte "Renovação" ligadas à turma (botão "Recebido do catequista").
+- Recebido pela coordenação: renovações marcadas na página ("Marcar renovado"); a Receita é criada
+  logo, sem turma, e não entra no "por entregar" do catequista.
 """
 
 import frappe
@@ -23,12 +27,13 @@ def get_dados(ano=None):
     frappe.has_permission("Turma", "read", throw=True)
     ano = ano or ano_actual()
 
-    turmas = frappe.get_all("Turma", filters={"ano_lectivo": ano},
+    fases_sem_renovacao = frappe.get_all("Fase", filters={"fase_de_sacramento": 1, "sacramento": "Crisma"}, pluck="name")
+    turmas = frappe.get_all("Turma", filters={"ano_lectivo": ano, "fase": ["not in", fases_sem_renovacao or [""]]},
                             fields=["name", "fase", "catequista", "catequista_adj", "status"],
                             order_by="fase asc, name asc", limit_page_length=0)
     linhas = frappe.db.sql("""
         SELECT tc.name AS linha, tc.parent AS turma, tc.catecumeno, tc.estado, tc.pre_avaliacao,
-               tc.renovacao, tc.valor_renovacao, tc.data_renovacao,
+               tc.renovacao, tc.valor_renovacao, tc.data_renovacao, tc.renovacao_coordenacao,
                tc.modified AS alterado_em, tc.modified_by AS alterado_por,
                c.status, c.encarregado, c.contacto
         FROM `tabTurma Catecumenos` tc
@@ -43,12 +48,15 @@ def get_dados(ano=None):
         GROUP BY turma
     """, ano, as_dict=True)}
 
-    por_turma = {t.name: dict(t, esperados=0, renovados=0, isentos=0, valor=0.0, sem_valor=0) for t in turmas}
+    por_turma = {t.name: dict(t, esperados=0, renovados=0, isentos=0, valor=0.0, valor_coord=0.0, sem_valor=0)
+                 for t in turmas}
     renovados, por_renovar = [], []
     for l in linhas:
         t = por_turma.get(l.turma)
         if not t:
             continue
+        if l.status == "Crismado":
+            continue   # terminou a catequese: não renova
         renovou = l.renovacao in RENOVADO
         conta = renovou or (l.estado != "Inativo" and l.pre_avaliacao != "Desistente" and (l.status or "") not in FORA)
         if not conta:
@@ -61,7 +69,8 @@ def get_dados(ano=None):
                 t["isentos"] += 1
             elif not flt(l.valor_renovacao):
                 t["sem_valor"] += 1   # renovações antigas, de antes de haver valor
-            t["valor"] += flt(l.valor_renovacao)
+            # "valor" = recebido pelo catequista (o que tem de entregar); o da coordenação fica à parte
+            t["valor_coord" if l.renovacao_coordenacao else "valor"] += flt(l.valor_renovacao)
             renovados.append(l)
         else:
             por_renovar.append(l)
@@ -94,7 +103,8 @@ def get_dados(ano=None):
         "valor_padrao": valor_padrao(),
         "totais": {
             "esperados": soma("esperados"), "renovados": soma("renovados"), "isentos": soma("isentos"),
-            "valor": soma("valor"), "entregue": soma("entregue"), "por_entregar": soma("por_entregar"),
+            "valor": soma("valor"), "coordenacao": soma("valor_coord"), "recebido": soma("valor") + soma("valor_coord"),
+            "entregue": soma("entregue"), "por_entregar": soma("por_entregar"),
             "esperado_valor": (soma("esperados") - soma("isentos")) * valor_padrao(),
         },
         "turmas": lista,
@@ -150,3 +160,46 @@ def completar(linhas, valor=None, data=None, usar_data_alteracao=1):
         }, update_modified=False)   # mantém a pista de quem/quando marcou
         feitas += 1
     return {"completadas": feitas}
+
+
+@frappe.whitelist()
+def marcar_renovado(linhas, renovacao="Sim", valor=None, data=None, registar_receita=1, notas=None):
+    """A coordenação recebeu a renovação directamente (não o catequista): marca Sim/Isento na linha
+    da turma com valor e data, assinala "Recebido pela coordenação" e, se pedido, regista a Receita
+    (sem turma, para não mexer no "por entregar" do catequista)."""
+    frappe.has_permission("Turma", "write", throw=True)
+    linhas = frappe.parse_json(linhas) if isinstance(linhas, str) else (linhas or [])
+    if renovacao not in RENOVADO:
+        frappe.throw(_("Escolha Sim ou Isento."))
+    valor = 0 if renovacao == "Isento" else (flt(valor) if valor not in (None, "") else valor_padrao())
+    data = data or today()
+
+    feitas, nomes, turmas, anos = 0, [], set(), set()
+    for nome in linhas:
+        l = frappe.db.get_value("Turma Catecumenos", nome, ["parent", "parenttype", "catecumeno", "renovacao"], as_dict=True)
+        if not l or l.parenttype != "Turma" or l.renovacao in RENOVADO:
+            continue
+        frappe.db.set_value("Turma Catecumenos", nome, {
+            "renovacao": renovacao, "valor_renovacao": valor, "data_renovacao": data, "renovacao_coordenacao": 1,
+        })
+        feitas += 1
+        nomes.append(l.catecumeno)
+        turmas.add(l.parent)
+        anos.add(frappe.db.get_value("Turma", l.parent, "ano_lectivo"))
+    for t in turmas:
+        frappe.db.set_value("Turma", t, "modified", frappe.utils.now(), update_modified=False)
+
+    receita = None
+    total = valor * feitas
+    if frappe.utils.cint(registar_receita) and total > 0:
+        frappe.has_permission("Receita Catequese", "create", throw=True)
+        receita = frappe.get_doc({
+            "doctype": "Receita Catequese",
+            "descricao": _("Renovações recebidas pela coordenação ({0})").format(feitas),
+            "fonte": "Renovação",
+            "ano_lectivo": sorted(a for a in anos if a)[0] if any(anos) else ano_actual(),
+            "data": data,
+            "valor": total,
+            "notas": ((notas + "\n") if notas else "") + ", ".join(nomes),
+        }).insert().name
+    return {"marcadas": feitas, "receita": receita, "valor": total}

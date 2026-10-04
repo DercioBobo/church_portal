@@ -149,3 +149,11 @@
 .rv-table tr.rv-sem-valor td { background: #fffaf3; }
 [data-theme="dark"] .rv-table tr.rv-sem-valor td { background: rgba(234, 88, 12, 0.06); }
 .rv-pista { font-size: 0.72rem; color: #c2410c; margin-top: 2px; }
+
+/* Marcar renovado (recebido pela coordenação) */
+.rv-c-sel { width: 34px; text-align: center !important; }
+.rv-massa {
+  display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--rv-gold-line);
+  background: var(--rv-gold-soft);
+}
+.rv-massa > b { color: var(--rv-gold-text); font-size: 0.85rem; }

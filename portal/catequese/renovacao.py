@@ -40,4 +40,5 @@ def preencher(linha):
     else:
         _set(linha, "valor_renovacao", 0)
         _set(linha, "data_renovacao", None)
+        _set(linha, "renovacao_coordenacao", 0)
     return linha
