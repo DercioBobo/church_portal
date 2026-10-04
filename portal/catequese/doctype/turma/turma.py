@@ -1,11 +1,18 @@
 import frappe
 from frappe.model.document import Document
 
+from portal.catequese import sincronizacao
+
 
 class Turma(Document):
+    def validate(self):
+        # Linhas novas juntam-se aos dados do catecúmeno; as alteradas seguem para ele no on_update
+        sincronizacao.turma_validate(self)
+
     def on_update(self):
         # (era o Server Script "Catequistas Permissions")
         self._sincronizar_permissoes_catequistas()
+        sincronizacao.turma_on_update(self)
 
     def _sincronizar_permissoes_catequistas(self):
         """

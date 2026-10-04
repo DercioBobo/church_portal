@@ -191,6 +191,121 @@ class TestSincronizacao(BaseCatequese):
         )
         self.assertEqual(linha, ("Novo Encarregado", "870000000"))
 
+    def linha(self, turma_nome, cat_nome, campos):
+        return frappe.db.get_value("Turma Catecumenos", {"parent": turma_nome, "catecumeno": cat_nome}, campos)
+
+    def test_sexo_tambem_sincroniza(self):
+        c = catecumeno("_Teste Sync Sexo", sexo="Feminino")
+        t = turma(FASE_A, [c])
+        c.reload()
+        c.sexo = "Masculino"
+        c.save()
+        self.assertEqual(self.linha(t.name, c.name, "sexo"), "Masculino")
+
+    def test_editar_linha_na_turma_actualiza_catecumeno_e_candidatura(self):
+        c = catecumeno("_Teste Sync Turma Edita")
+        t = turma(FASE_A, [c])
+        prep = frappe.get_doc({"doctype": "Preparacao do Sacramento", "sacramento": "Crisma",
+                               "ano_lectivo": ano("2501"), "candidatos_sacramento_table": [{"catecumeno": c.name}]}).insert()
+        t.reload()
+        t.lista_catecumenos[0].padrinhos = "Tio Paulo"
+        t.lista_catecumenos[0].contacto_padrinhos = "845551234"
+        t.save()
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["padrinhos", "contacto_padrinhos"]),
+                         ("Tio Paulo", "845551234"))
+        self.assertEqual(frappe.db.get_value("Candidatos ao Sacramento Table",
+                                             prep.candidatos_sacramento_table[0].name, "padrinhos"), "Tio Paulo")
+
+    def test_turma_antiga_nao_muda_catecumeno(self):
+        c = catecumeno("_Teste Sync Turma Antiga", padrinhos="Actual")
+        antiga = turma(FASE_A, [c])
+        turma(FASE_B, [c])   # passou para outra turma (c.turma = nova)
+        antiga.reload()
+        antiga.lista_catecumenos[0].padrinhos = "Antigo"
+        antiga.save()
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, "padrinhos"), "Actual")
+
+    def test_linha_nova_junta_sem_apagar(self):
+        c = catecumeno("_Teste Sync Linha Nova", encarregado="Mãe", padrinhos=None)
+        t = frappe.get_doc({"doctype": "Turma", "ano_lectivo": ANO, "fase": FASE_A, "dia": "Sabado", "status": "Activo"})
+        t.append("lista_catecumenos", {"catecumeno": c.name, "encarregado": "", "padrinhos": "Só na linha"})
+        t.insert()
+        self.assertEqual(self.linha(t.name, c.name, "encarregado"), "Mãe")             # veio do catecúmeno
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, "padrinhos"), "Só na linha")   # veio da linha
+
+    def test_reconciliar_alinha_o_que_foi_escrito_directamente(self):
+        from portal.catequese.sincronizacao import reconciliar_turmas_activas
+
+        c = catecumeno("_Teste Sync Reconciliar", padrinhos=None)
+        t = turma(FASE_A, [c])
+        frappe.db.set_value("Catecumeno", c.name, "idade", 13)             # ex.: actualização diária da idade
+        frappe.db.set_value("Turma Catecumenos", {"parent": t.name, "catecumeno": c.name}, "padrinhos", "Da linha")
+        self.assertGreaterEqual(reconciliar_turmas_activas(), 1)
+        self.assertEqual(self.linha(t.name, c.name, "idade"), 13)
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, "padrinhos"), "Da linha")
+
+    def test_preparacao_actualiza_catecumeno_turma_e_outras_preparacoes(self):
+        c = catecumeno("_Teste Sync Prep", padrinhos="Antigos")
+        t = turma(FASE_A, [c])
+        prep = frappe.get_doc({"doctype": "Preparacao do Sacramento", "sacramento": "Eucaristia",
+                               "ano_lectivo": ano("2502"), "candidatos_sacramento_table": [{"catecumeno": c.name}]}).insert()
+        outra = frappe.get_doc({"doctype": "Preparacao do Sacramento", "sacramento": "Crisma",
+                                "ano_lectivo": ano("2502"), "candidatos_sacramento_table": [{"catecumeno": c.name}]}).insert()
+        # candidato novo recebe os dados do catecúmeno
+        self.assertEqual(prep.candidatos_sacramento_table[0].padrinhos, "Antigos")
+
+        prep.reload()
+        prep.candidatos_sacramento_table[0].padrinhos = "Novos Padrinhos"
+        prep.candidatos_sacramento_table[0].contacto_encarregado = "861234000"
+        prep.save()
+
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["padrinhos", "contacto"]), ("Novos Padrinhos", "861234000"))
+        self.assertEqual(self.linha(t.name, c.name, ["padrinhos", "contacto"]), ("Novos Padrinhos", "861234000"))
+        self.assertEqual(frappe.db.get_value("Candidatos ao Sacramento Table",
+                                             outra.candidatos_sacramento_table[0].name, "padrinhos"), "Novos Padrinhos")
+
+    def test_preparacao_candidato_novo_junta_sem_apagar(self):
+        c = catecumeno("_Teste Sync Prep Novo", encarregado="Pai", padrinhos=None)
+        prep = frappe.get_doc({"doctype": "Preparacao do Sacramento", "sacramento": "Eucaristia", "ano_lectivo": ano("2503"),
+                               "candidatos_sacramento_table": [{"catecumeno": c.name, "encarregado": "", "padrinhos": "Só no candidato"}]}).insert()
+        self.assertEqual(prep.candidatos_sacramento_table[0].encarregado, "Pai")
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, "padrinhos"), "Só no candidato")
+
+    def test_portal_catequista_sincroniza_e_protege_linhas(self):
+        from portal.api import atualizar_catecumeno
+
+        cat = frappe.get_doc({"doctype": "Catequista", "nome_completo": "_Teste Catequista Sync"}).insert()
+        user = frappe.db.get_value("Catequista", cat.name, "user")
+        if not user:
+            self.skipTest("Catequista sem utilizador criado automaticamente")
+        c = catecumeno("_Teste Sync Portal")
+        outro = catecumeno("_Teste Sync Portal Outro")
+        t = turma(FASE_A, [c], catequista=cat.name)
+        t_outra = turma(FASE_B, [outro])
+        linha = frappe.db.get_value("Turma Catecumenos", {"parent": t.name, "catecumeno": c.name}, "name")
+        linha_outra = frappe.db.get_value("Turma Catecumenos", {"parent": t_outra.name, "catecumeno": outro.name}, "name")
+
+        frappe.local._portal_field_config = [
+            {"fieldname": "encarregado", "source": "catecumeno", "editable": True},
+            {"fieldname": "padrinhos", "source": "turma_catecumenos", "editable": True},
+            {"fieldname": "total_faltas", "source": "turma_catecumenos", "editable": True},
+        ]
+        try:
+            frappe.set_user(user)
+            frappe.local.form_dict = frappe._dict(encarregado="Avó Rosa", padrinhos="Padrinho Portal", total_faltas="3")
+            atualizar_catecumeno(c.name, linha)
+            # linha de outra turma: recusado
+            self.assertRaises(frappe.PermissionError, atualizar_catecumeno, c.name, linha_outra)
+        finally:
+            frappe.set_user("Administrator")
+            frappe.local._portal_field_config = None
+            frappe.local.form_dict = frappe._dict()
+
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["encarregado", "padrinhos"]),
+                         ("Avó Rosa", "Padrinho Portal"))
+        self.assertEqual(self.linha(t.name, c.name, ["encarregado", "padrinhos", "nr_de_faltas"]),
+                         ("Avó Rosa", "Padrinho Portal", 3))
+
 
 # ── Sacramentos ───────────────────────────────────────────────────────────────
 
@@ -565,7 +680,8 @@ class TestLinkEncarregados(BaseCatequese):
     def setUp(self):
         frappe.set_user("Administrator")
         TestLinkEncarregados._ano += 1
-        c = catecumeno(f"_Teste Link {TestLinkEncarregados._ano}")
+        # o candidato novo recebe os dados do catecúmeno (sincronização), por isso o "Antigo" vem dele
+        c = catecumeno(f"_Teste Link {TestLinkEncarregados._ano}", encarregado="Antigo")
         self.prep = frappe.get_doc({
             "doctype": "Preparacao do Sacramento", "sacramento": "Eucaristia",
             "ano_lectivo": ano(str(TestLinkEncarregados._ano)),

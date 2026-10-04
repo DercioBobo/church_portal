@@ -21,6 +21,10 @@ def update_catecumeno_idade_daily():
     frappe.db.commit()
     frappe.logger().info(f"[Catequese Scheduler] Atualização concluída: {updated} catecúmenos atualizados.")
 
+    # A idade foi escrita directamente: alinha as linhas das turmas activas com os catecúmenos
+    from portal.catequese.sincronizacao import reconciliar_diario
+    reconciliar_diario()
+
 
 import frappe
 from datetime import datetime, timedelta

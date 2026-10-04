@@ -5,7 +5,7 @@ Todos os endpoints são públicos (allow_guest=True) e não expõem dados sensí
 
 import frappe
 from frappe import _
-from frappe.utils import cint
+from frappe.utils import cint, flt
 from datetime import date, timedelta
 
 
@@ -392,24 +392,13 @@ def atualizar_candidato_sacramento(
         frappe.db.set_value("Candidatos ao Sacramento Table", row_name, child_updates)
         _registar_alteracao(preparacao_nome, row.catecumeno, antes, child_updates)
 
-    # Mirror shared fields to Catecumeno doctype
-    if row.catecumeno:
-        cat_updates = {}
-        if encarregado is not None:
-            cat_updates["encarregado"] = encarregado
-        if contacto_encarregado is not None:
-            cat_updates["contacto"] = contacto_encarregado   # no Catecúmeno o campo chama-se "contacto"
-        if padrinhos is not None:
-            cat_updates["padrinhos"] = padrinhos
-        if contacto_padrinhos is not None:
-            cat_updates["contacto_padrinhos"] = contacto_padrinhos
-        if idade is not None:
-            cat_updates["idade"] = cint(idade)
-        if data_de_nascimento is not None:
-            cat_updates["data_de_nascimento"] = data_de_nascimento
+    # Os mesmos dados no Catecúmeno, e daí na turma e nas outras preparações em rascunho
+    if row.catecumeno and child_updates:
+        from portal.catequese.sincronizacao import CAMPOS_CANDIDATURA, gravar_no_catecumeno
 
-        if cat_updates and frappe.db.exists("Catecumeno", row.catecumeno):
-            frappe.db.set_value("Catecumeno", row.catecumeno, cat_updates)
+        gravar_no_catecumeno(row.catecumeno, {
+            CAMPOS_CANDIDATURA[campo]: valor for campo, valor in child_updates.items() if campo in CAMPOS_CANDIDATURA
+        })
 
     return {"success": True}
 
@@ -908,10 +897,14 @@ def get_minha_turma():
 @frappe.whitelist()
 def atualizar_catecumeno(catecumeno_nome, row_name=None):
     """
-    Actualiza campos do catecúmeno e presenças/faltas na turma.
+    Actualiza campos do catecúmeno e da sua linha na turma (presenças/faltas, etc.).
     Os campos permitidos são determinados pela configuração do Portal do Catequista (Catequese Settings).
-    O catequista só pode editar catecúmenos da sua própria turma.
+    O catequista só pode editar catecúmenos (e linhas) da sua própria turma.
+    Os campos que existem nos dois sítios (encarregado, contactos, padrinhos, nascimento, idade,
+    sexo, ficha) ficam iguais no Catecúmeno e na turma — ver catequese/sincronizacao.py.
     """
+    from portal.catequese.sincronizacao import CAMPOS_PARTILHADOS, gravar_no_catecumeno
+
     cat_name = _assert_catequista()
 
     # Verify the catequista owns this catecumeno's turma
@@ -927,6 +920,12 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
     if not turma or (turma.catequista != cat_name and turma.catequista_adj != cat_name):
         frappe.throw(_("Sem permissão para editar este catecúmeno"), frappe.PermissionError)
 
+    # A linha tem de ser deste catecúmeno, nesta turma
+    if row_name:
+        linha = frappe.db.get_value("Turma Catecumenos", row_name, ["parent", "parenttype", "catecumeno"], as_dict=True)
+        if not linha or linha.parenttype != "Turma" or linha.parent != turma_name or linha.catecumeno != catecumeno_nome:
+            frappe.throw(_("Sem permissão para editar esta linha da turma"), frappe.PermissionError)
+
     # All POST params except the routing keys
     SKIP_KEYS = {"catecumeno_nome", "row_name", "cmd", "csrf_token", "type"}
     submitted = {k: v for k, v in frappe.form_dict.items() if k not in SKIP_KEYS}
@@ -935,6 +934,15 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
     config      = _load_field_config()
     cat_meta_obj = frappe.get_meta("Catecumeno")
     cat_meta_map = {f.fieldname: f for f in cat_meta_obj.fields}
+
+    def _converter(fobj, value):
+        if fobj and fobj.fieldtype == "Check":
+            return 1 if cint(value) else 0
+        if fobj and fobj.fieldtype == "Int":
+            return cint(value) if value not in (None, "") else None
+        if fobj and fobj.fieldtype in ("Float", "Currency", "Percent"):
+            return flt(value) if value not in (None, "") else None
+        return value if value != "" else None
 
     # ── Catecumeno fields ──────────────────────────────────────────────────────
     editable_cat = {
@@ -945,20 +953,11 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
 
     cat_updates = {}
     for field, value in submitted.items():
-        if field not in editable_cat:
-            continue
-        meta_field = cat_meta_map.get(field)
-        if meta_field and meta_field.fieldtype == "Check":
-            cat_updates[field] = 1 if cint(value) else 0
-        elif meta_field and meta_field.fieldtype in ("Int", "Float"):
-            cat_updates[field] = cint(value) if value not in (None, "") else None
-        else:
-            cat_updates[field] = value if value != "" else None
-
-    if cat_updates:
-        frappe.db.set_value("Catecumeno", catecumeno_nome, cat_updates)
+        if field in editable_cat:
+            cat_updates[field] = _converter(cat_meta_map.get(field), value)
 
     # ── Turma Catecumenos fields ───────────────────────────────────────────────
+    row_updates = {}
     if row_name:
         tc_meta_obj = frappe.get_meta("Turma Catecumenos")
         tc_meta     = {f.fieldname for f in tc_meta_obj.fields}
@@ -983,8 +982,6 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
             and entry["fieldname"] in tc_meta
         }
 
-        row_updates = {}
-
         # Aliased fields (presencas / faltas)
         for alias, actual in alias_map.items():
             if alias in submitted and submitted[alias] not in (None, ""):
@@ -995,18 +992,39 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
             if field not in submitted or submitted[field] in (None, ""):
                 continue
             fobj = next((f for f in tc_meta_obj.fields if f.fieldname == field), None)
-            if fobj and fobj.fieldtype == "Check":
-                row_updates[field] = 1 if cint(submitted[field]) else 0
-            elif fobj and fobj.fieldtype in ("Int", "Float"):
-                row_updates[field] = cint(submitted[field])
-            else:
-                row_updates[field] = submitted[field]
+            row_updates[field] = _converter(fobj, submitted[field])
 
-        if row_updates:
-            frappe.db.set_value("Turma Catecumenos", row_name, row_updates)
+    # Campos partilhados editados na linha da turma são dados do catecúmeno: vão para o Catecúmeno
+    # (que depois os copia para a linha), para nunca ficarem diferentes
+    for field in [f for f in row_updates if f in CAMPOS_PARTILHADOS]:
+        cat_updates.setdefault(field, row_updates.pop(field))
 
-    frappe.db.commit()
+    if cat_updates:
+        antes = frappe.db.get_value("Catecumeno", catecumeno_nome, list(cat_updates), as_dict=True) or {}
+        gravar_no_catecumeno(catecumeno_nome, cat_updates)
+        _registar_alteracao_catequista(catecumeno_nome, cat_name, antes, cat_updates)
+
+    if row_updates:
+        frappe.db.set_value("Turma Catecumenos", row_name, row_updates, update_modified=False)
+        frappe.db.set_value("Turma", turma_name, "modified", frappe.utils.now(), update_modified=False)
+
     return {"success": True}
+
+
+def _registar_alteracao_catequista(catecumeno, catequista, antes, depois):
+    """Comentário no Catecúmeno com o que o catequista mudou no portal (histórico)."""
+    linhas = []
+    for campo, novo in depois.items():
+        velho = antes.get(campo)
+        if str(velho if velho not in (None, 0) else "") != str(novo if novo not in (None, 0) else ""):
+            linhas.append(f"<li><b>{campo}</b>: {frappe.utils.escape_html(str(velho or '—'))} → "
+                          f"{frappe.utils.escape_html(str(novo or '—'))}</li>")
+    if linhas:
+        frappe.get_doc({
+            "doctype": "Comment", "comment_type": "Info",
+            "reference_doctype": "Catecumeno", "reference_name": catecumeno,
+            "content": f"Alterado no portal por {frappe.utils.escape_html(catequista)}:<ul>{''.join(linhas)}</ul>",
+        }).insert(ignore_permissions=True)
 
 
 @frappe.whitelist()

@@ -5,6 +5,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_to_date, get_datetime, get_url, now_datetime
 
+from portal.catequese import sincronizacao
 from portal.catequese.utils import definicao, valores_sacramento
 
 NAO_RECEBE = "Não vai receber"
@@ -30,6 +31,11 @@ class PreparacaodoSacramento(Document):
             else:
                 r.motivo_nao_recebe = None
                 r.detalhe_situacao = None
+        # Dados dos candidatos ↔ Catecúmeno (e daí turma e outras preparações) — ver catequese/sincronizacao.py
+        sincronizacao.preparacao_validate(self)
+
+    def on_update(self):
+        sincronizacao.preparacao_on_update(self)
 
     def before_insert(self):
         # Valores por omissão do sacramento (só os que não foram preenchidos)
