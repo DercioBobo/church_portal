@@ -250,3 +250,31 @@
   .gp-campos { grid-template-columns: 1fr; }
   .gp-head-accoes { width: 100%; }
 }
+
+/* Colunas escolhidas pelo utilizador */
+.gp-t-chk { width: 64px; text-align: center !important; }
+.gp-t-num { width: 96px; }
+.gp-t-data { width: 140px; }
+.gp-t-tel { width: 170px; min-width: 150px; }
+.gp-t-txt { min-width: 130px; }
+.gp-tel-cel { display: flex; align-items: center; gap: 4px; }
+.gp-wa {
+  padding: 0 6px; border-radius: 4px; font-size: 0.66rem; font-weight: 800; line-height: 17px; text-decoration: none !important;
+  background: #ecfdf3; color: #15803d !important; border: 1px solid #bbf7d0;
+}
+.gp-wa:hover { background: #22c55e; color: #fff !important; }
+.gp-colunas { min-width: 240px; right: 0; left: auto; }
+.gp-colunas-g {
+  font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--gp-gold-text); padding: 8px 10px 2px;
+}
+.gp-colunas-item {
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 8px;
+  font-size: 0.84rem; font-weight: 500; cursor: pointer; margin: 0;
+}
+.gp-colunas-item:hover { background: var(--gp-gold-soft); }
+.gp-colunas-item input { accent-color: #b8882e; }
+.gp-menu-itens .gp-colunas-repor {
+  margin-top: 6px; border-top: 1px solid var(--gp-border) !important; border-radius: 0 0 8px 8px;
+  font-weight: 600; color: var(--gp-gold-text);
+}

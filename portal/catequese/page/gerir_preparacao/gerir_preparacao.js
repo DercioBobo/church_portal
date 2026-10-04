@@ -143,6 +143,18 @@ function createGerirPreparacaoApp() {
         <button v-for="f in FILTROS" :key="f.id" class="gp-filtro" :class="{ on: filtro === f.id }" @click="filtro = f.id">
           {{ f.rotulo }} <b>{{ contar(f.id) }}</b></button>
         <select v-model="turma" class="gp-select"><option value="">Todas as turmas</option><option v-for="t in turmas" :key="t" :value="t">{{ t }}</option></select>
+        <div class="gp-menu">
+          <button class="gp-btn" @click="menu = menu === 'colunas' ? '' : 'colunas'">⚙ Colunas ▾</button>
+          <div v-if="menu === 'colunas'" class="gp-menu-itens gp-menu-longo gp-colunas">
+            <template v-for="g in gruposColunas" :key="g.nome">
+              <div class="gp-colunas-g">{{ g.nome }}</div>
+              <label v-for="c in g.itens" :key="c.id" class="gp-colunas-item">
+                <input type="checkbox" :checked="escolhidas.includes(c.id)" @change="alternarColuna(c.id)"> {{ c.rotulo }}
+              </label>
+            </template>
+            <button class="gp-colunas-repor" @click="reporColunas">Repor as colunas padrão</button>
+          </div>
+        </div>
         <select v-model="ordem" class="gp-select"><option value="nome">Ordenar: nome</option><option value="turma">Ordenar: turma</option><option value="dia">Ordenar: dia</option></select>
       </div>
 
@@ -168,11 +180,7 @@ function createGerirPreparacaoApp() {
             <tr>
               <th class="gp-c-sel"><input type="checkbox" :checked="todosSel" :disabled="!p.pode_editar" @change="seleccionarTodos($event.target.checked)"></th>
               <th>Candidato</th>
-              <th>Dia</th>
-              <th class="gp-c-chk">Ficha</th>
-              <th class="gp-c-chk">Docs. pad.</th>
-              <th v-for="c in pagCols" :key="c.campo" class="gp-c-num">{{ c.rotulo }}<small v-if="p.esperado[c.campo]">{{ moeda(p.esperado[c.campo]) }}</small></th>
-              <th>Sacerdote</th>
+              <th v-for="c in colunasVisiveis" :key="c.id" :class="'gp-t-' + c.tipo">{{ c.rotulo }}<small v-if="c.esperado">{{ moeda(c.esperado) }}</small></th>
               <th class="gp-c-obs"></th>
             </tr>
           </thead>
@@ -184,16 +192,20 @@ function createGerirPreparacaoApp() {
                 <span v-if="r.situacao === NAO" class="gp-motivo">{{ r.motivo_nao_recebe || NAO }}</span>
                 <small>{{ r.turma || r.comunidade || '—' }}</small>
               </td>
-              <td><select class="gp-cel" :value="r.dia || ''" :disabled="!p.pode_editar" @change="guardar(r, 'dia', $event.target.value)">
-                <option value=""></option><option v-for="d in p.opcoes.dia" :key="d" :value="d" :selected="r.dia === d">{{ d }}</option></select></td>
-              <td class="gp-c-chk"><button class="gp-check" :class="{ on: r.ficha }" :disabled="!p.pode_editar" @click="guardar(r, 'ficha', r.ficha ? 0 : 1)">✓</button></td>
-              <td class="gp-c-chk"><button class="gp-check" :class="{ on: r.documentos_padrinhos }" :disabled="!p.pode_editar" @click="guardar(r, 'documentos_padrinhos', r.documentos_padrinhos ? 0 : 1)">✓</button></td>
-              <td v-for="c in pagCols" :key="c.campo" class="gp-c-num">
-                <input class="gp-cel gp-num" type="number" min="0" step="any" :value="r[c.campo] || ''" :disabled="!p.pode_editar"
-                       :class="{ pago: p.esperado[c.campo] && r[c.campo] >= p.esperado[c.campo], parcial: r[c.campo] && p.esperado[c.campo] && r[c.campo] < p.esperado[c.campo] }"
+              <td v-for="c in colunasVisiveis" :key="c.id" :class="'gp-t-' + c.tipo">
+                <button v-if="c.tipo === 'chk'" class="gp-check" :class="{ on: r[c.campo] }" :disabled="!p.pode_editar"
+                        @click="guardar(r, c.campo, r[c.campo] ? 0 : 1)">✓</button>
+                <select v-else-if="c.tipo === 'sel'" class="gp-cel" :value="r[c.campo] || ''" :disabled="!p.pode_editar" @change="guardar(r, c.campo, $event.target.value)">
+                  <option value=""></option><option v-for="o in p.opcoes[c.opcoes]" :key="o" :value="o" :selected="r[c.campo] === o">{{ o }}</option></select>
+                <input v-else-if="c.tipo === 'num'" class="gp-cel gp-num" type="number" min="0" step="any" :value="r[c.campo] || ''" :disabled="!p.pode_editar"
+                       :class="{ pago: c.esperado && r[c.campo] >= c.esperado, parcial: c.esperado && r[c.campo] && r[c.campo] < c.esperado }"
                        @change="guardar(r, c.campo, $event.target.value)" @keydown.enter="$event.target.blur()">
+                <input v-else-if="c.tipo === 'data'" class="gp-cel" type="date" :value="r[c.campo] || ''" :disabled="!p.pode_editar" @change="guardar(r, c.campo, $event.target.value)">
+                <span v-else-if="c.tipo === 'tel'" class="gp-tel-cel">
+                  <input class="gp-cel" :value="r[c.campo] || ''" :disabled="!p.pode_editar" @change="guardar(r, c.campo, $event.target.value)" @keydown.enter="$event.target.blur()">
+                  <a v-if="r[c.campo]" class="gp-wa" :href="wa(r[c.campo])" target="_blank" title="WhatsApp">WA</a></span>
+                <input v-else class="gp-cel" :value="r[c.campo] || ''" :disabled="!p.pode_editar" @change="guardar(r, c.campo, $event.target.value)" @keydown.enter="$event.target.blur()">
               </td>
-              <td><input class="gp-cel" :value="r.sacerdote || ''" :disabled="!p.pode_editar" @change="guardar(r, 'sacerdote', $event.target.value)" @keydown.enter="$event.target.blur()"></td>
               <td class="gp-c-obs" @click="painel = r.name">
                 <span v-if="r.enc_obs" class="gp-nota enc" :title="r.enc_obs">💬</span>
                 <span v-else-if="r.obs" class="gp-nota" :title="r.obs">📝</span>
@@ -543,6 +555,61 @@ function createGerirPreparacaoApp() {
       const pct = (k) => (vao.value.length ? Math.round((k / vao.value.length) * 100) : 0);
       const tel = (n) => (window.cq ? window.cq.telefone(n) : frappe.utils.escape_html(n));
 
+      // ── Colunas da tabela (escolha guardada por utilizador) ─────────────
+      const PADRAO = ['dia', 'ficha', 'documentos_padrinhos', 'valor_ofertorio', 'valor_cracha', 'valor_accao_gracas', 'valor_fotos', 'sacerdote'];
+      const escolhidas = ref(PADRAO.slice());
+      const todasColunas = computed(() => {
+        const esp = (p.value && p.value.esperado) || {};
+        return [
+          { id: 'dia', rotulo: 'Dia', tipo: 'sel', opcoes: 'dia', grupo: 'Agendamento' },
+          { id: 'date', rotulo: 'Data', tipo: 'data', grupo: 'Agendamento' },
+          { id: 'sacerdote', rotulo: 'Sacerdote', tipo: 'txt', grupo: 'Agendamento' },
+          { id: 'banco', rotulo: 'Banco', tipo: 'txt', grupo: 'Agendamento' },
+          { id: 'ficha', rotulo: 'Ficha', tipo: 'chk', grupo: 'Documentos' },
+          { id: 'documentos_padrinhos', rotulo: 'Docs. pad.', tipo: 'chk', grupo: 'Documentos' },
+          ...pagCols.value.map((c) => ({ id: c.campo, rotulo: c.rotulo, tipo: 'num', grupo: 'Pagamentos', esperado: esp[c.campo] || 0 })),
+          { id: 'valor_tenda', rotulo: 'Tenda', tipo: 'num', grupo: 'Pagamentos' },
+          { id: 'encarregado', rotulo: 'Encarregado', tipo: 'txt', grupo: 'Contactos' },
+          { id: 'contacto_encarregado', rotulo: 'Contacto enc.', tipo: 'tel', grupo: 'Contactos' },
+          { id: 'padrinhos', rotulo: 'Padrinhos', tipo: 'txt', grupo: 'Contactos' },
+          { id: 'contacto_padrinhos', rotulo: 'Contacto pad.', tipo: 'tel', grupo: 'Contactos' },
+          { id: 'sexo', rotulo: 'Sexo', tipo: 'sel', opcoes: 'sexo', grupo: 'Pessoal' },
+          { id: 'idade', rotulo: 'Idade', tipo: 'num', grupo: 'Pessoal' },
+          { id: 'data_de_nascimento', rotulo: 'Nascimento', tipo: 'data', grupo: 'Pessoal' },
+          { id: 'comunidade', rotulo: 'Comunidade', tipo: 'sel', opcoes: 'comunidade', grupo: 'Pessoal' },
+        ].map((c) => Object.assign({ campo: c.id }, c));
+      });
+      const colunasVisiveis = computed(() => todasColunas.value.filter((c) => escolhidas.value.includes(c.id)));
+      const gruposColunas = computed(() => {
+        const g = [];
+        todasColunas.value.forEach((c) => {
+          let x = g.find((y) => y.nome === c.grupo);
+          if (!x) g.push((x = { nome: c.grupo, itens: [] }));
+          x.itens.push(c);
+        });
+        return g;
+      });
+      function gravarColunas() {
+        frappe.call({ method: 'frappe.model.utils.user_settings.save',
+          args: { doctype: GP_DT, user_settings: JSON.stringify({ gp_colunas: escolhidas.value }) } });
+      }
+      function alternarColuna(id) {
+        escolhidas.value = escolhidas.value.includes(id) ? escolhidas.value.filter((x) => x !== id) : escolhidas.value.concat(id);
+        gravarColunas();
+      }
+      function reporColunas() { escolhidas.value = PADRAO.slice(); gravarColunas(); menu.value = ''; }
+      frappe.call({ method: 'frappe.model.utils.user_settings.get', args: { doctype: GP_DT },
+        callback: (r) => {
+          try {
+            const g = JSON.parse(r.message || '{}').gp_colunas;
+            if (Array.isArray(g)) escolhidas.value = g;
+          } catch (e) { /* preferência inválida: fica o padrão */ }
+        } });
+      const wa = (n) => {
+        const d = String(n || '').split(/[\/,;|]| e /)[0].replace(/\D/g, '');
+        return 'https://wa.me/' + (d.length === 9 ? '258' + d : d);
+      };
+
       // fecha menus ao clicar fora
       document.addEventListener('click', (e) => { if (!e.target.closest('.gp-menu')) menu.value = ''; });
 
@@ -552,6 +619,7 @@ function createGerirPreparacaoApp() {
         accao, urlImprimir, urlPdf, linkActivo, copiarLink, gerarLink, revogarLink, submeter,
         NAO, vao, naoN, pagCols, progresso, esperadoTotal, recebidoTotal, FILTROS, contar, turmas, visiveis, linhaPainel,
         todosSel, seleccionarTodos, alternarSel, estadoGuardar, textoGuardar, dia, moeda, pct, tel,
+        escolhidas, colunasVisiveis, gruposColunas, alternarColuna, reporColunas, wa,
       };
     },
   });

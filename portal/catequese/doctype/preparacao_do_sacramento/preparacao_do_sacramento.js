@@ -613,10 +613,6 @@ function ps_resumo(frm) {
             pag.length ? `<span><small>Recebido:</small> <b>${format_currency(recebido)}</b> <small>de ${format_currency(esperado)} esperados</small></span>`
                 + (activo ? `<span><small>Link válido até</small> ${frappe.datetime.str_to_user(d.link_expira_em)}</span>` : '') : '',
         ],
-        aviso: d.docstatus === 0
-            ? `<span>📋 Fichas, pagamentos, dia e situação de cada candidato numa só tabela.</span>${cq.botao(__('Gerir na página'), 0)}`
-            : '',
-        acoes: [{ accao: () => ps_abrir_pagina(frm) }],
     });
 }
 
