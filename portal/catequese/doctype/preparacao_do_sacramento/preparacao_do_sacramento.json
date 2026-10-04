@@ -26,6 +26,7 @@
   "column_break_boej",
   "data_do_sacramento",
   "tipo",
+  "tipo_extraordinario",
   "turma_destino",
   "section_break_yegd",
   "documentos_exigidos",
@@ -284,13 +285,25 @@
   },
   {
    "default": "Normal",
-   "description": "2ª oportunidade: criada na página Sacramentos para quem não recebeu ou ficou fora da preparação.",
+   "description": "2ª oportunidade: criada na página Sacramentos para quem não recebeu ou ficou fora da preparação. Extraordinário: grupo de pessoas que não são catecúmenos (bebés, casamento colectivo, adultos), acrescentadas pelo nome.",
    "fieldname": "tipo",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Tipo",
-   "options": "Normal\n2ª oportunidade"
+   "options": "Normal\n2ª oportunidade\nExtraordinário"
+  },
+  {
+   "depends_on": "eval:doc.tipo=='Extraordinário'",
+   "description": "Fica no nome da preparação (ex.: Baptismo-Casamento-26-01) e no registo do livro.",
+   "fieldname": "tipo_extraordinario",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Candidatos",
+   "mandatory_depends_on": "eval:doc.tipo=='Extraordinário'",
+   "options": "\nBebé\nCasamento\nAdulto\nOutro",
+   "set_only_once": 1
   },
   {
    "depends_on": "eval:doc.tipo=='2ª oportunidade' && doc.sacramento=='Baptismo'",
@@ -851,7 +864,7 @@
  "links": [],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-04 15:18:14.000000",
+ "modified": "2026-10-04 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Preparacao do Sacramento",

@@ -184,6 +184,7 @@ def _candidatos(ano_lectivo, sacramento=None):
         JOIN `tabCandidatos ao Sacramento Table` c
           ON c.parent = p.name AND c.parenttype = 'Preparacao do Sacramento'
         WHERE p.ano_lectivo = %(ano)s AND p.docstatus < 2 {cond}
+          AND IFNULL(p.tipo, '') != 'Extraordinário' AND c.catecumeno IS NOT NULL
           AND IFNULL(c.situacao, '') != 'Não vai receber'
     """, {"ano": ano_lectivo, "sac": sacramento}, as_dict=True)
 

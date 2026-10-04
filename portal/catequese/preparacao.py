@@ -11,7 +11,9 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
-from portal.catequese.doctype.preparacao_do_sacramento.preparacao_do_sacramento import NAO_RECEBE, nao_recebe
+from portal.catequese.doctype.preparacao_do_sacramento.preparacao_do_sacramento import (
+    NAO_RECEBE, nao_recebe, nome_candidato,
+)
 
 DOCTYPE = "Preparacao do Sacramento"
 TABELA = "candidatos_sacramento_table"
@@ -31,6 +33,7 @@ EDITAVEIS = {
     "valor_tenda", "valor_ofertorio", "valor_cracha", "valor_accao_gracas", "valor_fotos",
     "obs", "enc_obs", "detalhe_situacao", "encarregado", "contacto_encarregado",
     "padrinhos", "contacto_padrinhos", "sexo", "idade", "data_de_nascimento",
+    "nome_completo",   # só conta para quem não é catecúmeno (nos outros é o próprio catecúmeno)
 }
 CAMPOS_LINHA = sorted(EDITAVEIS | {"name", "idx", "catecumeno", "turma", "fase", "situacao", "motivo_nao_recebe"})
 
@@ -57,6 +60,11 @@ def _carregar(v):
     return json.loads(v) if isinstance(v, str) else (v or [])
 
 
+def _so_catecumenos(doc):
+    if doc.e_extraordinaria():
+        frappe.throw(_("Numa preparação extraordinária as pessoas acrescentam-se pelo nome (Lista ▾ → Acrescentar pessoas)."))
+
+
 # ── Leitura ──────────────────────────────────────────────────────────────────
 
 @frappe.whitelist()
@@ -65,7 +73,7 @@ def listar_preparacoes():
     frappe.has_permission(DOCTYPE, "read", throw=True)
     return frappe.db.sql(f"""
         SELECT p.name, p.sacramento, p.ano_lectivo, p.data_do_sacramento AS data, p.docstatus, p.tipo,
-               COALESCE(SUM(c.name IS NOT NULL AND IFNULL(c.situacao, '') != %(nao)s), 0) AS vao,
+               p.tipo_extraordinario, COALESCE(SUM(c.name IS NOT NULL AND IFNULL(c.situacao, '') != %(nao)s), 0) AS vao,
                COALESCE(SUM(c.situacao = %(nao)s), 0) AS nao
         FROM `tab{DOCTYPE}` p
         LEFT JOIN `tabCandidatos ao Sacramento Table` c ON c.parent = p.name AND c.parenttype = %(dt)s
@@ -88,6 +96,7 @@ def get_preparacao(nome):
         "ano_lectivo": doc.ano_lectivo,
         "data_do_sacramento": doc.data_do_sacramento,
         "tipo": doc.tipo,
+        "tipo_extraordinario": doc.tipo_extraordinario,
         "turma_destino": doc.turma_destino,
         "docstatus": doc.docstatus,
         "modified": str(doc.modified),
@@ -193,6 +202,7 @@ def listar_candidatos(nome):
     Os que já estão na lista ficam com os dados do catecúmeno actualizados."""
     doc = _doc(nome, "write")
     _rascunho(doc)
+    _so_catecumenos(doc)
     if not doc.sacramento:
         frappe.throw(_("Seleccione o Sacramento primeiro."))
 
@@ -231,6 +241,7 @@ def sincronizar(nome, aplicar=0):
     Com aplicar=1 remove-os. Quem "Não vai receber" nunca é removido (fica o registo)."""
     doc = _doc(nome, "write")
     _rascunho(doc)
+    _so_catecumenos(doc)
     if not doc.sacramento:
         frappe.throw(_("Seleccione o Sacramento primeiro."))
 
@@ -300,6 +311,30 @@ def actualizar_catecumenos(nome):
     return {"actualizados": feitos, "falhas": falhas}
 
 
+@frappe.whitelist()
+def acrescentar_pessoas(nome, nomes, comunidade=None):
+    """Preparação extraordinária: acrescenta pessoas pelo nome (uma por linha). Ignora nomes
+    que já estão na lista."""
+    doc = _doc(nome, "write")
+    _rascunho(doc)
+    if not doc.e_extraordinaria():
+        frappe.throw(_("Só nas preparações extraordinárias. Nas outras, use Listar candidatos."))
+    nomes = nomes if isinstance(nomes, list) else str(nomes or "").splitlines()
+    existentes = {nome_candidato(r).strip().lower() for r in doc.get(TABELA)}
+    adicionados = 0
+    for n in nomes:
+        n = " ".join(str(n).split())
+        if not n or n.lower() in existentes:
+            continue
+        existentes.add(n.lower())
+        doc.append(TABELA, {"nome_completo": n, "comunidade": comunidade or None, "situacao": "Vai receber",
+                            "ficha": 0, "documentos_padrinhos": 0})
+        adicionados += 1
+    if adicionados:
+        doc.save()
+    return {"adicionados": adicionados}
+
+
 # ── Link e submissão ─────────────────────────────────────────────────────────
 
 @frappe.whitelist()
@@ -320,4 +355,4 @@ def submeter(nome):
         frappe.throw(_("Não há candidatos marcados como \"Vai receber\"."))
     doc.submit()
     return {"recebem": len(doc.vao_receber()),
-            "nao_recebem": sum(1 for r in doc.get(TABELA) if r.catecumeno and nao_recebe(r))}
+            "nao_recebem": sum(1 for r in doc.get(TABELA) if nome_candidato(r) and nao_recebe(r))}

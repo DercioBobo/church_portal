@@ -12,3 +12,4 @@ portal.patches.v1_0.sincronizar_turmas_catecumenos
 portal.patches.v1_0.opcoes_portal_renovacao
 portal.patches.v1_0.portal_motivo_permanencia
 portal.patches.v1_0.livros_sacramentais
+portal.patches.v1_0.nome_dos_candidatos

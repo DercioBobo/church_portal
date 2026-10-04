@@ -306,7 +306,7 @@ def get_preparacao_sacramento(nome, t=None):
     candidatos = frappe.db.sql("""
         SELECT
             c.name,
-            c.catecumeno,
+            IFNULL(c.catecumeno, c.nome_completo) AS catecumeno,
             c.turma,
             c.fase,
             c.sexo,
@@ -331,7 +331,7 @@ def get_preparacao_sacramento(nome, t=None):
         WHERE c.parent = %s
           AND c.parentfield = 'candidatos_sacramento_table'
           AND IFNULL(c.situacao, '') != 'Não vai receber'
-        ORDER BY c.catecumeno ASC
+        ORDER BY IFNULL(c.catecumeno, c.nome_completo) ASC
     """, (nome,), as_dict=True)
 
     preparacao["candidatos"] = candidatos
@@ -357,7 +357,7 @@ def atualizar_candidato_sacramento(
     row = frappe.db.get_value(
         "Candidatos ao Sacramento Table",
         row_name,
-        ["name", "catecumeno", "parent", "parentfield", "situacao"],
+        ["name", "catecumeno", "nome_completo", "parent", "parentfield", "situacao"],
         as_dict=True,
     )
 
@@ -390,7 +390,7 @@ def atualizar_candidato_sacramento(
             "Candidatos ao Sacramento Table", row_name, list(child_updates), as_dict=True
         ) or {}
         frappe.db.set_value("Candidatos ao Sacramento Table", row_name, child_updates)
-        _registar_alteracao(preparacao_nome, row.catecumeno, antes, child_updates)
+        _registar_alteracao(preparacao_nome, row.catecumeno or row.nome_completo, antes, child_updates)
 
     # Os mesmos dados no Catecúmeno, e daí na turma e nas outras preparações em rascunho
     if row.catecumeno and child_updates:

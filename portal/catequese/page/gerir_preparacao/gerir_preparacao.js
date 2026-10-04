@@ -62,7 +62,8 @@ function createGerirPreparacaoApp() {
       <div class="gp-ano-titulo">{{ g.ano }}</div>
       <div class="gp-grid">
         <a v-for="p in g.itens" :key="p.name" class="gp-prep-card" :href="'/app/gerir-preparacao/' + encodeURIComponent(p.name)">
-          <b>{{ p.sacramento }} <span v-if="p.tipo === '2ª oportunidade'" class="gp-chip ouro">2ª oportunidade</span></b>
+          <b>{{ p.sacramento }} <span v-if="p.tipo === '2ª oportunidade'" class="gp-chip ouro">2ª oportunidade</span>
+            <span v-if="p.tipo === 'Extraordinário'" class="gp-chip ouro">{{ p.tipo_extraordinario || 'Extraordinário' }}</span></b>
           <small>{{ p.name }} · {{ p.data ? dia(p.data) : 'Sem data' }}</small>
           <span class="gp-chips">
             <span class="gp-chip ok">{{ p.vao }} vão</span>
@@ -86,6 +87,7 @@ function createGerirPreparacaoApp() {
             <h1>{{ p.sacramento }} {{ p.ano_lectivo }}
               <span class="gp-chip" :class="p.docstatus ? 'ouro' : 'rasc'">{{ p.docstatus ? 'Submetida' : 'Rascunho' }}</span>
               <span v-if="p.tipo === '2ª oportunidade'" class="gp-chip ouro">2ª oportunidade<template v-if="p.turma_destino"> → {{ p.turma_destino }}</template></span>
+              <span v-if="extra" class="gp-chip ouro">Extraordinário · {{ p.tipo_extraordinario }}</span>
               <span v-if="linkActivo" class="gp-chip ok">Link activo até {{ dia(p.link.expira_em) }}</span>
             </h1>
             <p class="gp-muted">📅 {{ p.data_do_sacramento ? dia(p.data_do_sacramento) : 'Sem data definida' }}
@@ -97,9 +99,12 @@ function createGerirPreparacaoApp() {
           <div v-if="p.pode_editar" class="gp-menu">
             <button class="gp-btn" @click="menu = menu === 'lista' ? '' : 'lista'">👥 Lista ▾</button>
             <div v-if="menu === 'lista'" class="gp-menu-itens">
-              <button @click="accao('listar')">Listar candidatos<small>acrescenta quem está nas fases do sacramento</small></button>
-              <button @click="accao('sincronizar')">Sincronizar lista<small>remove quem já não cumpre os critérios</small></button>
-              <button @click="accao('actualizar')">Actualizar catecúmenos<small>copia encarregados, padrinhos e contactos</small></button>
+              <button v-if="extra" @click="accao('pessoas')">Acrescentar pessoas<small>pelo nome, uma por linha (não são catecúmenos)</small></button>
+              <template v-else>
+                <button @click="accao('listar')">Listar candidatos<small>acrescenta quem está nas fases do sacramento</small></button>
+                <button @click="accao('sincronizar')">Sincronizar lista<small>remove quem já não cumpre os critérios</small></button>
+                <button @click="accao('actualizar')">Actualizar catecúmenos<small>copia encarregados, padrinhos e contactos</small></button>
+              </template>
             </div>
           </div>
           <div class="gp-menu">
@@ -189,7 +194,7 @@ function createGerirPreparacaoApp() {
             <tr v-for="r in visiveis" :key="r.name" :class="{ fora: r.situacao === NAO, activa: painel === r.name, sel: seleccionados.has(r.name) }">
               <td class="gp-c-sel"><input type="checkbox" :checked="seleccionados.has(r.name)" :disabled="!p.pode_editar" @change="alternarSel(r.name)"></td>
               <td class="gp-c-nome" @click="painel = r.name">
-                <b>{{ r.catecumeno }}</b>
+                <b>{{ r.catecumeno || r.nome_completo }}</b>
                 <span v-if="r.situacao === NAO" class="gp-motivo">{{ r.motivo_nao_recebe || NAO }}</span>
                 <small>{{ r.turma || r.comunidade || '—' }}</small>
               </td>
@@ -215,7 +220,7 @@ function createGerirPreparacaoApp() {
             </tr>
           </tbody>
         </table>
-        <div v-if="!visiveis.length" class="gp-vazio">{{ p.candidatos.length ? 'Nenhum candidato com estes filtros.' : 'A lista está vazia. Use “Lista ▾ → Listar candidatos”.' }}</div>
+        <div v-if="!visiveis.length" class="gp-vazio">{{ p.candidatos.length ? 'Nenhum candidato com estes filtros.' : (extra ? 'A lista está vazia. Use “Lista ▾ → Acrescentar pessoas”.' : 'A lista está vazia. Use “Lista ▾ → Listar candidatos”.') }}</div>
       </div>
 
       <!-- Painel lateral do candidato -->
@@ -223,7 +228,8 @@ function createGerirPreparacaoApp() {
         <aside class="gp-painel">
           <div class="gp-painel-topo">
             <div>
-              <a class="gp-painel-nome" :href="'/app/catecumeno/' + encodeURIComponent(linhaPainel.catecumeno)">{{ linhaPainel.catecumeno }}</a>
+              <a v-if="linhaPainel.catecumeno" class="gp-painel-nome" :href="'/app/catecumeno/' + encodeURIComponent(linhaPainel.catecumeno)">{{ linhaPainel.catecumeno }}</a>
+              <span v-else class="gp-painel-nome">{{ linhaPainel.nome_completo }}</span>
               <p class="gp-muted">{{ [linhaPainel.fase, linhaPainel.turma].filter(Boolean).join(' · ') || '—' }}</p>
             </div>
             <button class="gp-fechar" @click="painel = null">✕</button>
@@ -284,6 +290,7 @@ function createGerirPreparacaoApp() {
           <div class="gp-sec">
             <div class="gp-sec-t">Dados pessoais</div>
             <div class="gp-campos">
+              <label v-if="!linhaPainel.catecumeno">Nome<input :value="linhaPainel.nome_completo || ''" :disabled="!p.pode_editar" @change="guardar(linhaPainel, 'nome_completo', $event.target.value)"></label>
               <label>Sexo<select :value="linhaPainel.sexo || ''" :disabled="!p.pode_editar" @change="guardar(linhaPainel, 'sexo', $event.target.value)"><option value=""></option><option v-for="o in p.opcoes.sexo" :key="o" :selected="linhaPainel.sexo === o">{{ o }}</option></select></label>
               <label>Idade<input type="number" min="0" :value="linhaPainel.idade || ''" :disabled="!p.pode_editar" @change="guardar(linhaPainel, 'idade', $event.target.value)"></label>
               <label>Nascimento<input type="date" :value="linhaPainel.data_de_nascimento || ''" :disabled="!p.pode_editar" @change="guardar(linhaPainel, 'data_de_nascimento', $event.target.value)"></label>
@@ -426,7 +433,23 @@ function createGerirPreparacaoApp() {
       // ── Acções do cabeçalho ───────────────────────────────────────────────
       async function accao(qual) {
         menu.value = '';
-        if (qual === 'listar') {
+        if (qual === 'pessoas') {
+          const d = new frappe.ui.Dialog({
+            title: __('Acrescentar pessoas'),
+            fields: [
+              { fieldname: 'nomes', fieldtype: 'Small Text', label: __('Nomes completos (um por linha)'), reqd: 1 },
+              { fieldname: 'comunidade', fieldtype: 'Select', label: __('Comunidade'), options: [''].concat(p.value.opcoes.comunidade).join('\n') },
+            ],
+            primary_action_label: __('Acrescentar'),
+            async primary_action(v) {
+              d.hide();
+              const r = await gpApi('acrescentar_pessoas', { nome: nome.value, nomes: v.nomes, comunidade: v.comunidade || '' });
+              await carregar();
+              frappe.show_alert({ message: __('{0} pessoa(s) acrescentada(s).', [r.adicionados]), indicator: 'green' });
+            },
+          });
+          d.show();
+        } else if (qual === 'listar') {
           const r = await gpApi('listar_candidatos', { nome: nome.value });
           await carregar();
           frappe.msgprint(r.adicionados
@@ -540,10 +563,12 @@ function createGerirPreparacaoApp() {
         const q = busca.value.trim().toLowerCase();
         const lst = p.value.candidatos.filter((r) => passaFiltro(r, filtro.value)
           && (!turma.value || r.turma === turma.value)
-          && (!q || [r.catecumeno, r.turma, r.encarregado, r.padrinhos, r.sacerdote].some((v) => (v || '').toLowerCase().includes(q))));
-        const chave = { nome: (r) => r.catecumeno || '', turma: (r) => (r.turma || '') + (r.catecumeno || ''), dia: (r) => (r.dia || 'zz') + (r.catecumeno || '') }[ordem.value];
+          && (!q || [r.catecumeno, r.nome_completo, r.turma, r.encarregado, r.padrinhos, r.sacerdote].some((v) => (v || '').toLowerCase().includes(q))));
+        const nm = (r) => r.catecumeno || r.nome_completo || '';
+        const chave = { nome: nm, turma: (r) => (r.turma || '') + nm(r), dia: (r) => (r.dia || 'zz') + nm(r) }[ordem.value];
         return lst.slice().sort((a, b) => chave(a).localeCompare(chave(b)));
       });
+      const extra = computed(() => !!(p.value && p.value.tipo === 'Extraordinário'));
       const linhaPainel = computed(() => (p.value && painel.value ? p.value.candidatos.find((r) => r.name === painel.value) : null));
 
       const todosSel = computed(() => visiveis.value.length && visiveis.value.every((r) => seleccionados.has(r.name)));
@@ -617,7 +642,7 @@ function createGerirPreparacaoApp() {
       document.addEventListener('click', (e) => { if (!e.target.closest('.gp-menu')) menu.value = ''; });
 
       return {
-        nome, p, lista, carregandoLista, listaPorAno, busca, filtro, turma, ordem, painel, menu, seleccionados,
+        nome, p, extra, lista, carregandoLista, listaPorAno, busca, filtro, turma, ordem, painel, menu, seleccionados,
         abrirRota, carregar, guardar, emMassa, massaTexto, massaData, pagoCompleto, situacaoUma, dialogoSituacao, removerSel,
         accao, urlImprimir, urlPdf, linkActivo, copiarLink, gerarLink, revogarLink, submeter,
         NAO, vao, naoN, pagCols, progresso, esperadoTotal, recebidoTotal, FILTROS, contar, turmas, visiveis, linhaPainel,

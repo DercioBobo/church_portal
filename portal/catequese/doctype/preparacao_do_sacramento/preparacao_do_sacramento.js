@@ -13,6 +13,29 @@ frappe.ui.form.on('Preparacao do Sacramento', {
     refresh(frm) {
         if (frm.is_new() || frm.doc.docstatus !== 0) return;
 
+        // Extraordinária (bebés, casamento colectivo…): pessoas pelo nome, sem turmas nem fases
+        if (frm.doc.tipo === 'Extraordinário') {
+            frm.add_custom_button('Acrescentar Pessoas', () => {
+                const d = new frappe.ui.Dialog({
+                    title: 'Acrescentar pessoas',
+                    fields: [
+                        { fieldname: 'nomes', fieldtype: 'Small Text', label: 'Nomes completos (um por linha)', reqd: 1 },
+                        { fieldname: 'comunidade', fieldtype: 'Select', label: 'Comunidade', options: '\nAssunção\nSanta Ana' },
+                    ],
+                    primary_action_label: 'Acrescentar',
+                    async primary_action(v) {
+                        d.hide();
+                        if (frm.is_dirty()) await frm.save();
+                        const r = await ps_chamar(frm, 'acrescentar_pessoas', { nomes: v.nomes, comunidade: v.comunidade || '' });
+                        await frm.reload_doc();
+                        frappe.show_alert({ message: `${r.adicionados} pessoa(s) acrescentada(s).`, indicator: 'green' });
+                    },
+                });
+                d.show();
+            });
+            return;
+        }
+
         // 🔘 Listar Candidatos
         frm.add_custom_button('Listar Candidatos', async () => {
             if (frm.is_dirty()) await frm.save();

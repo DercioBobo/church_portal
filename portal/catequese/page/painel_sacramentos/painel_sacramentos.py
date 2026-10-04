@@ -100,7 +100,8 @@ def _sacramento(sac, rotulo, campo, campo_data, fases, ordem, ano):
         "preparacoes": preparacoes,
         # preparações em rascunho (qualquer ano) onde se pode juntar quem tem 2ª oportunidade
         "rascunhos": frappe.get_all("Preparacao do Sacramento",
-                                    filters={"sacramento": sac, "docstatus": 0},
+                                    filters={"sacramento": sac, "docstatus": 0,
+                                             "tipo": ["!=", "Extraordinário"]},
                                     fields=["name", "ano_lectivo", "data_do_sacramento", "tipo"],
                                     order_by="ano_lectivo desc, creation desc"),
     }
@@ -209,6 +210,7 @@ def _preparacoes(sac, ano):
         LEFT JOIN `tabCandidatos ao Sacramento Table` c
           ON c.parent = p.name AND c.parenttype = 'Preparacao do Sacramento'
         WHERE p.sacramento = %(sac)s AND p.ano_lectivo = %(ano)s AND p.docstatus < 2
+          AND IFNULL(p.tipo, '') != 'Extraordinário'
         GROUP BY p.name
         ORDER BY p.data_do_sacramento
     """, {"sac": sac, "ano": ano, "nao": NAO_RECEBE}, as_dict=True)

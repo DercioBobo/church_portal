@@ -342,7 +342,8 @@ def _sac_sem_data():
 def _sac_documentos_em_falta():
     out = []
     for r in _sql("""
-        SELECT cs.name, cs.catecumeno, p.name AS preparacao, cs.ficha, cs.documentos_padrinhos
+        SELECT cs.name, IFNULL(cs.catecumeno, cs.nome_completo) AS catecumeno, p.name AS preparacao,
+               cs.ficha, cs.documentos_padrinhos
         FROM `tabCandidatos ao Sacramento Table` cs
         JOIN `tabPreparacao do Sacramento` p ON p.name = cs.parent AND p.docstatus < 2
         WHERE p.ano_lectivo = %s AND (IFNULL(cs.ficha, 0) = 0 OR IFNULL(cs.documentos_padrinhos, 0) = 0)

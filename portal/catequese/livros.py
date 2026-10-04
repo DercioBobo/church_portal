@@ -112,13 +112,21 @@ def registo_de(sacramento, catecumeno):
     return frappe.db.get_value(LIVROS[sacramento].doctype, {"catecumeno": catecumeno})
 
 
-def registar(sacramento, catecumeno, data=None, origem=ORIGEM_CATEQUESE, **campos):
-    """Cria o registo no livro do sacramento, se o catecúmeno ainda não tiver (não duplica nem
-    altera registos manuais ou de uma preparação emendada). Devolve o nome do registo."""
+def registar(sacramento, catecumeno=None, data=None, origem=ORIGEM_CATEQUESE, **campos):
+    """Cria o registo no livro do sacramento e devolve o nome. Não duplica nem altera o que já
+    existe: o registo do catecúmeno (manual ou de uma preparação emendada) ou, para quem não é
+    catecúmeno, o da mesma pessoa na mesma preparação."""
     cfg = LIVROS.get(sacramento)
-    if not cfg or not catecumeno:
+    if not cfg or not (catecumeno or campos.get("nome_completo")):
         return None
-    existente = registo_de(sacramento, catecumeno)
+    if catecumeno:
+        existente = registo_de(sacramento, catecumeno)
+    elif campos.get("preparacao"):
+        existente = frappe.db.get_value(cfg.doctype, {"catecumeno": ["is", "not set"],
+                                                      "nome_completo": campos["nome_completo"],
+                                                      "preparacao": campos["preparacao"]})
+    else:
+        existente = None
     if existente:
         return existente
     doc = frappe.new_doc(cfg.doctype)

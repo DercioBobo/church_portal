@@ -1,3 +1,4 @@
+import unicodedata
 from urllib.parse import quote
 
 import frappe
@@ -9,29 +10,60 @@ from portal.catequese import livros, sincronizacao
 from portal.catequese.utils import definicao, nome_com_serie, valores_sacramento
 
 NAO_RECEBE = "Não vai receber"
+EXTRAORDINARIO = "Extraordinário"
 
 
 def nao_recebe(row):
     return (row.get("situacao") or "") == NAO_RECEBE
 
 
+def nome_candidato(row):
+    """Nome a mostrar: o catecúmeno ou, nas preparações extraordinárias, o nome escrito."""
+    return row.get("catecumeno") or row.get("nome_completo") or ""
+
+
+def _sem_acentos(s):
+    return unicodedata.normalize("NFD", s).encode("ascii", "ignore").decode()
+
+
 class PreparacaodoSacramento(Document):
     def autoname(self):
-        # Baptismo-26-01, Baptismo-26-02 (2ª oportunidade)… — as antigas mantêm o nome que tinham
-        self.name = nome_com_serie(self.sacramento, self.ano_lectivo)
+        # Baptismo-26-01, Baptismo-26-02 (2ª oportunidade)… — as antigas mantêm o nome que tinham.
+        # Extraordinárias levam o tipo no nome, para se encontrarem: Baptismo-Casamento-26-01
+        prefixo = self.sacramento
+        if self.e_extraordinaria():
+            prefixo += "-" + _sem_acentos(self.tipo_extraordinario or "Extra")
+        self.name = nome_com_serie(prefixo, self.ano_lectivo)
+
+    def e_extraordinaria(self):
+        return self.tipo == EXTRAORDINARIO
 
     def vao_receber(self):
-        """Candidatos que recebem o sacramento (quem não vai receber fica na lista, com o motivo)."""
-        return [r for r in self.candidatos_sacramento_table if r.catecumeno and not nao_recebe(r)]
+        """Candidatos que recebem o sacramento (quem não vai receber fica na lista, com o motivo).
+        Nas extraordinárias, as pessoas podem não ser catecúmenos (só nome)."""
+        extra = self.e_extraordinaria()
+        return [r for r in self.candidatos_sacramento_table
+                if (r.catecumeno or (extra and r.nome_completo)) and not nao_recebe(r)]
 
     def validate(self):
+        extra = self.e_extraordinaria()
+        if extra:
+            if not self.tipo_extraordinario:
+                frappe.throw(_("Indique os candidatos da preparação extraordinária (bebé, casamento, adulto ou outro)."))
+            self.turma_destino = None
+        else:
+            self.tipo_extraordinario = None
         for r in self.candidatos_sacramento_table:
+            if r.catecumeno:
+                r.nome_completo = r.catecumeno
+            elif extra and not (r.nome_completo or "").strip():
+                frappe.throw(_("Linha {0}: indique o nome da pessoa.").format(r.idx))
             if not r.situacao:
                 r.situacao = "Vai receber"
             if nao_recebe(r):
                 if not r.motivo_nao_recebe:
                     frappe.throw(_("Linha {0} ({1}): indique o motivo por que não vai receber.").format(
-                        r.idx, r.catecumeno or ""))
+                        r.idx, nome_candidato(r)))
             else:
                 r.motivo_nao_recebe = None
                 r.detalhe_situacao = None
@@ -80,7 +112,7 @@ class PreparacaodoSacramento(Document):
 
     def before_submit(self):
         # A data do sacramento é a de cada candidato (coluna Data) ou, se vazia, a da Preparação
-        sem_data = [r.catecumeno for r in self.vao_receber() if not self._data(r)]
+        sem_data = [nome_candidato(r) for r in self.vao_receber() if not self._data(r)]
         if sem_data:
             frappe.throw(_("Defina a Data do Sacramento (ou a data de cada candidato). Sem data: {0}").format(
                 ", ".join(sem_data[:10]) + ("…" if len(sem_data) > 10 else "")))
@@ -88,17 +120,19 @@ class PreparacaodoSacramento(Document):
     def on_submit(self):
         # (eram os Server Scripts "PS Baptismo Script", "PS Eucaristia Script" e "Finalize Crisma")
         # Só quem "Vai receber"; os outros ficam na lista e aparecem na página Sacramentos.
-        if self.sacramento == "Baptismo":
+        if self.e_extraordinaria():
+            self._finalizar_extraordinaria()
+        elif self.sacramento == "Baptismo":
             self._finalizar_baptismo()
         elif self.sacramento == "Eucaristia":
             self._finalizar_eucaristia()
         elif self.sacramento == "Crisma":
             self._finalizar_crisma()
 
-        falharam = [r for r in self.candidatos_sacramento_table if r.catecumeno and nao_recebe(r)]
+        falharam = [r for r in self.candidatos_sacramento_table if nome_candidato(r) and nao_recebe(r)]
         if falharam:
             self.add_comment("Info", _("Não receberam o sacramento ({0}): {1}").format(
-                len(falharam), ", ".join(f"{r.catecumeno} ({r.motivo_nao_recebe})" for r in falharam)))
+                len(falharam), ", ".join(f"{nome_candidato(r)} ({r.motivo_nao_recebe})" for r in falharam)))
 
     def _data(self, row):
         return row.date or self.data_do_sacramento
@@ -237,14 +271,32 @@ class PreparacaodoSacramento(Document):
                " Continuam nas turmas actuais (sem Turma de destino)." if not destino else ""))
 
     def _registar_livro(self, row):
-        # Um registo por catecúmeno em cada livro: se já existe (registo manual ou emenda), não duplica
+        # Um registo por pessoa em cada livro: se já existe (registo manual ou emenda), não duplica
+        if self.e_extraordinaria():
+            origem = livros.ORIGEM_EXTRA
+        elif self.tipo == "2ª oportunidade":
+            origem = livros.ORIGEM_SEGUNDA
+        else:
+            origem = livros.ORIGEM_CATEQUESE
         livros.registar(
-            self.sacramento, row.catecumeno, data=self._data(row),
-            origem=livros.ORIGEM_SEGUNDA if self.tipo == "2ª oportunidade" else livros.ORIGEM_CATEQUESE,
+            self.sacramento, row.catecumeno, data=self._data(row), origem=origem,
+            tipo_extraordinario=self.tipo_extraordinario, nome_completo=row.nome_completo,
             ano=self.ano_lectivo, preparacao=self.name, sacerdote=row.sacerdote, comunidade=row.comunidade,
             data_de_nascimento=row.data_de_nascimento, sexo=row.sexo, encarregado=row.encarregado,
             contacto=row.contacto_encarregado, padrinhos=row.padrinhos, contacto_padrinhos=row.contacto_padrinhos,
         )
+
+    # ── Extraordinária (bebés, casamento colectivo, adultos) ──────────────────
+
+    def _finalizar_extraordinaria(self):
+        """Só regista no livro: não há turmas nem fases. Se alguém for catecúmeno, o registo
+        no livro marca-lhe o sacramento."""
+        cfg = livros.livro(self.sacramento)
+        receptores = self.vao_receber()
+        for row in receptores:
+            self._registar_livro(row)
+        frappe.msgprint(_("Concluído: {0} pessoa(s) registada(s) no {1}.").format(
+            len(receptores), _(cfg.doctype)) if cfg else _("Concluído (este sacramento não tem livro)."))
 
     # ── Eucaristia ────────────────────────────────────────────────────────────
 

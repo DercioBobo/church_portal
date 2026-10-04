@@ -152,6 +152,14 @@ São livros físicos diferentes, com campos comuns. Feitos com os campos genéri
 - No Catecúmeno, os registos dos três livros aparecem nas ligações (grupo Sacramentos).
 - [ ] Certificados impressos a partir do registo no livro (Fase 1 "Certificados").
 
+### 1b. ✅ Preparação extraordinária (bebés, casamento colectivo, adultos)
+- Na Preparação do Sacramento, **Tipo = Extraordinário** + **Candidatos** (Bebé / Casamento / Adulto / Outro).
+- O nome leva o tipo, para se encontrar: `Baptismo-Casamento-26-01`, `Baptismo-Bebe-26-01`.
+- As pessoas entram **pelo nome** (Lista ▾ → *Acrescentar pessoas*, um nome por linha); o catecúmeno é opcional.
+- Tudo o resto igual: Gerir Preparação, pagamentos, documentos, situação, PDFs, link dos encarregados.
+- Ao submeter: só regista no livro (origem Extraordinário, com o tipo); não há turmas nem fases.
+- Fica fora da página Sacramentos e das contagens de catecúmenos do Relatório (os bebés contam em "Baptismos (crianças)" pelo livro).
+
 ### 2. ✅ Preparação: Situação por candidato (em vez de apagar)
 - **Vai receber** (por omissão) / **Não vai receber**, com motivo: comportamento, faltas, documentos, desistiu, repete a fase, outro.
 - O PDF e o link para encarregados e padrinhos mostram só os que vão receber (igual ao que se partilha hoje).

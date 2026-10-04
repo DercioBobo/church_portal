@@ -397,6 +397,43 @@ class TestLivrosSacramentais(BaseCatequese):
             "doctype": "Livro de Crisma", "catecumeno": c.name}).insert)
 
 
+    def test_preparacao_extraordinaria_casamento(self):
+        from portal.catequese.preparacao import acrescentar_pessoas, listar_candidatos
+
+        c = catecumeno("_Teste Extra Catecumeno", baptismo=0)
+        t = turma(FASE_A, [c])
+        prep = frappe.get_doc({
+            "doctype": "Preparacao do Sacramento", "sacramento": "Baptismo", "tipo": "Extraordinário",
+            "tipo_extraordinario": "Casamento", "ano_lectivo": ANO, "data_do_sacramento": f"{ANO}-12-12",
+            "candidatos_sacramento_table": [{"catecumeno": c.name}],
+        }).insert()
+        self.assertTrue(prep.name.startswith(f"Baptismo-Casamento-{ANO[-2:]}-"))
+        self.assertRaises(frappe.ValidationError, listar_candidatos, prep.name)
+
+        r = acrescentar_pessoas(prep.name, "_Teste Noivo A\n_Teste Noiva B\n_teste noivo a\n")
+        self.assertEqual(r["adicionados"], 2)
+        prep.reload()
+        noiva = next(x for x in prep.candidatos_sacramento_table if x.nome_completo == "_Teste Noiva B")
+        noiva.situacao, noiva.motivo_nao_recebe = "Não vai receber", "Documentos"
+        prep.save()
+        prep.submit()
+
+        self.assertTrue(frappe.db.exists("Livro de Baptismo", {
+            "nome_completo": "_Teste Noivo A", "catecumeno": ["is", "not set"], "origem": "Extraordinário",
+            "tipo_extraordinario": "Casamento", "preparacao": prep.name}))
+        self.assertFalse(frappe.db.exists("Livro de Baptismo", {"nome_completo": "_Teste Noiva B"}))
+        # o catecúmeno fica baptizado mas não muda de turma nem de fase
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["baptismo", "turma"]), (1, t.name))
+        self.assertTrue(frappe.db.exists("Livro de Baptismo", {"catecumeno": c.name, "origem": "Extraordinário"}))
+
+    def test_extraordinaria_exige_nome_e_tipo(self):
+        base = {"doctype": "Preparacao do Sacramento", "sacramento": "Baptismo", "tipo": "Extraordinário",
+                "ano_lectivo": ANO}
+        self.assertRaises(frappe.ValidationError, frappe.get_doc(dict(base)).insert)
+        self.assertRaises(frappe.ValidationError, frappe.get_doc(dict(
+            base, tipo_extraordinario="Bebé", candidatos_sacramento_table=[{"encarregado": "Sem nome"}])).insert)
+
+
 class TestSituacaoSacramento(BaseCatequese):
     """Quem "Não vai receber" fica na lista com o motivo, mas não recebe nem aparece no link."""
     # O nome da preparação é {sacramento}-{ano}: um ano de teste por teste
