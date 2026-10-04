@@ -581,7 +581,10 @@ class TestAcrescentarNaoRecebeu(BaseCatequese):
         from portal.catequese.page.painel_sacramentos.painel_sacramentos import adicionar, arquivar, get_dados
 
         c = catecumeno("_Teste Acrescentado")
-        nome = adicionar(c.name, "Crisma", motivo="Faltas", nota="Apagado da lista por engano")
+        # a preparação dá o ano (sem ela usa-se o ano actual das Settings, que o site de teste pode não ter)
+        prep = frappe.get_doc({"doctype": "Preparacao do Sacramento", "sacramento": "Crisma",
+                               "ano_lectivo": ano("2801")}).insert()
+        nome = adicionar(c.name, "Crisma", motivo="Faltas", nota="Apagado da lista por engano", preparacao=prep.name)
 
         def crisma():
             return next(x for x in get_dados()["sacramentos"] if x["sacramento"] == "Crisma")

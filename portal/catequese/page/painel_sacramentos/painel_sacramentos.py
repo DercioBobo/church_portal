@@ -214,6 +214,13 @@ def _preparacoes(sac, ano):
     """, {"sac": sac, "ano": ano, "nao": NAO_RECEBE}, as_dict=True)
 
 
+def _ano_obrigatorio():
+    ano = ano_actual()
+    if not ano:
+        frappe.throw(_("Não há Ano Lectivo actual. Defina-o em Catequese Settings → Ano Lectivo, ou escolha a Preparação."))
+    return ano
+
+
 # ── Arquivar / reabrir ───────────────────────────────────────────────────────
 
 @frappe.whitelist()
@@ -230,15 +237,18 @@ def arquivar(catecumenos, sacramento, decisao, motivo=None, nota=None, preparaco
     feitos = 0
     for i, cat in enumerate(catecumenos):
         prep = preparacoes[i] if i < len(preparacoes) else None
-        ano = (prep and frappe.db.get_value("Preparacao do Sacramento", prep, "ano_lectivo")) or ano_actual()
+        # quem foi acrescentado à mão ("Em acompanhamento") é arquivado no mesmo registo (e no mesmo ano)
+        acomp = frappe.db.get_value(REGISTO, {"catecumeno": cat, "sacramento": sacramento, "decisao": ACOMPANHAMENTO},
+                                    ["name", "ano_lectivo"], as_dict=True)
+        ano = ((prep and frappe.db.get_value("Preparacao do Sacramento", prep, "ano_lectivo"))
+               or (acomp and acomp.ano_lectivo) or _ano_obrigatorio())
         if not motivo and prep:
             motivo_cat = frappe.db.get_value("Candidatos ao Sacramento Table",
                                              {"parent": prep, "catecumeno": cat}, "motivo_nao_recebe")
         else:
-            motivo_cat = motivo or (None if prep else NAO_LISTADO)
-        # quem foi acrescentado à mão ("Em acompanhamento") é arquivado no mesmo registo
-        existente = (frappe.db.get_value(REGISTO, {"catecumeno": cat, "sacramento": sacramento, "decisao": ACOMPANHAMENTO})
-                     or frappe.db.get_value(REGISTO, {"catecumeno": cat, "sacramento": sacramento, "ano_lectivo": ano}))
+            motivo_cat = motivo or (None if (prep or acomp) else NAO_LISTADO)
+        existente = (acomp and acomp.name) or frappe.db.get_value(
+            REGISTO, {"catecumeno": cat, "sacramento": sacramento, "ano_lectivo": ano})
         doc = frappe.get_doc(REGISTO, existente) if existente else frappe.new_doc(REGISTO)
         doc.update({
             "catecumeno": cat, "sacramento": sacramento, "decisao": decisao, "data_decisao": today(),
@@ -322,7 +332,7 @@ def adicionar(catecumeno, sacramento, motivo=None, nota=None, preparacao=None):
             catecumeno, sacramento))
     if preparacao and frappe.db.get_value("Preparacao do Sacramento", preparacao, "sacramento") != sacramento:
         frappe.throw(_("A preparação {0} não é de {1}.").format(preparacao, sacramento))
-    ano = (preparacao and frappe.db.get_value("Preparacao do Sacramento", preparacao, "ano_lectivo")) or ano_actual()
+    ano = (preparacao and frappe.db.get_value("Preparacao do Sacramento", preparacao, "ano_lectivo")) or _ano_obrigatorio()
     if frappe.db.exists(REGISTO, {"catecumeno": catecumeno, "sacramento": sacramento, "ano_lectivo": ano}):
         frappe.throw(_("{0} já tem um registo de {1} em {2} (ver Arquivados).").format(catecumeno, sacramento, ano))
     doc = frappe.get_doc({
