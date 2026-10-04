@@ -450,6 +450,51 @@ class TestSituacaoSacramento(BaseCatequese):
         self.assertNotIn(falhou.name, {r.catecumeno for r in s["pendentes"]})
         self.assertIn(falhou.name, {r.catecumeno for r in s["resolvidos"]})
 
+    def test_fora_da_preparacao(self):
+        from portal.catequese.page.painel_sacramentos.painel_sacramentos import _fora_da_preparacao
+
+        fase("_Teste Fase Comunhao", ordem=50, fase_de_sacramento=1, sacramento="Eucaristia")
+        listado = catecumeno("_Teste Sit Fora Listado", fase="_Teste Fase Comunhao")
+        fora = catecumeno("_Teste Sit Fora Nao Listado", fase="_Teste Fase Comunhao")
+        ja_tem = catecumeno("_Teste Sit Fora Ja Tem", fase="_Teste Fase Comunhao", eucaristia=1)
+        prep = self.preparacao("Eucaristia", [{"catecumeno": listado.name}])
+
+        nomes = {r.catecumeno for r in _fora_da_preparacao(
+            "Eucaristia", "eucaristia", ["_Teste Fase Comunhao"], prep.ano_lectivo, [prep.name])}
+        self.assertIn(fora.name, nomes)
+        self.assertNotIn(listado.name, nomes)
+        self.assertNotIn(ja_tem.name, nomes)
+        # sem nenhuma preparação no ano, a lista fica vazia (não faz sentido antes de haver uma)
+        self.assertEqual(_fora_da_preparacao("Eucaristia", "eucaristia", ["_Teste Fase Comunhao"], prep.ano_lectivo, []), [])
+
+    def test_arquivar_e_reabrir(self):
+        from portal.catequese.page.painel_sacramentos.painel_sacramentos import arquivar, get_dados, reabrir
+
+        falhou = catecumeno("_Teste Sit Arquivar")
+        prep = self.preparacao("Crisma", [
+            {"catecumeno": falhou.name, "situacao": "Não vai receber", "motivo_nao_recebe": "Comportamento"},
+        ])
+        prep.submit()
+
+        def crisma():
+            return next(s for s in get_dados()["sacramentos"] if s["sacramento"] == "Crisma")
+
+        self.assertIn(falhou.name, {r.catecumeno for r in crisma()["pendentes"]})
+        arquivar([falhou.name], "Crisma", "Sem 2ª oportunidade", nota="Decisão do pároco", preparacoes=[prep.name])
+
+        s = crisma()
+        self.assertNotIn(falhou.name, {r.catecumeno for r in s["pendentes"]})
+        registo = next(r for r in s["arquivados"] if r.catecumeno == falhou.name)
+        self.assertEqual((registo.motivo, registo.decisao, registo.ano_lectivo, registo.preparacao),
+                         ("Comportamento", "Sem 2ª oportunidade", prep.ano_lectivo, prep.name))
+
+        # arquivar outra vez actualiza o mesmo registo (um por catecúmeno, sacramento e ano)
+        arquivar([falhou.name], "Crisma", "Inactivo / desistiu", preparacoes=[prep.name])
+        self.assertEqual(frappe.db.count("Sacramento Nao Recebido", {"catecumeno": falhou.name, "sacramento": "Crisma"}), 1)
+
+        reabrir(registo.name)
+        self.assertIn(falhou.name, {r.catecumeno for r in crisma()["pendentes"]})
+
 
 class TestSubmeterPreparacao(BaseCatequese):
     """Correcções na submissão (Baptismo/Eucaristia/Crisma) e no link dos encarregados."""

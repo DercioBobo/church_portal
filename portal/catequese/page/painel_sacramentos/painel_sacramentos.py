@@ -1,20 +1,28 @@
 """
-Página Sacramentos: acompanhamento de quem falhou um sacramento.
+Página Sacramentos: acompanhamento de quem não recebeu um sacramento.
 
 - "Não receberam": candidatos marcados "Não vai receber" numa Preparação e que ainda
   não têm o sacramento (com o motivo e a Preparação).
-- "Sem motivo registado": catecúmenos activos numa fase posterior à fase do sacramento
+- "Fora da preparação": catecúmenos na fase do sacramento, este ano, sem o sacramento e que
+  não estão em nenhuma Preparação deste ano (só aparece quando já há uma Preparação).
+- "Em fase posterior, sem o sacramento": activos numa fase depois da do sacramento
   (Fase.ordem) que não o têm e não aparecem como "Não vai receber".
 - "Já receberam depois": falharam mas entretanto receberam (2ª oportunidade).
+- "Arquivados": quem tem um registo Sacramento Nao Recebido (decisão tomada: sem 2ª
+  oportunidade, inactivo, repete com outro grupo…). Saem das listas acima mas o registo fica.
+  Um arquivo de um ano não esconde uma falha de um ano seguinte.
 A fase de cada sacramento vem da Fase (Com Sacramento + Sacramento).
 """
 
 import frappe
-from frappe.utils import cint
+from frappe import _
+from frappe.utils import cint, today
 
 from portal.catequese.utils import ano_actual
 
 NAO_RECEBE = "Não vai receber"
+REGISTO = "Sacramento Nao Recebido"
+NAO_LISTADO = "Não listado na preparação"
 
 # (Sacramento, rótulo, campo no Catecúmeno, campo da data)
 SACRAMENTOS = [
@@ -31,9 +39,13 @@ def get_dados():
     ano = ano_actual()
     fases = frappe.get_all("Fase", fields=["name", "ordem", "fase_de_sacramento", "sacramento"])
     ordem = {f.name: cint(f.ordem) for f in fases}
+    meta = frappe.get_meta(REGISTO)
+    opcoes = lambda campo: [o for o in (meta.get_field(campo).options or "").split("\n") if o]  # noqa: E731
 
     return {
         "ano": ano,
+        "decisoes": opcoes("decisao"),
+        "motivos": opcoes("motivo"),
         "sacramentos": [_sacramento(s, rotulo, campo, campo_data, fases, ordem, ano)
                         for s, rotulo, campo, campo_data in SACRAMENTOS],
     }
@@ -43,16 +55,33 @@ def _sacramento(sac, rotulo, campo, campo_data, fases, ordem, ano):
     fases_sac = [f.name for f in fases if f.fase_de_sacramento and f.sacramento == sac]
     ordem_sac = min((ordem[f] for f in fases_sac if ordem[f]), default=0)
 
+    arquivados = _arquivados(sac, campo)
+    # catecúmeno → ano mais recente arquivado
+    ano_arquivo = {}
+    for a in arquivados:
+        ano_arquivo[a.catecumeno] = max(ano_arquivo.get(a.catecumeno, ""), str(a.ano_lectivo))
+
     pendentes, resolvidos = _falharam(sac, campo, campo_data)
+    pendentes = [r for r in pendentes if str(r.ano_lectivo) > ano_arquivo.get(r.catecumeno, "")]
+    preparacoes = _preparacoes(sac, ano)
+
     ja_listados = {r.catecumeno for r in pendentes}
+    fora = _fora_da_preparacao(sac, campo, fases_sac, ano, preparacoes) if fases_sac else []
+    fora = [r for r in fora if r.catecumeno not in ja_listados and ano_arquivo.get(r.catecumeno, "") < str(ano)]
+    ja_listados |= {r.catecumeno for r in fora}
+    sem_motivo = _sem_motivo(campo, ordem, ordem_sac, ja_listados) if ordem_sac else []
+    sem_motivo = [r for r in sem_motivo if r.catecumeno not in ano_arquivo]
+
     return {
         "sacramento": sac,
         "rotulo": rotulo,
         "fases": fases_sac,
         "pendentes": pendentes,
+        "fora": fora,
+        "sem_motivo": sem_motivo,
         "resolvidos": resolvidos,
-        "sem_motivo": _sem_motivo(campo, ordem, ordem_sac, ja_listados) if ordem_sac else [],
-        "preparacoes": _preparacoes(sac, ano),
+        "arquivados": arquivados,
+        "preparacoes": preparacoes,
     }
 
 
@@ -85,6 +114,27 @@ def _falharam(sac, campo, campo_data):
     return pendentes, resolvidos
 
 
+def _fora_da_preparacao(sac, campo, fases_sac, ano, preparacoes):
+    """Na fase do sacramento este ano, sem o sacramento, e em nenhuma Preparação deste ano.
+    Activos/pendentes, e também inactivos cuja turma é deste ano (saíram durante o ano)."""
+    if not preparacoes:
+        return []
+    return frappe.db.sql(f"""
+        SELECT k.name AS catecumeno, k.status, k.fase, k.turma, k.comunidade, k.encarregado, k.contacto
+        FROM `tabCatecumeno` k
+        LEFT JOIN `tabTurma` t ON t.name = k.turma
+        WHERE k.fase IN %(fases)s AND IFNULL(k.`{campo}`, 0) = 0
+          AND (k.status IN %(activos)s OR (k.status = 'Inactivo' AND t.ano_lectivo = %(ano)s))
+          AND k.name NOT IN (
+              SELECT c.catecumeno FROM `tabCandidatos ao Sacramento Table` c
+              JOIN `tabPreparacao do Sacramento` p ON p.name = c.parent AND p.docstatus < 2
+              WHERE c.parenttype = 'Preparacao do Sacramento' AND p.sacramento = %(sac)s
+                AND p.ano_lectivo = %(ano)s AND c.catecumeno IS NOT NULL
+          )
+        ORDER BY k.fase, k.turma, k.name
+    """, {"fases": tuple(fases_sac), "activos": ESTADOS_ACTIVOS, "ano": ano, "sac": sac}, as_dict=True)
+
+
 def _sem_motivo(campo, ordem, ordem_sac, ja_listados):
     fases_depois = [f for f, o in ordem.items() if o > ordem_sac]
     if not fases_depois:
@@ -99,6 +149,17 @@ def _sem_motivo(campo, ordem, ordem_sac, ja_listados):
     return [r for r in rows if r.catecumeno not in ja_listados]
 
 
+def _arquivados(sac, campo):
+    return frappe.db.sql(f"""
+        SELECT r.name, r.catecumeno, r.ano_lectivo, r.preparacao, r.motivo, r.decisao, r.nota, r.data_decisao,
+               k.status, k.fase, k.turma, IFNULL(k.`{campo}`, 0) AS recebeu
+        FROM `tab{REGISTO}` r
+        LEFT JOIN `tabCatecumeno` k ON k.name = r.catecumeno
+        WHERE r.sacramento = %s
+        ORDER BY r.ano_lectivo DESC, r.data_decisao DESC, r.catecumeno
+    """, sac, as_dict=True)
+
+
 def _preparacoes(sac, ano):
     return frappe.db.sql("""
         SELECT p.name, p.data_do_sacramento AS data, p.docstatus,
@@ -111,3 +172,42 @@ def _preparacoes(sac, ano):
         GROUP BY p.name
         ORDER BY p.data_do_sacramento
     """, {"sac": sac, "ano": ano, "nao": NAO_RECEBE}, as_dict=True)
+
+
+# ── Arquivar / reabrir ───────────────────────────────────────────────────────
+
+@frappe.whitelist()
+def arquivar(catecumenos, sacramento, decisao, motivo=None, nota=None, preparacoes=None):
+    """Regista a decisão (um registo por catecúmeno, sacramento e ano) — sai das listas, fica o registo.
+    `catecumenos` e `preparacoes` são listas (JSON) com a mesma ordem; o ano é o da Preparação
+    em que falhou, ou o ano actual."""
+    frappe.has_permission(REGISTO, "create", throw=True)
+    catecumenos = frappe.parse_json(catecumenos) if isinstance(catecumenos, str) else catecumenos
+    preparacoes = (frappe.parse_json(preparacoes) if isinstance(preparacoes, str) else preparacoes) or []
+    if not catecumenos:
+        frappe.throw(_("Nenhum catecúmeno seleccionado."))
+
+    feitos = 0
+    for i, cat in enumerate(catecumenos):
+        prep = preparacoes[i] if i < len(preparacoes) else None
+        ano = (prep and frappe.db.get_value("Preparacao do Sacramento", prep, "ano_lectivo")) or ano_actual()
+        if not motivo and prep:
+            motivo_cat = frappe.db.get_value("Candidatos ao Sacramento Table",
+                                             {"parent": prep, "catecumeno": cat}, "motivo_nao_recebe")
+        else:
+            motivo_cat = motivo or (None if prep else NAO_LISTADO)
+        existente = frappe.db.get_value(REGISTO, {"catecumeno": cat, "sacramento": sacramento, "ano_lectivo": ano})
+        doc = frappe.get_doc(REGISTO, existente) if existente else frappe.new_doc(REGISTO)
+        doc.update({
+            "catecumeno": cat, "sacramento": sacramento, "ano_lectivo": ano, "preparacao": prep,
+            "motivo": motivo_cat, "decisao": decisao, "nota": nota, "data_decisao": today(),
+        })
+        doc.save()
+        feitos += 1
+    return {"arquivados": feitos}
+
+
+@frappe.whitelist()
+def reabrir(nome):
+    """Apaga o registo: a pessoa volta às listas de acompanhamento."""
+    frappe.delete_doc(REGISTO, nome)
