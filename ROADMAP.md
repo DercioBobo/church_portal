@@ -164,6 +164,22 @@ São livros físicos diferentes. Têm campos comuns e alguns exclusivos (**à es
   - "Sincronizar Lista" nunca remove quem não vai receber;
   - os 19 formatos de impressão, o link, o Relatório Anual e a Qualidade dos Dados ignoram quem não vai receber.
 
+### 2b. ✅ Página "Gerir Preparação" (`/app/gerir-preparacao`)
+- Edita o próprio documento Preparação: não há dados à parte. O formulário fica para submeter/emendar e para o histórico.
+- **Progresso no topo:**
+  - vão / não vão receber;
+  - fichas, docs. padrinhos, dia marcado, pagamento completo;
+  - valor recebido vs esperado.
+- **Tabela editável:**
+  - dia, ficha, docs. padrinhos, pagamentos e sacerdote editados na própria linha, guardados ao sair da célula;
+  - filtros: sem ficha / sem docs / pagamento em falta / sem dia / notas dos encarregados / não vão receber;
+  - turma, ordenação e pesquisa.
+- **Painel lateral por candidato:** situação e motivo, nota do encarregado, data, banco, contactos (WA), pagamentos com tenda, dados pessoais, observações.
+- **Acções em massa:** dia, sacerdote, data, ✓ ficha, ✓ docs., pago completo, situação, remover.
+- **Cabeçalho:** Lista ▾ (listar / sincronizar / actualizar catecúmenos), Imprimir ▾ (ver/PDF de cada formato), Link ▾, Submeter (com resumo do que falta).
+- Listar, Sincronizar e Actualizar passaram para o servidor (`portal/catequese/preparacao.py`); o formulário usa a mesma versão.
+- O formulário tem o tema dourado, um resumo com barras de progresso e o botão **Gerir na página**.
+
 ### 3. ✅ Fase: sacramento da fase
 - Já existia em **Fase**: *Com Sacramento* + *Sacramento* (5ª → Baptismo, 1º Aprofundamento → Eucaristia, 3º Crisma → Crisma).
 - A página usa também a **Ordem** da Fase. Confirmar que está preenchida em todas as fases.

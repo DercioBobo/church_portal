@@ -336,6 +336,86 @@ class TestSituacaoSacramento(BaseCatequese):
         self.assertIn(falhou.name, {r.catecumeno for r in s["resolvidos"]})
 
 
+class TestGerirPreparacao(BaseCatequese):
+    """API da página Gerir Preparação (portal.catequese.preparacao)."""
+    SAC = "_Teste Sacramento"
+    FASE = "_Teste Fase Sacramento"
+    _ano = 2300
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        sacramento(cls.SAC)
+        fase(cls.FASE, fase_de_sacramento=1, sacramento=cls.SAC)
+
+    def nova(self, linhas=()):
+        TestGerirPreparacao._ano += 1
+        return frappe.get_doc({
+            "doctype": "Preparacao do Sacramento", "sacramento": self.SAC,
+            "ano_lectivo": ano(str(TestGerirPreparacao._ano)), "candidatos_sacramento_table": list(linhas),
+        }).insert()
+
+    def test_listar_e_sincronizar(self):
+        from portal.catequese import preparacao as api
+
+        a = catecumeno("_Teste GP Listar A")
+        b = catecumeno("_Teste GP Listar B")
+        turma(self.FASE, [a, b])
+        prep = self.nova()
+        r = api.listar_candidatos(prep.name)
+        self.assertGreaterEqual(r["adicionados"], 2)
+        prep.reload()
+        nomes = {x.catecumeno for x in prep.candidatos_sacramento_table}
+        self.assertTrue({a.name, b.name} <= nomes)
+
+        # a sai; b fica marcado "Não vai receber" e também sai — mas b nunca é removido
+        frappe.db.set_value("Catecumeno", a.name, "status", "Inactivo")
+        frappe.db.set_value("Catecumeno", b.name, "status", "Inactivo")
+        linha_b = next(x.name for x in prep.candidatos_sacramento_table if x.catecumeno == b.name)
+        api.marcar_situacao(prep.name, [linha_b], "Não vai receber", motivo="Desistiu")
+        r = api.sincronizar(prep.name)
+        removidos = {x["catecumeno"] for x in r["removidos"]}
+        self.assertIn(a.name, removidos)
+        self.assertNotIn(b.name, removidos)
+        api.sincronizar(prep.name, aplicar=1)
+        nomes = {x.catecumeno for x in frappe.get_doc("Preparacao do Sacramento", prep.name).candidatos_sacramento_table}
+        self.assertNotIn(a.name, nomes)
+        self.assertIn(b.name, nomes)
+
+    def test_guardar_campos_e_em_massa(self):
+        from portal.catequese import preparacao as api
+
+        cs = [catecumeno(f"_Teste GP Guardar {i}") for i in range(2)]
+        prep = self.nova([{"catecumeno": c.name} for c in cs])
+        linhas = [x.name for x in prep.candidatos_sacramento_table]
+
+        r = api.guardar(prep.name, [linhas[0]], {"ficha": 1, "valor_ofertorio": "250"})
+        self.assertEqual((r["linhas"][0]["ficha"], r["linhas"][0]["valor_ofertorio"]), (1, 250))
+        api.guardar(prep.name, json.dumps(linhas), json.dumps({"dia": "Sábado"}))
+        self.assertEqual({x.dia for x in frappe.get_doc("Preparacao do Sacramento", prep.name).candidatos_sacramento_table},
+                         {"Sábado"})
+
+        # campos fora da lista e situação sem motivo são recusados
+        self.assertRaises(frappe.ValidationError, api.guardar, prep.name, [linhas[0]], {"catecumeno": "X"})
+        self.assertRaises(frappe.ValidationError, api.guardar, prep.name, [linhas[0]], {"situacao": "Não vai receber"})
+        self.assertRaises(frappe.ValidationError, api.marcar_situacao, prep.name, [linhas[0]], "Não vai receber")
+
+    def test_submetida_nao_se_edita(self):
+        from portal.catequese import preparacao as api
+
+        c = catecumeno("_Teste GP Submeter")
+        prep = self.nova([{"catecumeno": c.name}])
+        dados = api.get_preparacao(prep.name)
+        self.assertTrue(dados["pode_editar"])
+        self.assertEqual(len(dados["candidatos"]), 1)
+
+        r = api.submeter(prep.name)
+        self.assertEqual(r["recebem"], 1)
+        self.assertFalse(api.get_preparacao(prep.name)["pode_editar"])
+        linha = dados["candidatos"][0]["name"]
+        self.assertRaises(frappe.ValidationError, api.guardar, prep.name, [linha], {"ficha": 1})
+
+
 # ── Apuramento ────────────────────────────────────────────────────────────────
 
 class TestApuramento(BaseCatequese):

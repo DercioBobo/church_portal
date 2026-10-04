@@ -1,270 +1,55 @@
 // Preparacao do Sacramento — scripts de formulário
-// (antes eram Client Scripts no browser; mesma ordem em que o Frappe os carregava)
+// Listar / Sincronizar / Actualizar correm no servidor (portal.catequese.preparacao),
+// a mesma versão usada pela página "Gerir Preparação".
 
-// ── Listar Candidatos ao sacramento ───────────────────────────────────────
+const PS_API = 'portal.catequese.preparacao.';
+
+function ps_chamar(frm, metodo, args = {}) {
+    return frappe.call({ method: PS_API + metodo, args: Object.assign({ nome: frm.doc.name }, args), freeze: true })
+        .then((r) => r.message);
+}
 
 frappe.ui.form.on('Preparacao do Sacramento', {
     refresh(frm) {
-        if (!frm.is_new()) {
+        if (frm.is_new() || frm.doc.docstatus !== 0) return;
 
-            // 🔘 Listar Candidatos
-            frm.add_custom_button('Listar Candidatos', async () => {
-                if (!frm.doc.sacramento) {
-                    frappe.msgprint('Por favor, seleccione o Sacramento primeiro.');
-                    return;
-                }
+        // 🔘 Listar Candidatos
+        frm.add_custom_button('Listar Candidatos', async () => {
+            if (frm.is_dirty()) await frm.save();
+            const r = await ps_chamar(frm, 'listar_candidatos');
+            await frm.reload_doc();
+            frappe.msgprint(r.adicionados
+                ? `Foram adicionados ${r.adicionados} novo(s) candidato(s); ${r.actualizados} actualizado(s).`
+                : 'Lista actualizada. Nenhum novo candidato foi adicionado.');
+        });
 
-                const field_map = {
-                    "Baptismo":   "baptismo",
-                    "Eucaristia": "eucaristia",
-                    "Crisma":     "crisma"
-                };
-                const sacramento_field = field_map[frm.doc.sacramento] || "";
-
-                // 1. Buscar as fases relacionadas com este sacramento
-                const fases = await frappe.db.get_list('Fase', {
-                    filters: {
-                        fase_de_sacramento: 1,
-                        sacramento: frm.doc.sacramento
-                    },
-                    fields: ['name'],
-                    limit: 999
+        // 🧹 Sincronizar Lista (remover quem já não cumpre critérios; nunca quem "Não vai receber")
+        frm.add_custom_button('Sincronizar Lista', async () => {
+            if (frm.is_dirty()) await frm.save();
+            const r = await ps_chamar(frm, 'sincronizar');
+            if (!r.removidos.length) {
+                frappe.msgprint('Todos os candidatos continuam válidos. Nenhuma alteração necessária.');
+                return;
+            }
+            const lista = r.removidos.map((x) =>
+                `<li><strong>${frappe.utils.escape_html(x.catecumeno || '')}</strong> — ${frappe.utils.escape_html(x.motivo)}</li>`).join('');
+            frappe.confirm(`<p>Os seguintes ${r.removidos.length} candidato(s) serão removidos da lista:</p><ul>${lista}</ul>`,
+                async () => {
+                    await ps_chamar(frm, 'sincronizar', { aplicar: 1 });
+                    await frm.reload_doc();
+                    frappe.show_alert({ message: `${r.removidos.length} candidato(s) removido(s).`, indicator: 'green' });
                 });
+        });
 
-                if (!fases.length) {
-                    frappe.msgprint('Nenhuma Fase encontrada marcada para este Sacramento.');
-                    return;
-                }
-
-                const fase_names = fases.map(f => f.name);
-
-                // 2. Buscar turmas Activas (para filtrar catecúmenos)
-                const turmas_activas = await frappe.db.get_list('Turma', {
-                    filters: { status: 'Activo' },
-                    fields: ['name'],
-                    limit: 999
-                });
-
-                if (!turmas_activas.length) {
-                    frappe.msgprint('Nenhuma Turma Activa encontrada.');
-                    return;
-                }
-
-                const turma_names = turmas_activas.map(t => t.name);
-
-                // 3. Buscar catecúmenos: fase correcta + activo + sem sacramento + turma activa preenchida
-                let filters = {
-                    fase:  ['in', fase_names],
-                    status: 'Activo',
-                    turma: ['in', turma_names]   // turma preenchida E com status Activo
-                };
-                if (sacramento_field) {
-                    filters[sacramento_field] = 0;
-                }
-
-                const fetched = await frappe.db.get_list('Catecumeno', {
-                    filters,
-                    fields: ['name', 'fase', 'turma', 'sexo', 'idade', 'encarregado', 'contacto', 'padrinhos', 'contacto_padrinhos'],
-                    order_by: 'name asc',
-                    limit: 999
-                });
-
-                if (!fetched.length) {
-                    frappe.msgprint('Nenhum Catecúmeno encontrado com os critérios definidos.');
-                    return;
-                }
-
-                // Mapa dos existentes para preservar campos locais
-                const existing_map = {};
-                (frm.doc.candidatos_sacramento_table || []).forEach(row => {
-                    existing_map[row.catecumeno] = row;
-                });
-
-                let added = 0;
-
-                fetched.forEach(c => {
-                    if (existing_map[c.name]) {
-                        // Actualizar campos sincronizados com Catecumeno
-                        let row = existing_map[c.name];
-                        row.turma                = c.turma;
-                        row.fase                 = c.fase;
-                        row.sexo                 = c.sexo;
-                        row.idade                = c.idade;
-                        row.encarregado          = c.encarregado;
-                        row.contacto_encarregado = c.contacto;
-                        row.padrinhos            = c.padrinhos;
-                        row.contacto_padrinhos   = c.contacto_padrinhos;
-                    } else {
-                        // Adicionar nova linha
-                        let row = frm.add_child('candidatos_sacramento_table');
-                        row.catecumeno           = c.name;
-                        row.turma                = c.turma;
-                        row.fase                 = c.fase;
-                        row.sexo                 = c.sexo;
-                        row.idade                = c.idade;
-                        row.encarregado          = c.encarregado;
-                        row.contacto_encarregado = c.contacto;
-                        row.padrinhos            = c.padrinhos;
-                        row.contacto_padrinhos   = c.contacto_padrinhos;
-                        // Campos locais inicializados a zero
-                        row.ficha                = 0;
-                        row.documentos_padrinhos = 0;
-                        added++;
-                    }
-                });
-
-                frm.refresh_field('candidatos_sacramento_table');
-
-                if (added > 0) {
-                    await frm.save();
-                    frappe.msgprint(`Foram adicionados ${added} novo(s) candidato(s).`);
-                } else {
-                    frappe.msgprint('Lista actualizada. Nenhum novo candidato foi adicionado.');
-                }
+        // 🔁 Actualizar Dados nos Catecumenos
+        frm.add_custom_button('Actualizar Dados nos Catecumenos', () => {
+            frappe.confirm('Deseja actualizar os dados dos Catecúmenos com as informações desta tabela?', async () => {
+                if (frm.is_dirty()) await frm.save();
+                const r = await ps_chamar(frm, 'actualizar_catecumenos');
+                frappe.msgprint(`Dados actualizados em ${r.actualizados} catecúmeno(s).`);
             });
-
-
-            // 🧹 Sincronizar Lista (remover quem já não cumpre critérios)
-            frm.add_custom_button('Sincronizar Lista', async () => {
-                if (!frm.doc.candidatos_sacramento_table || frm.doc.candidatos_sacramento_table.length === 0) {
-                    frappe.msgprint('A tabela de candidatos está vazia.');
-                    return;
-                }
-
-                if (!frm.doc.sacramento) {
-                    frappe.msgprint('Por favor, seleccione o Sacramento primeiro.');
-                    return;
-                }
-
-                const field_map = {
-                    "Baptismo":   "baptismo",
-                    "Eucaristia": "eucaristia",
-                    "Crisma":     "crisma"
-                };
-                const sacramento_field = field_map[frm.doc.sacramento] || "";
-
-                // Buscar fases válidas para este sacramento
-                const fases = await frappe.db.get_list('Fase', {
-                    filters: { fase_de_sacramento: 1, sacramento: frm.doc.sacramento },
-                    fields: ['name'],
-                    limit: 999
-                });
-                const fase_names_set = new Set(fases.map(f => f.name));
-
-                // Buscar turmas activas
-                const turmas_activas = await frappe.db.get_list('Turma', {
-                    filters: { status: 'Activo' },
-                    fields: ['name'],
-                    limit: 999
-                });
-                const turma_names_set = new Set(turmas_activas.map(t => t.name));
-
-                // Buscar estado actual de cada catecúmeno na tabela
-                const cat_names = frm.doc.candidatos_sacramento_table.map(r => r.catecumeno).filter(Boolean);
-
-               const catecumenos_actuais = await frappe.db.get_list('Catecumeno', {
-                filters: { name: ['in', cat_names] },
-                fields: ['name', 'fase', 'turma', 'status', 'comunidade', 'baptismo', 'eucaristia', 'crisma'],
-                limit: 999
-            });
-            
-            const cat_map = {};
-            catecumenos_actuais.forEach(c => cat_map[c.name] = c);
-            
-            // Avaliar quem sai e porquê
-            const removidos = [];
-            const manter = [];
-            
-            frm.doc.candidatos_sacramento_table.forEach(row => {
-                    // quem "Não vai receber" nunca é removido: fica o registo de quem falhou e porquê
-                    if (row.situacao === 'Não vai receber') { manter.push(row); return; }
-                    const c = cat_map[row.catecumeno];
-                    if (!c) {
-                        removidos.push({ nome: row.catecumeno, motivo: 'Catecúmeno não encontrado' });
-                        return;
-                    }
-
-                    const is_santa_ana = c.comunidade === 'Santa Ana';
-
-                    let motivo = null;
-                    if (c.status !== 'Activo') {
-                        motivo = 'Status inactivo';
-                    } else if (!is_santa_ana && !c.turma) {
-                        motivo = 'Sem turma atribuída';
-                    } else if (!is_santa_ana && c.turma && !turma_names_set.has(c.turma)) {
-                        motivo = `Turma "${c.turma}" não está Activa`;
-                    } else if (!is_santa_ana && !fase_names_set.has(c.fase)) {
-                        motivo = `Fase "${c.fase}" não corresponde ao sacramento`;
-                    } else if (sacramento_field && c[sacramento_field]) {
-                        motivo = 'Sacramento já recebido';
-                    }
-
-                    if (motivo) removidos.push({ nome: row.catecumeno, motivo });
-                    else        manter.push(row);
-                });
-
-                if (!removidos.length) {
-                    frappe.msgprint('Todos os candidatos continuam válidos. Nenhuma alteração necessária.');
-                    return;
-                }
-
-                // Mostrar lista de quem vai ser removido e pedir confirmação
-                const lista_html = removidos.map(r =>
-                    `<li><strong>${r.nome}</strong> — ${r.motivo}</li>`
-                ).join('');
-
-                frappe.confirm(
-                    `<p>Os seguintes ${removidos.length} candidato(s) serão removidos da lista:</p><ul>${lista_html}</ul>`,
-                    async () => {
-                        // Reconstruir tabela só com os válidos
-                        frm.doc.candidatos_sacramento_table = manter;
-                        frm.refresh_field('candidatos_sacramento_table');
-                        await frm.save();
-                        frappe.msgprint(`${removidos.length} candidato(s) removido(s). Lista sincronizada.`);
-                    },
-                    () => frappe.msgprint('Operação cancelada.')
-                );
-            });
-
-
-            // 🔁 Actualizar Dados nos Catecumenos
-            frm.add_custom_button('Actualizar Dados nos Catecumenos', async () => {
-                if (!frm.doc.candidatos_sacramento_table || frm.doc.candidatos_sacramento_table.length === 0) {
-                    frappe.msgprint('A tabela de candidatos está vazia.');
-                    return;
-                }
-
-                frappe.confirm(
-                    'Deseja actualizar os dados dos Catecumenos com as informações desta tabela?',
-                    async () => {
-                        const total = frm.doc.candidatos_sacramento_table.length;
-                        let done = 0;
-                        frappe.show_progress('Actualizar Catecumenos...', 0, 100);
-
-                        for (const row of frm.doc.candidatos_sacramento_table) {
-                            if (row.catecumeno) {
-                                await frappe.db.set_value('Catecumeno', row.catecumeno, {
-                                    encarregado:        row.encarregado,
-                                    contacto:           row.contacto_encarregado,
-                                    padrinhos:          row.padrinhos,
-                                    contacto_padrinhos: row.contacto_padrinhos,
-                                    sexo:               row.sexo,
-                                    idade:              row.idade
-                                });
-
-                                done++;
-                                frappe.show_progress('Actualizar Catecumenos...', (done / total) * 100);
-                            }
-                        }
-
-                        frappe.hide_progress();
-                        frappe.msgprint('Dados actualizados com sucesso nos registos dos Catecumenos.');
-                    },
-                    () => frappe.msgprint('Actualização cancelada.')
-                );
-            });
-        }
-    }
+        });
+    },
 });
 
 // ── Atribuir Datas e Sacerdote ────────────────────────────────────────────
@@ -773,5 +558,75 @@ function ps_mostrar_situacao(frm) {
         .ps-nao-recebe .data-row { box-shadow: inset 3px 0 0 #dc2626; }
         .ps-motivo { margin-left: 6px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 700;
             background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; white-space: nowrap; }`;
+    document.head.appendChild(st);
+})();
+
+// ── Formulário estilizado: resumo no topo + atalho para a página de gestão ─
+
+frappe.ui.form.on('Preparacao do Sacramento', {
+    refresh(frm) {
+        cq.estilizar(frm);
+        ps_resumo(frm);
+        if (!frm.is_new()) {
+            frm.add_custom_button(__('Gerir na página'), () => ps_abrir_pagina(frm)).addClass('btn-primary');
+        }
+    },
+});
+
+['ficha', 'documentos_padrinhos', 'valor_ofertorio', 'valor_cracha', 'valor_accao_gracas', 'valor_fotos', 'situacao']
+    .forEach((campo) => frappe.ui.form.on('Candidatos ao Sacramento Table', { [campo]: (frm) => ps_resumo(frm) }));
+
+function ps_abrir_pagina(frm) {
+    window.location.href = '/app/gerir-preparacao/' + encodeURIComponent(frm.doc.name);
+}
+
+function ps_resumo(frm) {
+    const d = frm.doc;
+    if (frm.is_new()) { frm.fields_dict.cq_resumo.$wrapper.empty(); return; }
+    const linhas = (d.candidatos_sacramento_table || []).filter((r) => r.catecumeno);
+    const vao = linhas.filter((r) => r.situacao !== PS_NAO_RECEBE);
+    const nao = linhas.length - vao.length;
+    const pag = [['valor_ofertorio', 'Ofertório'], ['valor_cracha', 'Crachá'], ['valor_accao_gracas', 'Acção de graças'], ['valor_fotos', 'Fotos']]
+        .filter(([c]) => flt(d[c]) > 0);
+    const pago = (r) => pag.every(([c]) => flt(r[c]) >= flt(d[c]));
+    const recebido = vao.reduce((t, r) => t + pag.reduce((s, [c]) => s + flt(r[c]), 0), 0);
+    const esperado = vao.length * pag.reduce((s, [c]) => s + flt(d[c]), 0);
+    const n = (f) => vao.filter(f).length;
+    const pct = (k) => (vao.length ? Math.round((k / vao.length) * 100) : 0);
+    const barra = (rotulo, k) => `<span class="ps-prog"><small>${rotulo}</small> <b>${k}/${vao.length}</b>
+        <i><em style="width:${pct(k)}%"></em></i></span>`;
+
+    const activo = d.link_token && d.link_expira_em && frappe.datetime.str_to_obj(d.link_expira_em) > new Date();
+    const estado = d.docstatus === 1 ? 'Submetida' : d.docstatus === 2 ? 'Cancelada' : 'Rascunho';
+
+    cq.resumo(frm, 'cq_resumo', {
+        titulo: `${d.sacramento || ''} ${d.ano_lectivo || ''}`.trim(),
+        pills: [cq.pill(estado), activo ? cq.pill('Link activo') : ''],
+        subtitulo: d.data_do_sacramento ? '📅 ' + frappe.datetime.str_to_user(d.data_do_sacramento) : 'Sem data definida',
+        factos: [
+            { v: vao.length, l: 'Vão receber' },
+            nao ? { v: nao, l: 'Não vão' } : null,
+        ],
+        linhas: [
+            barra('Ficha', n((r) => r.ficha)) + barra('Docs. padrinhos', n((r) => r.documentos_padrinhos))
+            + (pag.length ? barra('Pagamento completo', n(pago)) : ''),
+            pag.length ? `<span><small>Recebido:</small> <b>${format_currency(recebido)}</b> <small>de ${format_currency(esperado)} esperados</small></span>`
+                + (activo ? `<span><small>Link válido até</small> ${frappe.datetime.str_to_user(d.link_expira_em)}</span>` : '') : '',
+        ],
+        aviso: d.docstatus === 0
+            ? `<span>📋 Fichas, pagamentos, dia e situação de cada candidato numa só tabela.</span>${cq.botao(__('Gerir na página'), 0)}`
+            : '',
+        acoes: [{ accao: () => ps_abrir_pagina(frm) }],
+    });
+}
+
+(function () {
+    if (document.getElementById('ps-resumo-css')) return;
+    const st = document.createElement('style');
+    st.id = 'ps-resumo-css';
+    st.textContent = `
+        .ps-prog { display: inline-flex; align-items: center; gap: 6px; }
+        .ps-prog i { display: inline-block; width: 70px; height: 6px; border-radius: 3px; background: rgba(184,136,46,.18); overflow: hidden; }
+        .ps-prog em { display: block; height: 100%; background: linear-gradient(90deg, #e8c464, #b8882e); }`;
     document.head.appendChild(st);
 })();

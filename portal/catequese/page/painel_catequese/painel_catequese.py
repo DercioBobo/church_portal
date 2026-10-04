@@ -31,6 +31,10 @@ PAGINAS = {
         "icone": "✝️", "grupo": "Sacramentos", "ordem": 1,
         "descricao": "Quem não recebeu o Baptismo, a 1ª Comunhão ou o Crisma, porquê, e onde está agora.",
     },
+    "gerir-preparacao": {
+        "icone": "📋", "grupo": "Sacramentos", "ordem": 2,
+        "descricao": "Preparação do sacramento: fichas, pagamentos, dia e situação de cada candidato numa só tabela.",
+    },
     "abrir-encerrar-ano": {
         "icone": "📅", "grupo": "Ano lectivo", "ordem": 1,
         "descricao": "Lista de verificação para encerrar o ano e preparar o seguinte.",

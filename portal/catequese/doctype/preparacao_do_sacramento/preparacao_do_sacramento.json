@@ -17,6 +17,9 @@
  "email_append_to": 0,
  "engine": "InnoDB",
  "field_order": [
+  "sec_resumo",
+  "cq_resumo",
+  "sec_dados",
   "ano_lectivo",
   "column_break_gerz",
   "sacramento",
@@ -41,6 +44,20 @@
   "link_token"
  ],
  "fields": [
+  {
+   "fieldname": "sec_resumo",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cq_resumo",
+   "fieldtype": "HTML",
+   "label": "Resumo"
+  },
+  {
+   "fieldname": "sec_dados",
+   "fieldtype": "Section Break",
+   "label": "Preparação"
+  },
   {
    "allow_bulk_edit": 0,
    "allow_in_quick_entry": 0,
@@ -814,7 +831,7 @@
  "links": [],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-03 19:50:05.000000",
+ "modified": "2026-10-04 12:31:06.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Preparacao do Sacramento",
