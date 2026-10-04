@@ -77,3 +77,22 @@
     },
   };
 })();
+
+// Barra lateral (sidebar) fechada por omissão em formulários e listas.
+// Cada página fecha-a na primeira vez que abre; o botão de alternar continua a funcionar.
+(function () {
+  function fechar_sidebar() {
+    const rota = frappe.get_route() || [];
+    if (!['Form', 'List', 'Report'].includes(rota[0])) return;
+    if (frappe.utils.is_xs() || frappe.utils.is_sm()) return;   // no telemóvel já abre por cima
+    const pagina = frappe.container && frappe.container.page;
+    if (!pagina) return;
+    const $side = $(pagina).find('.layout-side-section');
+    if (!$side.length || $side.data('cq-fechado')) return;
+    $side.data('cq-fechado', 1).hide();
+    const p = pagina.page || (window.cur_frm && cur_frm.page);
+    if (p && p.update_sidebar_icon) p.update_sidebar_icon();
+  }
+  $(document).on('page-change', () => setTimeout(fechar_sidebar, 50));
+  $(document).on('form-refresh list_sidebar_setup', () => setTimeout(fechar_sidebar, 50));
+})();

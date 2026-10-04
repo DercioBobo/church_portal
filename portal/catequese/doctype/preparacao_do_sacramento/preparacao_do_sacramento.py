@@ -7,8 +7,30 @@ from frappe.utils import add_to_date, get_datetime, get_url, now_datetime
 
 from portal.catequese.utils import definicao, valores_sacramento
 
+NAO_RECEBE = "Não vai receber"
+
+
+def nao_recebe(row):
+    return (row.get("situacao") or "") == NAO_RECEBE
+
 
 class PreparacaodoSacramento(Document):
+    def vao_receber(self):
+        """Candidatos que recebem o sacramento (quem não vai receber fica na lista, com o motivo)."""
+        return [r for r in self.candidatos_sacramento_table if r.catecumeno and not nao_recebe(r)]
+
+    def validate(self):
+        for r in self.candidatos_sacramento_table:
+            if not r.situacao:
+                r.situacao = "Vai receber"
+            if nao_recebe(r):
+                if not r.motivo_nao_recebe:
+                    frappe.throw(_("Linha {0} ({1}): indique o motivo por que não vai receber.").format(
+                        r.idx, r.catecumeno or ""))
+            else:
+                r.motivo_nao_recebe = None
+                r.detalhe_situacao = None
+
     def before_insert(self):
         # Valores por omissão do sacramento (só os que não foram preenchidos)
         for campo, valor in valores_sacramento(self.sacramento).items():
@@ -45,14 +67,21 @@ class PreparacaodoSacramento(Document):
         self.check_permission("write")
         self.db_set({"link_token": None, "link_expira_em": None, "link_url": None}, update_modified=False)
         self.add_comment("Info", _("Link para encarregados revogado."))
+
     def on_submit(self):
         # (eram os Server Scripts "PS Baptismo Script", "PS Eucaristia Script" e "Finalize Crisma")
+        # Só quem "Vai receber"; os outros ficam na lista e aparecem na página Sacramentos.
         if self.sacramento == "Baptismo":
             self._finalizar_baptismo()
         elif self.sacramento == "Eucaristia":
             self._finalizar_eucaristia()
         elif self.sacramento == "Crisma":
             self._finalizar_crisma()
+
+        falharam = [r for r in self.candidatos_sacramento_table if r.catecumeno and nao_recebe(r)]
+        if falharam:
+            self.add_comment("Info", _("Não receberam o sacramento ({0}): {1}").format(
+                len(falharam), ", ".join(f"{r.catecumeno} ({r.motivo_nao_recebe})" for r in falharam)))
 
     # ── Baptismo ──────────────────────────────────────────────────────────────
 
@@ -62,8 +91,8 @@ class PreparacaodoSacramento(Document):
         nova_fase = definicao("fase_apos_baptismo")
 
         por_turma = {}
-        for row in self.candidatos_sacramento_table:
-            if row.catecumeno and row.turma:
+        for row in self.vao_receber():
+            if row.turma:
                 por_turma.setdefault(row.turma, []).append(row)
 
         for turma_antiga_nome, candidatos in por_turma.items():
@@ -147,7 +176,7 @@ class PreparacaodoSacramento(Document):
     # ── Eucaristia ────────────────────────────────────────────────────────────
 
     def _finalizar_eucaristia(self):
-        rows = [r for r in self.candidatos_sacramento_table if r.catecumeno]
+        rows = self.vao_receber()
         for row in rows:
             frappe.db.set_value("Catecumeno", row.catecumeno, {
                 "eucaristia": 1,
@@ -161,7 +190,7 @@ class PreparacaodoSacramento(Document):
 
     def _finalizar_crisma(self):
         """Marca os crismados como finalizados e cria-lhes um registo de Fiel."""
-        rows = [r for r in self.candidatos_sacramento_table if r.catecumeno]
+        rows = self.vao_receber()
         criados = ja_existiam = 0
 
         for row in rows:

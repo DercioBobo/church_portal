@@ -78,6 +78,115 @@ Actualizado em 3 de Outubro de 2026.
 
 ---
 
+## 🎨 Formulários estilizados (em curso)
+
+Tema próprio em dourado claro (o mesmo do Plano Anual / Plano de Retiro). Cada formulário tem:
+- um resumo compacto no topo do separador **Dados**, com os campos logo abaixo;
+- separadores limpos;
+- um só cartão, com as secções separadas por linhas.
+
+Ficheiros:
+- `public/css/catequese_forms.css`: os estilos.
+- `public/js/catequese_forms.js`: `cq.estilizar`, `cq.resumo`, `cq.pill`, `cq.telefone`, `cq.marca`.
+- `catequese/formularios.py`: dados do resumo.
+
+A barra lateral fica fechada por omissão em formulários e listas.
+
+### Feito
+- [x] **Catecúmeno**:
+  - resumo com turma, catequistas (telefone/WA), sacramentos, encarregado e faltas/ficha;
+  - aviso com os botões Alocar turma / Reactivar;
+  - separadores Família, Sacramentos e Histórico (mais recente primeiro).
+
+### Seguintes (os formulários mais usados)
+1. [ ] **Turma**:
+   - resumo com fase, horário, local e catequistas com telefone/WA;
+   - números: catecúmenos, média de faltas, fichas em falta;
+   - a tabela de catecúmenos num separador próprio.
+2. [ ] **Inscrição**: resumo com catecúmeno, fase e estado da inscrição, com ligação directa ao catecúmeno.
+3. [ ] **Preparação do Sacramento**: resumo com sacramento, data, número de candidatos e estado do link partilhado (activo/expirado).
+4. [ ] **Catequista**: resumo com contactos, turmas deste ano, quotas pagas/em falta e estado inactivo.
+
+### Depois (só o tema e separadores organizados; resumo pequeno ou nenhum)
+- [ ] Fase, Ano Lectivo, Sacramento, Livro de Baptismo, Profissão de Fé
+- [ ] Troca de Turma, Transferência de Catecúmeno, Inactivar Catecúmeno, Alocação em Massa, Apuramento de Turmas
+- [ ] Plano de Retiro, Actividade do Plano, Proposta do Plano, Despesa, Receita, Quota, Catequista Aviso, Relatório Anual
+- [ ] Catequese Settings: só o tema, porque já está em separadores.
+
+As tabelas filhas (`…_item`, `…_table`) não precisam: só aparecem dentro de outros formulários.
+
+---
+
+## ✝️ Sacramentos e livros (em curso)
+
+**Percurso normal:**
+- 5ª fase → **Baptismo**.
+- 1º ano de Aprofundamento (a meio do ano) → **1ª Comunhão**.
+- 1º, 2º e 3º ano de Crisma → **Crisma** no 3º ano (última fase).
+
+**Problemas de hoje:**
+- Não há forma de ver quem falhou o sacramento.
+- Não há onde registar a 2ª oportunidade.
+- Baptismos de bebés, de casamento e extraordinários, e crismas feitos noutra paróquia, ficam à mão no Livro de Baptismo.
+- 1ª Comunhão e Crisma não têm livro.
+
+### 1. Três livros, cada um com a sua numeração
+São livros físicos diferentes. Têm campos comuns e alguns exclusivos (**à espera das colunas de cada livro**).
+
+| Livro | Comunidade |
+|---|---|
+| **Livro de Baptismo** (o existente, corrigido) | um livro por comunidade (Assunção, Santa Ana) |
+| **Livro de 1ª Comunhão** (novo) | um livro por comunidade |
+| **Livro de Crisma** (novo) | **um só livro para a paróquia**; a comunidade só indica de onde vem a pessoa |
+
+- **Campos comuns:**
+  - catecúmeno (opcional; bebés e adultos só com nome);
+  - data, celebrante, padrinhos, comunidade;
+  - local: esta paróquia ou outra, com o nome dessa paróquia;
+  - livro, folha e número: texto livre, **não obrigatórios**, mantidos tal como escritos porque são usados em documentos;
+  - **origem**: Catequese / 2ª oportunidade / Extraordinário (casamento, bebé, adulto, outro) / Outra paróquia.
+- **Livro de Baptismo:**
+  - os registos novos passam a ter nome por série (ex.: `BAP-2026-0001`) em vez do nome da pessoa;
+  - os registos existentes mantêm o nome;
+  - o catecúmeno passa a opcional.
+- Os visto Baptismo/Eucaristia/Crisma no Catecúmeno passam a vir **automaticamente** dos livros.
+- O mesmo trabalho resolve os itens da Fase 1 "Certificados" e "Baptismos de crianças":
+  - os certificados imprimem-se a partir do registo no livro;
+  - o Relatório Anual conta os baptismos de bebés a partir do livro.
+
+### 2. ✅ Preparação: Situação por candidato (em vez de apagar)
+- **Vai receber** (por omissão) / **Não vai receber**, com motivo: comportamento, faltas, documentos, desistiu, repete a fase, outro.
+- O PDF e o link para encarregados e padrinhos mostram só os que vão receber (igual ao que se partilha hoje).
+- Ao submeter, só esses recebem o registo no livro e o visto. Os outros ficam como "falhou", com o motivo.
+- **Feito:**
+  - botão **Ações → Marcar situação** para os candidatos seleccionados;
+  - linhas a cinzento com o motivo e contagem no topo;
+  - "Sincronizar Lista" nunca remove quem não vai receber;
+  - os 19 formatos de impressão, o link, o Relatório Anual e a Qualidade dos Dados ignoram quem não vai receber.
+
+### 3. ✅ Fase: sacramento da fase
+- Já existia em **Fase**: *Com Sacramento* + *Sacramento* (5ª → Baptismo, 1º Aprofundamento → Eucaristia, 3º Crisma → Crisma).
+- A página usa também a **Ordem** da Fase. Confirmar que está preenchida em todas as fases.
+- Serve para saber quem já *devia* ter cada sacramento.
+
+### 4. ✅ Página "Sacramentos" (`/app/painel-sacramentos`, no Painel e no workspace)
+- Pendentes por sacramento: quem falhou, em que Preparação e porquê.
+- [ ] **2ª oportunidade, noutro dia do mesmo ano:** botão "Registar sacramento" cria o registo no livro com origem *2ª oportunidade*, ligado à Preparação falhada.
+- **2ª oportunidade, repete a fase:** muda de turma pelo processo normal e entra na Preparação do ano seguinte. Na página aparece como "repete a fase".
+- [ ] Resumo de cada livro no ano, por origem e por comunidade.
+- Botão e resumo **esperam pelos livros** (ponto 1).
+
+### 5. Qualidade dos Dados (só incoerências)
+- Sacramento com visto mas sem registo no livro.
+- Registo no livro sem visto.
+- Pessoa numa fase posterior sem o sacramento e sem motivo registado.
+
+### 6. Migração
+- Os registos actuais do Livro de Baptismo mantêm-se (origem por omissão: Catequese).
+- Os que faltam aparecem na Qualidade dos Dados.
+
+---
+
 ## 🔜 Fase 1: resto
 
 ### 1. Certificados de sacramento

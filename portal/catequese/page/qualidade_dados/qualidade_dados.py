@@ -324,6 +324,7 @@ def _sac_documentos_em_falta():
         FROM `tabCandidatos ao Sacramento Table` cs
         JOIN `tabPreparacao do Sacramento` p ON p.name = cs.parent AND p.docstatus < 2
         WHERE p.ano_lectivo = %s AND (IFNULL(cs.ficha, 0) = 0 OR IFNULL(cs.documentos_padrinhos, 0) = 0)
+          AND IFNULL(cs.situacao, '') != 'Não vai receber'
         ORDER BY p.name, cs.catecumeno""", ano_actual()):
         r.falta = ", ".join(x for x, ok in (("ficha", r.ficha), ("docs. padrinhos", r.documentos_padrinhos)) if not ok)
         out.append(r)

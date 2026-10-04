@@ -176,6 +176,8 @@ frappe.ui.form.on('Preparacao do Sacramento', {
             const manter = [];
             
             frm.doc.candidatos_sacramento_table.forEach(row => {
+                    // quem "Não vai receber" nunca é removido: fica o registo de quem falhou e porquê
+                    if (row.situacao === 'Não vai receber') { manter.push(row); return; }
                     const c = cat_map[row.catecumeno];
                     if (!c) {
                         removidos.push({ nome: row.catecumeno, motivo: 'Catecúmeno não encontrado' });
@@ -674,3 +676,102 @@ frappe.ui.form.on('Preparacao do Sacramento', {
         });
     },
 });
+
+// ── Situação dos candidatos (Vai receber / Não vai receber) ───────────────
+// Em vez de apagar quem não vai receber, marca-se com o motivo. Não aparece nos PDFs
+// nem no link para encarregados, e fica visível na página Sacramentos.
+
+const PS_NAO_RECEBE = 'Não vai receber';
+const PS_MOTIVOS = ['Comportamento', 'Faltas', 'Documentos', 'Desistiu', 'Repete a fase', 'Outro'];
+
+frappe.ui.form.on('Preparacao do Sacramento', {
+    refresh(frm) {
+        ps_mostrar_situacao(frm);
+        if (frm.is_new() || frm.doc.docstatus !== 0) return;
+        frm.add_custom_button(__('Marcar situação'), () => {
+            const sel = frm.fields_dict.candidatos_sacramento_table.grid.get_selected_children();
+            if (!sel.length) {
+                frappe.show_alert({ message: __('Seleccione pelo menos um candidato na tabela.'), indicator: 'orange' });
+                return;
+            }
+            ps_dialogo_situacao(frm, sel);
+        }, __('Ações'));
+    },
+    candidatos_sacramento_table_on_form_rendered: ps_mostrar_situacao,
+});
+
+frappe.ui.form.on('Candidatos ao Sacramento Table', {
+    situacao(frm) { ps_mostrar_situacao(frm); },
+    candidatos_sacramento_table_remove(frm) { ps_mostrar_situacao(frm); },
+});
+
+function ps_dialogo_situacao(frm, linhas) {
+    const d = new frappe.ui.Dialog({
+        title: __('Situação de {0} candidato(s)', [linhas.length]),
+        fields: [
+            { fieldname: 'situacao', fieldtype: 'Select', label: __('Situação'), reqd: 1,
+              options: ['Vai receber', PS_NAO_RECEBE].join('\n'), default: PS_NAO_RECEBE },
+            { fieldname: 'motivo', fieldtype: 'Select', label: __('Motivo'),
+              options: [''].concat(PS_MOTIVOS).join('\n'),
+              depends_on: `eval:doc.situacao=='${PS_NAO_RECEBE}'`,
+              mandatory_depends_on: `eval:doc.situacao=='${PS_NAO_RECEBE}'` },
+            { fieldname: 'detalhe', fieldtype: 'Small Text', label: __('Detalhe (opcional)'),
+              depends_on: `eval:doc.situacao=='${PS_NAO_RECEBE}'` },
+            { fieldname: 'nomes', fieldtype: 'HTML',
+              options: `<p class="text-muted small">${linhas.map((r) => frappe.utils.escape_html(r.catecumeno || '')).join(', ')}</p>` },
+        ],
+        primary_action_label: __('Aplicar'),
+        primary_action(v) {
+            const nao = v.situacao === PS_NAO_RECEBE;
+            linhas.forEach((r) => {
+                frappe.model.set_value(r.doctype, r.name, {
+                    situacao: v.situacao,
+                    motivo_nao_recebe: nao ? v.motivo : '',
+                    detalhe_situacao: nao ? (v.detalhe || '') : '',
+                });
+            });
+            d.hide();
+            frm.fields_dict.candidatos_sacramento_table.grid.clear_checked_items?.();
+            frm.save();
+        },
+    });
+    d.show();
+}
+
+// Linhas de quem não vai receber a cinzento com o motivo, e contagem no topo
+function ps_mostrar_situacao(frm) {
+    const linhas = frm.doc.candidatos_sacramento_table || [];
+    const nao = linhas.filter((r) => r.situacao === PS_NAO_RECEBE);
+    const grid = frm.fields_dict.candidatos_sacramento_table && frm.fields_dict.candidatos_sacramento_table.grid;
+    setTimeout(() => {
+        (grid && grid.grid_rows || []).forEach((gr) => {
+            const doc = gr.doc || {};
+            const fora = doc.situacao === PS_NAO_RECEBE;
+            const $row = $(gr.row);
+            $row.toggleClass('ps-nao-recebe', fora);
+            $row.find('.ps-motivo').remove();
+            if (fora) {
+                $row.find('[data-fieldname="catecumeno"] .static-area, [data-fieldname="catecumeno"] .field-area').first()
+                    .append(`<span class="ps-motivo">${frappe.utils.escape_html(doc.motivo_nao_recebe || PS_NAO_RECEBE)}</span>`);
+            }
+        });
+    }, 0);
+    if (!linhas.length) { frm.set_intro(''); return; }
+    const recebem = linhas.length - nao.length;
+    frm.set_intro(nao.length
+        ? __('<b>{0}</b> vão receber · <b>{1}</b> não vão receber (a cinzento na tabela; não aparecem nos PDFs nem no link).', [recebem, nao.length])
+        : __('<b>{0}</b> candidatos vão receber o sacramento.', [recebem]),
+        nao.length ? 'orange' : 'blue');
+}
+
+(function () {
+    if (document.getElementById('ps-situacao-css')) return;
+    const st = document.createElement('style');
+    st.id = 'ps-situacao-css';
+    st.textContent = `
+        .ps-nao-recebe .data-row { opacity: .55; background: repeating-linear-gradient(135deg, transparent 0 8px, rgba(220,38,38,.04) 8px 16px); }
+        .ps-nao-recebe .data-row { box-shadow: inset 3px 0 0 #dc2626; }
+        .ps-motivo { margin-left: 6px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 700;
+            background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; white-space: nowrap; }`;
+    document.head.appendChild(st);
+})();

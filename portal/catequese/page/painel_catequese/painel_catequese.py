@@ -12,7 +12,7 @@ from portal.catequese.utils import ano_actual, definicao
 
 PAINEL = "painel-catequese"
 
-GRUPOS = ["Consulta", "Ano lectivo", "Planeamento", "Finanças", "Outras"]
+GRUPOS = ["Consulta", "Sacramentos", "Ano lectivo", "Planeamento", "Finanças", "Outras"]
 
 PAGINAS = {
     "consulta-rapida": {
@@ -26,6 +26,10 @@ PAGINAS = {
     "aniversariantes-hoje": {
         "icone": "🎂", "grupo": "Consulta", "ordem": 3,
         "descricao": "Catecúmenos que fazem anos hoje.",
+    },
+    "painel-sacramentos": {
+        "icone": "✝️", "grupo": "Sacramentos", "ordem": 1,
+        "descricao": "Quem não recebeu o Baptismo, a 1ª Comunhão ou o Crisma, porquê, e onde está agora.",
     },
     "abrir-encerrar-ano": {
         "icone": "📅", "grupo": "Ano lectivo", "ordem": 1,

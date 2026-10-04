@@ -18,6 +18,9 @@
   "catecumeno",
   "turma",
   "fase",
+  "situacao",
+  "motivo_nao_recebe",
+  "detalhe_situacao",
   "column_break_mxjn",
   "date",
   "dia",
@@ -183,6 +186,28 @@
    "sort_options": 0,
    "translatable": 0,
    "unique": 0
+  },
+  {
+   "default": "Vai receber",
+   "description": "Quem não vai receber fica na lista (com o motivo) mas não aparece nos PDFs nem no link para encarregados.",
+   "fieldname": "situacao",
+   "fieldtype": "Select",
+   "label": "Situação",
+   "options": "Vai receber\nNão vai receber"
+  },
+  {
+   "depends_on": "eval:doc.situacao=='Não vai receber'",
+   "fieldname": "motivo_nao_recebe",
+   "fieldtype": "Select",
+   "label": "Motivo",
+   "mandatory_depends_on": "eval:doc.situacao=='Não vai receber'",
+   "options": "\nComportamento\nFaltas\nDocumentos\nDesistiu\nRepete a fase\nOutro"
+  },
+  {
+   "depends_on": "eval:doc.situacao=='Não vai receber'",
+   "fieldname": "detalhe_situacao",
+   "fieldtype": "Small Text",
+   "label": "Detalhe do motivo"
   },
   {
    "allow_bulk_edit": 0,
@@ -1400,7 +1425,7 @@
  "links": [],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-03 18:42:19.000000",
+ "modified": "2026-10-04 12:11:16.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Candidatos ao Sacramento Table",

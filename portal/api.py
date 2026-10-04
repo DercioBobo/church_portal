@@ -250,6 +250,7 @@ def get_preparacoes_sacramento():
         LEFT JOIN `tabCandidatos ao Sacramento Table` c
             ON c.parent = p.name
            AND c.parentfield = 'candidatos_sacramento_table'
+           AND IFNULL(c.situacao, '') != 'Não vai receber'
         GROUP BY p.name
         ORDER BY p.data_do_sacramento DESC, p.name ASC
     """, as_dict=True)
@@ -329,6 +330,7 @@ def get_preparacao_sacramento(nome, t=None):
         FROM `tabCandidatos ao Sacramento Table` c
         WHERE c.parent = %s
           AND c.parentfield = 'candidatos_sacramento_table'
+          AND IFNULL(c.situacao, '') != 'Não vai receber'
         ORDER BY c.catecumeno ASC
     """, (nome,), as_dict=True)
 
@@ -355,11 +357,13 @@ def atualizar_candidato_sacramento(
     row = frappe.db.get_value(
         "Candidatos ao Sacramento Table",
         row_name,
-        ["name", "catecumeno", "parent", "parentfield"],
+        ["name", "catecumeno", "parent", "parentfield", "situacao"],
         as_dict=True,
     )
 
-    if not row or row.parent != preparacao_nome or row.parentfield != "candidatos_sacramento_table":
+    # quem "Não vai receber" não aparece no link, logo também não pode ser editado por ele
+    if (not row or row.parent != preparacao_nome or row.parentfield != "candidatos_sacramento_table"
+            or row.situacao == "Não vai receber"):
         frappe.throw(_("Candidato não encontrado nesta preparação"))
 
     # Build update dict for child row (all editable fields)

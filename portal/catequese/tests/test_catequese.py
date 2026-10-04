@@ -243,6 +243,99 @@ class TestSacramentos(BaseCatequese):
         self.assertEqual(frappe.db.get_value("Catecumeno", baptizar.name, "baptismo"), 1)
 
 
+class TestSituacaoSacramento(BaseCatequese):
+    """Quem "Não vai receber" fica na lista com o motivo, mas não recebe nem aparece no link."""
+    # O nome da preparação é {sacramento}-{ano}: um ano de teste por teste
+    _ano = 2200
+
+    def preparacao(self, sac, linhas):
+        TestSituacaoSacramento._ano += 1
+        a = str(TestSituacaoSacramento._ano)
+        return frappe.get_doc({
+            "doctype": "Preparacao do Sacramento", "sacramento": sac,
+            "ano_lectivo": ano(a), "data_do_sacramento": f"{a}-06-07",
+            "candidatos_sacramento_table": linhas,
+        }).insert()
+
+    def test_motivo_obrigatorio(self):
+        c = catecumeno("_Teste Sit Sem Motivo")
+        self.assertRaises(frappe.ValidationError, self.preparacao, "Eucaristia",
+                          [{"catecumeno": c.name, "situacao": "Não vai receber"}])
+
+    def test_so_quem_vai_receber_recebe(self):
+        sim = catecumeno("_Teste Sit Sim")
+        nao = catecumeno("_Teste Sit Nao")
+        prep = self.preparacao("Eucaristia", [
+            {"catecumeno": sim.name},
+            {"catecumeno": nao.name, "situacao": "Não vai receber", "motivo_nao_recebe": "Faltas"},
+        ])
+        self.assertEqual(prep.candidatos_sacramento_table[0].situacao, "Vai receber")
+        prep.submit()
+        self.assertEqual(frappe.db.get_value("Catecumeno", sim.name, "eucaristia"), 1)
+        self.assertEqual(frappe.db.get_value("Catecumeno", nao.name, "eucaristia"), 0)
+        self.assertEqual(len(frappe.get_doc("Preparacao do Sacramento", prep.name).candidatos_sacramento_table), 2)
+
+    def test_baptismo_quem_nao_recebe_fica_na_turma(self):
+        sim = catecumeno("_Teste Sit Bap Sim", baptismo=0)
+        nao = catecumeno("_Teste Sit Bap Nao", baptismo=0)
+        antiga = turma(FASE_A, [sim, nao], catequista=None)
+        self.preparacao("Baptismo", [
+            {"catecumeno": sim.name, "turma": antiga.name},
+            {"catecumeno": nao.name, "turma": antiga.name,
+             "situacao": "Não vai receber", "motivo_nao_recebe": "Comportamento"},
+        ]).submit()
+        self.assertEqual(nomes_na_turma(antiga.name), {nao.name})
+        self.assertEqual(frappe.db.get_value("Turma", antiga.name, "status"), "Activo")
+        self.assertEqual(frappe.db.get_value("Catecumeno", nao.name, ["turma", "baptismo"]), (antiga.name, 0))
+        self.assertFalse(frappe.db.exists("Livro de Baptismo", nao.name))
+
+    def test_link_nao_mostra_nem_edita_quem_nao_recebe(self):
+        from portal.api import atualizar_candidato_sacramento, get_preparacao_sacramento
+
+        sim = catecumeno("_Teste Sit Link Sim")
+        nao = catecumeno("_Teste Sit Link Nao")
+        prep = self.preparacao("Eucaristia", [
+            {"catecumeno": sim.name},
+            {"catecumeno": nao.name, "situacao": "Não vai receber", "motivo_nao_recebe": "Documentos"},
+        ])
+        linha_nao = prep.candidatos_sacramento_table[1].name
+        token = prep.gerar_link_encarregados(dias=1, permite_editar=1).split("t=")[1]
+        try:
+            frappe.set_user("Guest")
+            dados = get_preparacao_sacramento(prep.name, token)
+            self.assertEqual([c.catecumeno for c in dados["candidatos"]], [sim.name])
+            self.assertRaises(frappe.ValidationError, atualizar_candidato_sacramento,
+                              prep.name, linha_nao, encarregado="X", t=token)
+        finally:
+            frappe.set_user("Administrator")
+
+    def test_pagina_sacramentos(self):
+        from portal.catequese.page.painel_sacramentos.painel_sacramentos import get_dados
+
+        fase("_Teste Fase Comunhao", ordem=50, fase_de_sacramento=1, sacramento="Eucaristia")
+        fase("_Teste Fase Depois Comunhao", ordem=51)
+        falhou = catecumeno("_Teste Sit Pag Falhou")
+        esquecido = catecumeno("_Teste Sit Pag Esquecido", fase="_Teste Fase Depois Comunhao")
+        self.preparacao("Eucaristia", [
+            {"catecumeno": falhou.name, "situacao": "Não vai receber", "motivo_nao_recebe": "Repete a fase"},
+        ]).submit()
+
+        def comunhao():
+            return next(s for s in get_dados()["sacramentos"] if s["sacramento"] == "Eucaristia")
+
+        s = comunhao()
+        pend = {r.catecumeno: r for r in s["pendentes"]}
+        self.assertEqual(pend[falhou.name].motivo, "Repete a fase")
+        self.assertIn(esquecido.name, {r.catecumeno for r in s["sem_motivo"]})
+        self.assertIn("_Teste Fase Comunhao", s["fases"])
+
+        # 2ª oportunidade: recebeu depois → passa para "Já receberam depois"
+        frappe.db.set_value("Catecumeno", falhou.name, "eucaristia", 1)
+        s = comunhao()
+        self.assertNotIn(falhou.name, {r.catecumeno for r in s["pendentes"]})
+        self.assertIn(falhou.name, {r.catecumeno for r in s["resolvidos"]})
+
+
 # ── Apuramento ────────────────────────────────────────────────────────────────
 
 class TestApuramento(BaseCatequese):
