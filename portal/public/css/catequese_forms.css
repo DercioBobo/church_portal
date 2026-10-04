@@ -1,0 +1,142 @@
+/* ── Tema dos formulários da catequese ──────────────────────────────────────
+   Aplica-se só a formulários com a classe .cq-form (ver public/js/catequese_forms.js).
+   Usa as variáveis de tema do Frappe para funcionar em modo claro e escuro. */
+
+.cq-form {
+  --cq-accent: #4f46e5;
+  --cq-accent-soft: rgba(79, 70, 229, 0.1);
+  --cq-ok: #16a34a;
+  --cq-warn: #d97706;
+  --cq-off: #64748b;
+  --cq-erro: #dc2626;
+}
+
+/* Fundo: as secções passam a ser cartões sobre o fundo da página */
+.cq-form .form-page { background: transparent; border: 0; box-shadow: none; }
+.cq-form .form-layout { background: transparent; }
+
+/* Separadores em pílula */
+.cq-form .form-tabs-list { border-bottom: 0; background: transparent; padding: 6px 0 2px; }
+.cq-form .form-tabs-list .form-tabs { gap: 6px; border: 0; }
+.cq-form .form-tabs-list .nav-link {
+  border: 1px solid var(--border-color) !important; border-radius: 999px; padding: 6px 16px;
+  background: var(--card-bg); color: var(--text-muted); font-weight: 600; font-size: 0.85rem;
+  transition: all 0.15s;
+}
+.cq-form .form-tabs-list .nav-link:hover { color: var(--cq-accent); border-color: var(--cq-accent) !important; }
+.cq-form .form-tabs-list .nav-link.active {
+  background: var(--cq-accent); border-color: var(--cq-accent) !important; color: #fff;
+}
+
+/* Secções como cartões */
+.cq-form .form-section.card-section {
+  background: var(--card-bg); border: 1px solid var(--border-color) !important; border-radius: 14px;
+  margin: 12px 0; padding: 4px 8px 8px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.cq-form .form-section .section-head {
+  display: flex; align-items: center; gap: 8px; padding: 14px 12px 6px;
+  font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);
+}
+.cq-form .form-section .section-head::before {
+  content: ""; width: 4px; height: 14px; border-radius: 2px; background: var(--cq-accent);
+}
+.cq-form .form-section .section-head.collapsed::before { background: var(--border-color); }
+.cq-form .form-section .section-body { padding-top: 4px; }
+.cq-form .section-description { color: var(--text-muted); font-size: 0.78rem; padding: 0 12px; }
+
+/* Campos */
+.cq-form .control-label { font-size: 0.76rem; font-weight: 600; color: var(--text-muted); }
+.cq-form .form-control, .cq-form .ql-container, .cq-form .ql-toolbar {
+  border-radius: 8px !important;
+}
+.cq-form .form-control:focus { box-shadow: 0 0 0 3px var(--cq-accent-soft); }
+.cq-form .frappe-control[data-fieldtype="Check"] label { font-weight: 500; }
+
+/* O primeiro campo HTML (resumo) não leva cartão à volta */
+.cq-form .form-section:has(.cq-resumo) {
+  background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0;
+}
+.cq-form .form-section:has(.cq-resumo) .section-head { display: none; }
+
+/* ── Cartão de resumo ────────────────────────────────────────────────────── */
+.cq-resumo {
+  border-radius: 18px; padding: 20px 24px; color: #fff; margin: 4px 0 2px;
+  background:
+    radial-gradient(circle at 88% 15%, rgba(255, 255, 255, 0.16), transparent 45%),
+    linear-gradient(135deg, #312e81 0%, #4f46e5 55%, #7c3aed 100%);
+  box-shadow: 0 10px 28px -14px rgba(79, 70, 229, 0.6);
+}
+.cq-resumo a { color: #fff; }
+.cq-resumo-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.cq-resumo-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.cq-resumo h2 { margin: 0; font-size: 1.45rem; font-weight: 800; letter-spacing: -0.01em; color: #fff; }
+.cq-resumo-id p { margin: 4px 0 0; font-size: 0.88rem; opacity: 0.9; }
+.cq-factos { display: flex; gap: 8px; flex-wrap: wrap; }
+.cq-facto {
+  display: flex; flex-direction: column; align-items: center; min-width: 74px; padding: 8px 12px;
+  border-radius: 12px; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.cq-facto b { font-size: 1.15rem; font-weight: 800; line-height: 1.1; }
+.cq-facto span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }
+.cq-resumo-linha {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18); font-size: 0.86rem;
+}
+.cq-resumo-linha small { opacity: 0.8; }
+.cq-resumo-aviso {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.95); color: #1f2937;
+  font-size: 0.86rem;
+}
+
+.cq-pill {
+  display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
+  background: rgba(255, 255, 255, 0.2); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.cq-pill--ok { background: rgba(34, 197, 94, 0.25); }
+.cq-pill--aviso { background: rgba(245, 158, 11, 0.3); }
+.cq-pill--off { background: rgba(148, 163, 184, 0.3); }
+.cq-pill--erro { background: rgba(239, 68, 68, 0.3); }
+
+.cq-marca { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.cq-marca.nao { opacity: 0.6; }
+.cq-marca small { font-weight: 400; opacity: 0.85; }
+
+.cq-tel { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cq-tel a:first-child { font-variant-numeric: tabular-nums; }
+.cq-wa {
+  padding: 0 6px; border-radius: 4px; font-size: 0.66rem; font-weight: 800; line-height: 17px;
+  background: #22c55e; color: #fff !important; text-decoration: none !important;
+}
+.cq-muted { opacity: 0.7; }
+.cq-resumo-aviso .cq-muted { color: #6b7280; opacity: 1; }
+
+/* ── Histórico (linha do tempo) ──────────────────────────────────────────── */
+.cq-timeline { position: relative; padding: 6px 4px 4px 30px; }
+.cq-timeline::before {
+  content: ""; position: absolute; left: 11px; top: 8px; bottom: 8px; width: 2px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--cq-accent), #7c3aed 60%, var(--cq-ok));
+}
+.cq-evento { position: relative; margin-bottom: 12px; }
+.cq-evento-ponto {
+  position: absolute; left: -27px; top: 12px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--card-bg); border: 3px solid var(--cq-accent); font-size: 9px;
+  display: flex; align-items: center; justify-content: center;
+}
+.cq-evento-card {
+  border: 1px solid var(--border-color); border-left: 4px solid var(--cq-accent); border-radius: 12px;
+  padding: 10px 14px; background: var(--card-bg);
+}
+.cq-evento-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.cq-evento-top b { font-size: 0.88rem; }
+.cq-evento-top span {
+  font-size: 0.72rem; color: var(--text-muted); background: var(--bg-light-gray, rgba(100, 116, 139, 0.1));
+  padding: 1px 8px; border-radius: 999px; white-space: nowrap;
+}
+.cq-evento-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+.cq-vazio { padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+
+@media (max-width: 640px) {
+  .cq-resumo { padding: 16px; }
+  .cq-resumo h2 { font-size: 1.2rem; }
+}

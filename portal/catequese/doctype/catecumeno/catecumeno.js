@@ -75,451 +75,6 @@ function set_idade(frm) {
     }
 }
 
-// ── Historico de Catecumeno ───────────────────────────────────────────────
-
-// Client Script para Catecumeno - Histórico em Timeline (Versão Completa)
-// DocType: Catecumeno
-// Tipo: Client Script
-// NOTA: Requer API Python em portal/catequese/catecumeno_historico_api.py
-
-frappe.ui.form.on('Catecumeno', {
-    refresh(frm) {
-        if (!frm.is_new()) {
-            frm.add_custom_button(__('Ver Histórico'), function() {
-                mostrar_historico(frm);
-            }, __('Acções'));
-        }
-    }
-});
-
-function mostrar_historico(frm) {
-    frappe.call({
-        method: 'portal.catequese.catecumeno_historico_api.get_historico_catecumeno',
-        args: {
-            catecumeno: frm.doc.name
-        },
-        freeze: true,
-        freeze_message: __('A carregar histórico...'),
-        callback: function(r) {
-            if (!r.message) {
-                frappe.msgprint(__('Erro ao carregar histórico.'));
-                return;
-            }
-            
-            let data = r.message;
-            let html = gerar_timeline_html(data.catecumeno, data.eventos);
-            
-            // Mostrar modal
-            let d = new frappe.ui.Dialog({
-                title: `📜 Histórico Completo`,
-                size: 'extra-large',
-                fields: [
-                    {
-                        fieldtype: 'HTML',
-                        fieldname: 'timeline_content',
-                        options: html
-                    }
-                ],
-                primary_action_label: __('Fechar'),
-                primary_action: function() {
-                    d.hide();
-                },
-                secondary_action_label: __('Imprimir'),
-                secondary_action: function() {
-                    // Abrir janela de impressão
-                    let printWindow = window.open('', '_blank');
-                    printWindow.document.write(`
-                        <html>
-                        <head>
-                            <title>Histórico - ${data.catecumeno.name}</title>
-                            <style>
-                                body { font-family: Arial, sans-serif; padding: 20px; }
-                                @media print { button { display: none; } }
-                            </style>
-                        </head>
-                        <body>
-                            ${html}
-                            <script>window.print();</script>
-                        </body>
-                        </html>
-                    `);
-                }
-            });
-            
-            d.show();
-            
-            // Ajustar tamanho do modal
-            d.$wrapper.find('.modal-dialog').css('max-width', '900px');
-        },
-        error: function(err) {
-            frappe.msgprint({
-                title: __('Erro'),
-                indicator: 'red',
-                message: __('Erro ao carregar histórico: ') + (err.message || err)
-            });
-        }
-    });
-}
-
-function gerar_timeline_html(catecumeno, eventos) {
-    let sacramentos_count = catecumeno.total_sacramentos || 0;
-    let total_turmas = catecumeno.total_turmas || 0;
-    
-    // Sacramentos como badges
-    let sacramentos_badges = '';
-    if (catecumeno.sacramentos && catecumeno.sacramentos.length > 0) {
-        sacramentos_badges = catecumeno.sacramentos.map(s => {
-            let icon = s === 'Baptismo' ? '💧' : (s === 'Eucaristia' ? '🍞' : '🔥');
-            return `<span class="sacramento-badge">${icon} ${s}</span>`;
-        }).join(' ');
-    } else {
-        sacramentos_badges = '<span class="sacramento-badge pending">Nenhum ainda</span>';
-    }
-    
-    let html = `
-        <style>
-            .historico-container {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                padding: 10px;
-                max-height: 70vh;
-                overflow-y: auto;
-            }
-            
-            /* Cabeçalho do Catecúmeno */
-            .catecumeno-header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 25px;
-                border-radius: 16px;
-                margin-bottom: 25px;
-                box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
-            }
-            .catecumeno-nome {
-                font-size: 24px;
-                font-weight: bold;
-                margin-bottom: 5px;
-            }
-            .catecumeno-info {
-                opacity: 0.9;
-                font-size: 14px;
-                margin-bottom: 15px;
-            }
-            
-            /* Resumo em cards */
-            .resumo-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-                gap: 12px;
-                margin-top: 15px;
-            }
-            .resumo-card {
-                background: rgba(255,255,255,0.15);
-                padding: 6px;
-                border-radius: 8px;
-                text-align: center;
-            }
-            .resumo-valor {
-                font-size: 12px;
-                font-weight: bold;
-            }
-            .resumo-label {
-                font-size: 11px;
-                opacity: 0.85;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            
-            /* Sacramentos badges */
-            .sacramentos-section {
-                margin-top: 15px;
-                padding-top: 15px;
-                border-top: 1px solid rgba(255,255,255,0.2);
-            }
-            .sacramento-badge {
-                display: inline-block;
-                background: rgba(255,255,255,0.2);
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                margin-right: 8px;
-                margin-bottom: 5px;
-            }
-            .sacramento-badge.pending {
-                opacity: 0.6;
-            }
-            
-            /* Legenda */
-            .timeline-legenda {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                margin-bottom: 20px;
-                padding: 12px;
-                background: #f8f9fa;
-                border-radius: 10px;
-            }
-            .legenda-item {
-                display: flex;
-                align-items: center;
-                gap: 5px;
-                font-size: 11px;
-                padding: 4px 8px;
-                background: white;
-                border-radius: 6px;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            }
-            .legenda-cor {
-                width: 10px;
-                height: 10px;
-                border-radius: 50%;
-            }
-            
-            /* Timeline */
-            .timeline {
-                position: relative;
-                padding-left: 35px;
-            }
-            .timeline::before {
-                content: '';
-                position: absolute;
-                left: 14px;
-                top: 0;
-                bottom: 0;
-                width: 3px;
-                background: linear-gradient(180deg, #667eea 0%, #764ba2 50%, #28a745 100%);
-                border-radius: 3px;
-            }
-            
-            .timeline-item {
-                position: relative;
-                padding-bottom: 20px;
-            }
-            .timeline-item:last-child {
-                padding-bottom: 0;
-            }
-            
-            .timeline-marker {
-                position: absolute;
-                left: -35px;
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                background: white;
-                border: 3px solid #667eea;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 12px;
-                z-index: 1;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            
-            .timeline-content {
-                background: white;
-                border: 1px solid #e9ecef;
-                border-radius: 12px;
-                padding: 16px;
-                margin-left: 10px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-                transition: all 0.2s ease;
-            }
-            .timeline-content:hover {
-                transform: translateX(5px);
-                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-                border-color: #667eea;
-            }
-            
-            .timeline-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 10px;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-            .timeline-titulo {
-                font-weight: 600;
-                font-size: 14px;
-                color: #333;
-            }
-            .timeline-data {
-                font-size: 11px;
-                color: #666;
-                background: #f1f3f4;
-                padding: 3px 10px;
-                border-radius: 12px;
-                white-space: nowrap;
-            }
-            .timeline-descricao {
-                font-size: 13px;
-                color: #555;
-                line-height: 1.6;
-            }
-            .timeline-descricao strong {
-                color: #333;
-            }
-            .timeline-descricao em {
-                color: #777;
-                font-style: italic;
-            }
-            
-            /* Tipos de eventos - cores específicas */
-            .timeline-item.inscricao .timeline-marker { border-color: #28a745; background: #e8f5e9; }
-            .timeline-item.inscricao .timeline-content { border-left: 4px solid #28a745; }
-            
-            .timeline-item.criacao .timeline-marker { border-color: #6c757d; background: #f5f5f5; }
-            .timeline-item.criacao .timeline-content { border-left: 4px solid #6c757d; }
-            
-            .timeline-item.turma .timeline-marker { border-color: #17a2b8; background: #e0f7fa; }
-            .timeline-item.turma .timeline-content { border-left: 4px solid #17a2b8; }
-            
-            .timeline-item.turma_actual .timeline-marker { border-color: #28a745; background: #c8e6c9; }
-            .timeline-item.turma_actual .timeline-content { 
-                border-left: 4px solid #28a745; 
-                background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
-            }
-            .timeline-item.turma_actual .timeline-titulo {
-                color: #28a745;
-            }
-            
-            .timeline-item.troca .timeline-marker { border-color: #fd7e14; background: #fff3e0; }
-            .timeline-item.troca .timeline-content { border-left: 4px solid #fd7e14; }
-            
-            .timeline-item.transferencia .timeline-marker { border-color: #dc3545; background: #ffebee; }
-            .timeline-item.transferencia .timeline-content { border-left: 4px solid #dc3545; }
-            
-            .timeline-item.apuramento .timeline-marker { border-color: #6f42c1; background: #f3e5f5; }
-            .timeline-item.apuramento .timeline-content { border-left: 4px solid #6f42c1; }
-            
-            .timeline-item.preparacao .timeline-marker { border-color: #20c997; background: #e0f2f1; }
-            .timeline-item.preparacao .timeline-content { border-left: 4px solid #20c997; }
-            
-            .timeline-item.sacramento .timeline-marker { border-color: #007bff; background: #e3f2fd; }
-            .timeline-item.sacramento .timeline-content { border-left: 4px solid #007bff; }
-            
-            .timeline-item.actual .timeline-marker { border-color: #28a745; background: #c8e6c9; }
-            .timeline-item.actual .timeline-content { 
-                border-left: 4px solid #28a745;
-                background: linear-gradient(135deg, #e8f5e9 0%, #ffffff 100%);
-            }
-            
-            /* Responsivo */
-            @media (max-width: 600px) {
-                .resumo-grid {
-                    grid-template-columns: repeat(2, 1fr);
-                }
-                .timeline-header {
-                    flex-direction: column;
-                }
-                .catecumeno-nome {
-                    font-size: 20px;
-                }
-            }
-            
-            /* Print styles */
-            @media print {
-                .historico-container {
-                    max-height: none;
-                    overflow: visible;
-                }
-                .timeline-content:hover {
-                    transform: none;
-                    box-shadow: none;
-                }
-            }
-        </style>
-        
-        <div class="historico-container">
-            <!-- Cabeçalho -->
-            <div class="catecumeno-header">
-                <div class="catecumeno-nome">${catecumeno.name}</div>
-                <div class="catecumeno-info">
-                    ${catecumeno.idade ? catecumeno.idade + ' anos' : ''} 
-                    ${catecumeno.sexo ? ' • ' + catecumeno.sexo : ''}
-                    ${catecumeno.encarregado ? ' • Enc: ' + catecumeno.encarregado : ''}
-                </div>
-                
-                <div class="resumo-grid">
-                    <div class="resumo-card">
-                        <div class="resumo-valor">${catecumeno.status || '-'}</div>
-                        <div class="resumo-label">Status</div>
-                    </div>
-                    <div class="resumo-card">
-                        <div class="resumo-valor">${catecumeno.fase || '-'}</div>
-                        <div class="resumo-label">Fase Actual</div>
-                    </div>
-                    <div class="resumo-card">
-                        <div class="resumo-valor">${total_turmas}</div>
-                        <div class="resumo-label">Turmas</div>
-                    </div>
-                    <div class="resumo-card">
-                        <div class="resumo-valor">${sacramentos_count}/3</div>
-                        <div class="resumo-label">Sacramentos</div>
-                    </div>
-                    <div class="resumo-card">
-                        <div class="resumo-valor">${eventos.length}</div>
-                        <div class="resumo-label">Eventos</div>
-                    </div>
-                </div>
-                
-                <div class="sacramentos-section">
-                    <strong>Sacramentos:</strong> ${sacramentos_badges}
-                </div>
-            </div>
-            
-            <!-- Legenda -->
-            <div class="timeline-legenda">
-                <div class="legenda-item"><span class="legenda-cor" style="background:#28a745"></span> Inscrição/Actual</div>
-                <div class="legenda-item"><span class="legenda-cor" style="background:#17a2b8"></span> Turmas</div>
-                <div class="legenda-item"><span class="legenda-cor" style="background:#fd7e14"></span> Trocas</div>
-                <div class="legenda-item"><span class="legenda-cor" style="background:#dc3545"></span> Transferências</div>
-                <div class="legenda-item"><span class="legenda-cor" style="background:#6f42c1"></span> Apuramentos</div>
-                <div class="legenda-item"><span class="legenda-cor" style="background:#20c997"></span> Preparações</div>
-                <div class="legenda-item"><span class="legenda-cor" style="background:#007bff"></span> Sacramentos</div>
-            </div>
-            
-            <!-- Timeline -->
-            <div class="timeline">
-    `;
-    
-    eventos.forEach(function(evento) {
-        let data_formatada = '-';
-        if (evento.data) {
-            try {
-                // Tentar formatar a data
-                let d = evento.data.split(' ')[0]; // Pegar só a parte da data
-                if (d && d !== 'None') {
-                    data_formatada = frappe.datetime.str_to_user(d);
-                }
-            } catch(e) {
-                data_formatada = evento.data.split(' ')[0] || '-';
-            }
-        }
-        
-        html += `
-            <div class="timeline-item ${evento.tipo}">
-                <div class="timeline-marker" style="border-color: ${evento.cor}">
-                    ${evento.icone}
-                </div>
-                <div class="timeline-content">
-                    <div class="timeline-header">
-                        <span class="timeline-titulo">${evento.titulo}</span>
-                        <span class="timeline-data">📅 ${data_formatada}</span>
-                    </div>
-                    <div class="timeline-descricao">${evento.descricao}</div>
-                </div>
-            </div>
-        `;
-    });
-    
-    html += `
-            </div>
-        </div>
-    `;
-    
-    return html;
-}
-
 // ── Reactivar Catecumeno ──────────────────────────────────────────────────
 
 // Client Script para Catecumeno - Alocar Turma (Pré-Inscrições)
@@ -530,74 +85,17 @@ function gerar_timeline_html(catecumeno, eventos) {
 
 frappe.ui.form.on('Catecumeno', {
     refresh(frm) {
-        // Botão Alocar Turma - aparece se não tem turma e status é Pendente ou Activo
-        if (!frm.is_new() && !frm.doc.turma && ['Pendente', 'Activo'].includes(frm.doc.status)) {
-            frm.add_custom_button(__('Alocar Turma'), function() {
-                alocar_turma(frm);
-            }, __('Acções'));
-            
-            // Destacar o botão em azul
-            frm.page.get_inner_group_button(__('Acções'))
-                .find(`[data-label="${encodeURIComponent(__('Alocar Turma'))}"]`)
-                .removeClass('btn-default')
-                .addClass('btn-primary');
-            
-            // Mostrar aviso no topo
-            mostrar_aviso_sem_turma(frm);
+        if (frm.is_new()) return;
+        // Alocar Turma: sem turma e Pendente/Activo (o resumo no topo também tem o botão)
+        if (!frm.doc.turma && ['Pendente', 'Activo'].includes(frm.doc.status)) {
+            frm.add_custom_button(__('Alocar Turma'), () => alocar_turma(frm), __('Acções'));
         }
-        
-        // Botão Reactivar - só aparece se status é Inativo
-        if (!frm.is_new() && frm.doc.status === 'Inativo') {
-            frm.add_custom_button(__('Reactivar Catecúmeno'), function() {
-                reactivar_catecumeno(frm);
-            }, __('Acções'));
-            
-            frm.page.get_inner_group_button(__('Acções'))
-                .find(`[data-label="${encodeURIComponent(__('Reactivar Catecúmeno'))}"]`)
-                .removeClass('btn-default')
-                .addClass('btn-success');
-        }
-        
-        // Botão Ver Histórico
-        if (!frm.is_new()) {
-            frm.add_custom_button(__('Ver Histórico'), function() {
-                mostrar_historico(frm);
-            }, __('Acções'));
+        // Reactivar: catecúmeno inactivo
+        if (['Inactivo', 'Inativo'].includes(frm.doc.status)) {
+            frm.add_custom_button(__('Reactivar Catecúmeno'), () => reactivar_catecumeno(frm), __('Acções'));
         }
     }
 });
-
-function mostrar_aviso_sem_turma(frm) {
-    // Remover aviso anterior
-    $(frm.fields_dict.nome_completo.wrapper).closest('.form-layout').find('.sem-turma-banner').remove();
-    
-    let html = `
-        <div class="sem-turma-banner" style="
-            padding: 15px; 
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); 
-            border-radius: 8px; 
-            border-left: 4px solid #2196f3;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        ">
-            <span style="font-size: 32px;">📋</span>
-            <div style="flex: 1;">
-                <strong style="font-size: 16px;">Pré-Inscrição - Aguarda Turma</strong><br>
-                <span style="font-size: 13px; color: #555;">
-                    Este catecúmeno ainda não tem turma atribuída.<br>
-                    Fase: <strong>${frm.doc.fase || 'Não definida'}</strong>
-                </span>
-            </div>
-            <button class="btn btn-primary btn-sm" onclick="cur_frm.trigger('alocar_turma_click')">
-                Alocar Turma
-            </button>
-        </div>
-    `;
-    
-    $(frm.fields_dict.nome_completo.wrapper).before(html);
-}
 
 // Trigger para o botão no banner
 frappe.ui.form.on('Catecumeno', 'alocar_turma_click', function(frm) {
@@ -793,7 +291,7 @@ function reactivar_catecumeno(frm) {
                         <strong>⚠️ Reactivação de Catecúmeno</strong><br>
                         <span style="font-size: 13px;">
                             Catecúmeno: <strong>${frm.doc.name}</strong><br>
-                            Status actual: <strong style="color: #dc3545;">Inativo</strong><br>
+                            Status actual: <strong style="color: #dc3545;">${frappe.utils.escape_html(frm.doc.status || '')}</strong><br>
                             ${frm.doc.fase ? 'Última fase: <strong>' + frm.doc.fase + '</strong><br>' : ''}
                             ${frm.doc.turma ? 'Última turma: <strong>' + frm.doc.turma + '</strong>' : ''}
                         </span>
@@ -880,111 +378,95 @@ function reactivar_catecumeno(frm) {
     d.show();
 }
 
-// ============ FUNÇÃO DO HISTÓRICO (do script anterior) ============
+// ── Formulário estilizado: resumo e histórico ─────────────────────────────
 
-function mostrar_historico(frm) {
-    frappe.call({
-        method: 'portal.catequese.catecumeno_historico_api.get_historico_catecumeno',
-        args: { catecumeno: frm.doc.name },
-        freeze: true,
-        freeze_message: __('A carregar histórico...'),
-        callback: function(r) {
-            if (!r.message) {
-                frappe.msgprint(__('Erro ao carregar histórico.'));
-                return;
-            }
-            
-            let data = r.message;
-            let html = gerar_timeline_html(data.catecumeno, data.eventos);
-            
-            let d = new frappe.ui.Dialog({
-                title: `📜 Histórico de ${frm.doc.name}`,
-                size: 'extra-large',
-                fields: [{fieldtype: 'HTML', fieldname: 'content', options: html}],
-                primary_action_label: __('Fechar'),
-                primary_action: function() { d.hide(); }
-            });
-            
-            d.show();
-            d.$wrapper.find('.modal-dialog').css('max-width', '900px');
+frappe.ui.form.on('Catecumeno', {
+    refresh(frm) {
+        cq.estilizar(frm);
+        if (frm.is_new()) {
+            frm.fields_dict.cq_resumo.$wrapper.empty();
+            frm.fields_dict.cq_historico.$wrapper.html('<div class="cq-vazio">O histórico aparece depois de gravar.</div>');
+            return;
         }
+        cq_resumo_catecumeno(frm);
+        cq_historico_catecumeno(frm);
+    },
+});
+
+function cq_resumo_catecumeno(frm) {
+    const d = frm.doc;
+    frappe.call({
+        method: 'portal.catequese.formularios.resumo_catecumeno',
+        args: { nome: d.name },
+        callback(r) {
+            const x = r.message || {};
+            const t = x.turma;
+            const linha = x.linha || {};
+            const horario = t ? [t.dia, t.hora, t.local].filter(Boolean).join(' · ') : '';
+            const turmaHtml = t
+                ? `<a href="/app/turma/${encodeURIComponent(t.name)}"><b>${cq.esc(t.name)}</b></a>${horario ? ` <small>${cq.esc(horario)}</small>` : ''}`
+                : '<span class="cq-muted">Sem turma</span>';
+            const catequistas = (x.catequistas || []).map((c) =>
+                `<span><small>${cq.esc(c.papel)}:</small> ${cq.esc(c.nome)} ${cq.telefone(c.contacto)}</span>`).join('');
+
+            const acoes = [];
+            let aviso = '';
+            if (!d.turma && ['Pendente', 'Activo'].includes(d.status)) {
+                acoes.push({ accao: () => alocar_turma(frm) });
+                aviso = `<span>📋 <b>Aguarda turma</b> — fase ${cq.esc(d.fase || 'não definida')}</span>${cq.botao('Alocar turma', 0)}`;
+            } else if (['Inactivo', 'Inativo'].includes(d.status)) {
+                acoes.push({ accao: () => reactivar_catecumeno(frm) });
+                aviso = `<span>⏸ <b>Catecúmeno inactivo</b></span>${cq.botao('Reactivar', 0)}`;
+            }
+
+            cq.resumo(frm, 'cq_resumo', {
+                titulo: d.nome_completo || d.name,
+                pills: [cq.pill(d.status), d.comunidade ? cq.pill(d.comunidade) : ''],
+                subtitulo: [d.idade ? d.idade + ' anos' : '', d.sexo, d.fase].filter(Boolean).map(cq.esc).join(' · '),
+                factos: [
+                    { v: linha.nr_de_faltas != null ? linha.nr_de_faltas : '—', l: 'Faltas' },
+                    { v: d.ficha_de_catecumeno ? '✓' : '✗', l: 'Ficha' },
+                ],
+                linhas: [
+                    `<span>🏫 ${turmaHtml}</span>${catequistas}`,
+                    `${cq.marca(d.baptismo, 'Baptismo', d.data_do_baptismo && frappe.datetime.str_to_user(d.data_do_baptismo))}
+                     ${cq.marca(d.eucaristia, 'Eucaristia', d.data_da_eucaristia && frappe.datetime.str_to_user(d.data_da_eucaristia))}
+                     ${cq.marca(d.crisma, 'Crisma', d.data_do_crisma && frappe.datetime.str_to_user(d.data_do_crisma))}`,
+                    `<span><small>Encarregado:</small> ${cq.esc(d.encarregado || '—')} ${d.contacto ? cq.telefone(d.contacto) : ''}</span>`
+                    + (d.padrinhos ? `<span><small>Padrinhos:</small> ${cq.esc(d.padrinhos)} ${d.contacto_padrinhos ? cq.telefone(d.contacto_padrinhos) : ''}</span>` : ''),
+                ],
+                aviso,
+                acoes,
+            });
+        },
     });
 }
 
-// Função gerar_timeline_html copiada do script de histórico
-function gerar_timeline_html(catecumeno, eventos) {
-    let sacramentos_count = catecumeno.total_sacramentos || 0;
-    let total_turmas = catecumeno.total_turmas || 0;
-    
-    let sacramentos_badges = '';
-    if (catecumeno.sacramentos && catecumeno.sacramentos.length > 0) {
-        sacramentos_badges = catecumeno.sacramentos.map(s => {
-            let icon = s === 'Baptismo' ? '💧' : (s === 'Eucaristia' ? '🍞' : '🔥');
-            return `<span style="display:inline-block;background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-size:12px;margin-right:8px;">${icon} ${s}</span>`;
-        }).join(' ');
-    } else {
-        sacramentos_badges = '<span style="opacity:0.6;">Nenhum ainda</span>';
-    }
-    
-    let html = `
-        <div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;padding:10px;max-height:70vh;overflow-y:auto;">
-            <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:25px;border-radius:16px;margin-bottom:25px;">
-                <div style="font-size:24px;font-weight:bold;margin-bottom:5px;">${catecumeno.name}</div>
-                <div style="opacity:0.9;font-size:14px;margin-bottom:15px;">
-                    ${catecumeno.idade ? catecumeno.idade + ' anos' : ''} 
-                    ${catecumeno.sexo ? ' • ' + catecumeno.sexo : ''}
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:12px;margin-top:15px;">
-                    <div style="background:rgba(255,255,255,0.15);padding:12px;border-radius:10px;text-align:center;">
-                        <div style="font-size:12px;font-weight:bold;">${catecumeno.status || '-'}</div>
-                        <div style="font-size:11px;opacity:0.85;">Status</div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.15);padding:12px;border-radius:10px;text-align:center;">
-                        <div style="font-size:12px;font-weight:bold;">${catecumeno.fase || '-'}</div>
-                        <div style="font-size:11px;opacity:0.85;">Fase</div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.15);padding:12px;border-radius:10px;text-align:center;">
-                        <div style="font-size:12px;font-weight:bold;">${sacramentos_count}/3</div>
-                        <div style="font-size:11px;opacity:0.85;">Sacramentos</div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.15);padding:12px;border-radius:10px;text-align:center;">
-                        <div style="font-size:12px;font-weight:bold;">${eventos.length}</div>
-                        <div style="font-size:11px;opacity:0.85;">Eventos</div>
-                    </div>
-                </div>
-                <div style="margin-top:15px;padding-top:15px;border-top:1px solid rgba(255,255,255,0.2);">
-                    <strong>Sacramentos:</strong> ${sacramentos_badges}
-                </div>
-            </div>
-            <div style="position:relative;padding-left:35px;">
-                <div style="position:absolute;left:14px;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#667eea 0%,#764ba2 50%,#28a745 100%);border-radius:3px;"></div>
-    `;
-    
-    eventos.forEach(function(evento) {
-        let data_formatada = '-';
-        if (evento.data) {
-            try {
-                let d = evento.data.split(' ')[0];
-                if (d && d !== 'None') data_formatada = frappe.datetime.str_to_user(d);
-            } catch(e) {
-                data_formatada = evento.data.split(' ')[0] || '-';
+function cq_historico_catecumeno(frm) {
+    const $w = frm.fields_dict.cq_historico.$wrapper;
+    $w.html('<div class="cq-vazio">A carregar o histórico…</div>');
+    frappe.call({
+        method: 'portal.catequese.catecumeno_historico_api.get_historico_catecumeno',
+        args: { catecumeno: frm.doc.name },
+        callback(r) {
+            const eventos = (r.message && r.message.eventos) || [];
+            if (!eventos.length) {
+                $w.html('<div class="cq-vazio">Ainda não há eventos no histórico.</div>');
+                return;
             }
-        }
-        
-        html += `
-            <div style="position:relative;padding-bottom:20px;">
-                <div style="position:absolute;left:-35px;width:12px;height:12px;border-radius:50%;background:white;border:3px solid ${evento.cor};display:flex;align-items:center;justify-content:center;font-size:12px;z-index:1;">${evento.icone}</div>
-                <div style="background:white;border:1px solid #e9ecef;border-left:4px solid ${evento.cor};border-radius:12px;padding:16px;margin-left:10px;">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-                        <span style="font-weight:600;font-size:14px;">${evento.titulo}</span>
-                        <span style="font-size:11px;color:#666;background:#f1f3f4;padding:3px 10px;border-radius:12px;">📅 ${data_formatada}</span>
+            $w.html(`<div class="cq-timeline">${eventos.map((e) => {
+                const dia = e.data && e.data !== 'None' ? frappe.datetime.str_to_user(String(e.data).split(' ')[0]) : '—';
+                return `<div class="cq-evento">
+                    <div class="cq-evento-ponto" style="border-color:${e.cor || 'var(--cq-accent)'}">${e.icone || ''}</div>
+                    <div class="cq-evento-card" style="border-left-color:${e.cor || 'var(--cq-accent)'}">
+                        <div class="cq-evento-top"><b>${e.titulo || ''}</b><span>📅 ${dia}</span></div>
+                        <div class="cq-evento-desc">${e.descricao || ''}</div>
                     </div>
-                    <div style="font-size:13px;color:#555;line-height:1.6;">${evento.descricao}</div>
-                </div>
-            </div>
-        `;
+                </div>`;
+            }).join('')}</div>`);
+        },
+        error() {
+            $w.html('<div class="cq-vazio">Não foi possível carregar o histórico.</div>');
+        },
     });
-    
-    html += `</div></div>`;
-    return html;
 }

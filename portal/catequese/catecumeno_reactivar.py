@@ -5,6 +5,8 @@ import frappe
 from frappe import _
 from frappe.utils import nowdate, now_datetime
 
+ESTADOS_INACTIVO = ("Inactivo", "Inativo")
+
 @frappe.whitelist()
 def reactivar_catecumeno(catecumeno, fase, turma, observacoes=''):
     """
@@ -38,8 +40,9 @@ def reactivar_catecumeno(catecumeno, fase, turma, observacoes=''):
         cat = frappe.get_doc("Catecumeno", catecumeno)
         
         # Verificar se está inativo
-        if cat.status != "Inativo":
-            return {"success": False, "error": f"Catecúmeno não está Inativo (status actual: {cat.status})"}
+        # O estado é "Inactivo" (opção do campo); "Inativo" mantido por compatibilidade
+        if cat.status not in ESTADOS_INACTIVO:
+            return {"success": False, "error": f"Catecúmeno não está Inactivo (status actual: {cat.status})"}
         
         # Verificar se turma existe e está activa
         if not frappe.db.exists("Turma", turma):
@@ -131,7 +134,7 @@ def get_catecumenos_inativos(fase=None):
     Retorna lista de catecúmenos inativos, opcionalmente filtrados por fase.
     Útil para relatórios ou listagens.
     """
-    filters = {"status": "Inativo"}
+    filters = {"status": ["in", list(ESTADOS_INACTIVO)]}
     if fase:
         filters["fase"] = fase
     

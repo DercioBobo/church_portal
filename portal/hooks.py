@@ -47,7 +47,9 @@ override_whitelisted_methods = {
 boot_session = "portal.catequese.utils.boot_session"
 
 # Link "← Painel" em todas as páginas da app (Painel da Catequese: /app/painel-catequese)
-app_include_js = ["/assets/portal/js/catequese_nav.js"]
+app_include_js = ["/assets/portal/js/catequese_nav.js", "/assets/portal/js/catequese_forms.js"]
+# Tema próprio dos formulários da catequese (activado por cq.estilizar(frm) em cada DocType)
+app_include_css = ["/assets/portal/css/catequese_forms.css"]
 
 # ── Scheduler ──────────────────────────────────────────────────────────────────
 # (vindo da antiga app pnsa_app)
