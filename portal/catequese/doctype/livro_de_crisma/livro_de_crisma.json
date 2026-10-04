@@ -1,0 +1,260 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "CRI-.YYYY.-.####",
+ "creation": "2026-10-04 12:00:00.000000",
+ "custom": 0,
+ "description": "Um só livro para a paróquia; a comunidade indica só de onde vem a pessoa.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "sec_registo",
+  "origem",
+  "tipo_extraordinario",
+  "paroquia",
+  "cb_registo_1",
+  "data_do_crisma",
+  "ano",
+  "sacerdote",
+  "cb_registo_2",
+  "comunidade",
+  "livro",
+  "folha",
+  "numero",
+  "sec_pessoa",
+  "catecumeno",
+  "nome_completo",
+  "data_de_nascimento",
+  "sexo",
+  "cb_pessoa_1",
+  "nome_do_pai",
+  "nome_da_mae",
+  "encarregado",
+  "contacto",
+  "cb_pessoa_2",
+  "padrinhos",
+  "contacto_padrinhos",
+  "sec_outros",
+  "preparacao",
+  "cb_outros",
+  "observacoes"
+ ],
+ "fields": [
+  {
+   "fieldname": "sec_registo",
+   "fieldtype": "Section Break",
+   "label": "Registo"
+  },
+  {
+   "default": "Catequese",
+   "fieldname": "origem",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Origem",
+   "options": "Catequese\n2ª oportunidade\nExtraordinário\nOutra paróquia",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.origem=='Extraordinário'",
+   "fieldname": "tipo_extraordinario",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Tipo",
+   "mandatory_depends_on": "eval:doc.origem=='Extraordinário'",
+   "options": "\nBebé\nCasamento\nAdulto\nOutro"
+  },
+  {
+   "depends_on": "eval:doc.origem=='Outra paróquia'",
+   "fieldname": "paroquia",
+   "fieldtype": "Data",
+   "label": "Paróquia onde recebeu",
+   "mandatory_depends_on": "eval:doc.origem=='Outra paróquia'"
+  },
+  {
+   "fieldname": "cb_registo_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "data_do_crisma",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Data do Crisma"
+  },
+  {
+   "fieldname": "ano",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Ano",
+   "options": "Ano Lectivo"
+  },
+  {
+   "fieldname": "sacerdote",
+   "fieldtype": "Data",
+   "label": "Celebrante"
+  },
+  {
+   "fieldname": "cb_registo_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "comunidade",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Comunidade de origem",
+   "options": "\nAssunção\nSanta Ana"
+  },
+  {
+   "fieldname": "livro",
+   "fieldtype": "Data",
+   "label": "Livro"
+  },
+  {
+   "fieldname": "folha",
+   "fieldtype": "Data",
+   "label": "Folha"
+  },
+  {
+   "fieldname": "numero",
+   "fieldtype": "Data",
+   "label": "Número"
+  },
+  {
+   "fieldname": "sec_pessoa",
+   "fieldtype": "Section Break",
+   "label": "Pessoa"
+  },
+  {
+   "description": "Opcional: bebés, adultos e casamentos ficam só com o nome.",
+   "fieldname": "catecumeno",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Catecúmeno",
+   "options": "Catecumeno"
+  },
+  {
+   "bold": 1,
+   "fieldname": "nome_completo",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Nome Completo",
+   "reqd": 1
+  },
+  {
+   "fieldname": "data_de_nascimento",
+   "fieldtype": "Date",
+   "label": "Data de Nascimento"
+  },
+  {
+   "fieldname": "sexo",
+   "fieldtype": "Select",
+   "label": "Sexo",
+   "options": "\nMasculino\nFeminino"
+  },
+  {
+   "fieldname": "cb_pessoa_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nome_do_pai",
+   "fieldtype": "Data",
+   "label": "Nome do Pai"
+  },
+  {
+   "fieldname": "nome_da_mae",
+   "fieldtype": "Data",
+   "label": "Nome da Mãe"
+  },
+  {
+   "fieldname": "encarregado",
+   "fieldtype": "Data",
+   "label": "Encarregado"
+  },
+  {
+   "fieldname": "contacto",
+   "fieldtype": "Data",
+   "label": "Contacto do Encarregado"
+  },
+  {
+   "fieldname": "cb_pessoa_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "padrinhos",
+   "fieldtype": "Data",
+   "label": "Padrinhos"
+  },
+  {
+   "fieldname": "contacto_padrinhos",
+   "fieldtype": "Data",
+   "label": "Contacto Padrinhos"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "sec_outros",
+   "fieldtype": "Section Break",
+   "label": "Outros"
+  },
+  {
+   "fieldname": "preparacao",
+   "fieldtype": "Link",
+   "label": "Preparação",
+   "options": "Preparacao do Sacramento",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_outros",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "observacoes",
+   "fieldtype": "Small Text",
+   "label": "Observações"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-04 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Catequese",
+ "name": "Livro de Crisma",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Coordenador Catequese",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "nome_completo,catecumeno,livro,numero",
+ "show_title_field_in_link": 1,
+ "sort_field": "data_do_crisma",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "nome_completo",
+ "track_changes": 1
+}
