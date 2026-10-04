@@ -2,13 +2,23 @@
    Aplica-se só a formulários com a classe .cq-form (ver public/js/catequese_forms.js).
    Usa as variáveis de tema do Frappe para funcionar em modo claro e escuro. */
 
-.cq-form {
-  --cq-accent: #4f46e5;
-  --cq-accent-soft: rgba(79, 70, 229, 0.1);
+.cq-form, .cq-resumo {
+  --cq-accent: #b8882e;          /* dourado */
+  --cq-accent-text: #8a6418;     /* texto dourado legível */
+  --cq-accent-soft: #fef9ec;     /* creme */
+  --cq-accent-line: #f0dca0;     /* bordas suaves */
+  --cq-ink: #3f3418;             /* texto escuro quente */
   --cq-ok: #16a34a;
   --cq-warn: #d97706;
   --cq-off: #64748b;
   --cq-erro: #dc2626;
+}
+[data-theme="dark"] .cq-form, [data-theme="dark"] .cq-resumo {
+  --cq-accent: #d4a843;
+  --cq-accent-text: #e8c464;
+  --cq-accent-soft: rgba(212, 168, 67, 0.12);
+  --cq-accent-line: rgba(212, 168, 67, 0.3);
+  --cq-ink: #f3e7c4;
 }
 
 /* ── Página: um só cartão branco com cantos suaves ───────────────────────── */
@@ -32,9 +42,10 @@
   font-size: 0.85rem !important; font-weight: 600 !important; box-shadow: none !important;
   transition: background 0.15s, color 0.15s;
 }
-.cq-form .form-tabs-list .nav-link:hover { background: var(--cq-accent-soft) !important; color: var(--cq-accent) !important; }
+.cq-form .form-tabs-list .nav-link:hover { background: var(--cq-accent-soft) !important; color: var(--cq-accent-text) !important; }
 .cq-form .form-tabs-list .nav-link.active {
-  background: var(--cq-accent-soft) !important; color: var(--cq-accent) !important;
+  background: var(--cq-accent-soft) !important; color: var(--cq-accent-text) !important;
+  box-shadow: inset 0 0 0 1px var(--cq-accent-line) !important;
 }
 .cq-form .form-tabs-list .nav-link::after, .cq-form .form-tabs-list .nav-link::before { display: none !important; }
 
@@ -59,71 +70,82 @@
 /* ── Campos ──────────────────────────────────────────────────────────────── */
 .cq-form .control-label { font-size: 0.76rem; font-weight: 600; color: var(--text-muted); }
 .cq-form .form-control, .cq-form .ql-container, .cq-form .ql-toolbar { border-radius: 8px !important; }
-.cq-form .form-control:focus { box-shadow: 0 0 0 3px var(--cq-accent-soft); }
+.cq-form .form-control:focus { box-shadow: 0 0 0 3px var(--cq-accent-line) !important; border-color: var(--cq-accent) !important; }
 
 /* A secção do resumo não tem linha nem título */
 .cq-form .form-section:has(.cq-resumo) { border-top: 0 !important; padding: 10px 8px 0 !important; }
 .cq-form .form-section:has(.cq-resumo) .section-head { display: none; }
 .cq-form .frappe-control:has(> .cq-resumo), .cq-form .frappe-control:has(.cq-resumo) { margin-bottom: 0; }
 
-/* ── Resumo compacto ─────────────────────────────────────────────────────── */
+/* ── Resumo compacto: creme dourado, discreto ────────────────────────────── */
 .cq-resumo {
-  border-radius: 12px; padding: 12px 16px; color: #fff; margin: 0;
+  position: relative; overflow: hidden;
+  border-radius: 12px; padding: 12px 16px 12px 20px; margin: 0; color: var(--cq-ink);
+  border: 1px solid var(--cq-accent-line);
   background:
-    radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.14), transparent 40%),
-    linear-gradient(135deg, #312e81 0%, #4f46e5 60%, #6d28d9 100%);
+    radial-gradient(circle at 100% 0%, rgba(232, 196, 100, 0.22), transparent 45%),
+    linear-gradient(135deg, #fffdf6 0%, var(--cq-accent-soft) 55%, #fcf1d6 100%);
 }
-.cq-resumo a { color: #fff; }
+[data-theme="dark"] .cq-resumo { background: linear-gradient(135deg, rgba(212, 168, 67, 0.08), rgba(212, 168, 67, 0.16)); }
+.cq-resumo::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, #e8c464, #b8882e);
+}
+.cq-resumo a { color: var(--cq-accent-text); }
 .cq-resumo-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .cq-resumo-id { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
 .cq-resumo-pills { display: flex; gap: 6px; flex-wrap: wrap; order: 2; }
-.cq-resumo h2 { margin: 0; font-size: 1.05rem; font-weight: 800; color: #fff; order: 1; }
-.cq-resumo-id p { margin: 0; font-size: 0.82rem; opacity: 0.88; order: 3; }
+.cq-resumo h2 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--cq-ink); order: 1; letter-spacing: -0.01em; }
+.cq-resumo-id p { margin: 0; font-size: 0.82rem; color: var(--cq-accent-text); order: 3; }
 .cq-factos { display: flex; gap: 6px; }
 .cq-facto {
   display: flex; align-items: baseline; gap: 5px; padding: 3px 10px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;
+  background: rgba(255, 255, 255, 0.7); border: 1px solid var(--cq-accent-line); white-space: nowrap;
 }
-.cq-facto b { font-size: 0.9rem; font-weight: 800; }
-.cq-facto span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.85; }
+[data-theme="dark"] .cq-facto { background: rgba(255, 255, 255, 0.05); }
+.cq-facto b { font-size: 0.9rem; font-weight: 800; color: var(--cq-ink); }
+.cq-facto span { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--cq-accent-text); }
 .cq-resumo-linha {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 8px; padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.16); font-size: 0.8rem;
+  border-top: 1px dashed var(--cq-accent-line); font-size: 0.8rem;
 }
-.cq-resumo-linha small { opacity: 0.78; }
+.cq-resumo-linha small { color: var(--cq-accent-text); opacity: 0.85; }
 .cq-resumo-aviso {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-  margin-top: 8px; padding: 6px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.95); color: #1f2937;
-  font-size: 0.82rem;
+  margin-top: 8px; padding: 6px 10px; border-radius: 10px; font-size: 0.82rem;
+  background: var(--card-bg, #fff); border: 1px solid var(--cq-accent-line); color: var(--cq-ink);
 }
 
 .cq-pill {
-  display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
-  background: rgba(255, 255, 255, 0.2); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3);
+  display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+  background: rgba(255, 255, 255, 0.75); color: var(--cq-accent-text); border: 1px solid var(--cq-accent-line);
 }
-.cq-pill--ok { background: rgba(34, 197, 94, 0.25); }
-.cq-pill--aviso { background: rgba(245, 158, 11, 0.3); }
-.cq-pill--off { background: rgba(148, 163, 184, 0.3); }
-.cq-pill--erro { background: rgba(239, 68, 68, 0.3); }
+.cq-pill--ok { background: #ecfdf3; color: #15803d; border-color: #bbf7d0; }
+.cq-pill--aviso { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+.cq-pill--off { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.cq-pill--erro { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+[data-theme="dark"] .cq-pill { background: rgba(255, 255, 255, 0.06); }
 
 .cq-marca { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
-.cq-marca.nao { opacity: 0.6; }
+.cq-marca.sim { color: #15803d; }
+.cq-marca.nao { opacity: 0.5; }
+.cq-marca small { color: var(--cq-ink); }
 .cq-marca small { font-weight: 400; opacity: 0.85; }
 
 .cq-tel { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .cq-tel a:first-child { font-variant-numeric: tabular-nums; }
 .cq-wa {
   padding: 0 6px; border-radius: 4px; font-size: 0.66rem; font-weight: 800; line-height: 17px;
-  background: #22c55e; color: #fff !important; text-decoration: none !important;
+  background: #ecfdf3; color: #15803d !important; border: 1px solid #bbf7d0; text-decoration: none !important;
 }
+.cq-wa:hover { background: #22c55e; color: #fff !important; border-color: #22c55e; }
 .cq-muted { opacity: 0.7; }
-.cq-resumo-aviso .cq-muted { color: #6b7280; opacity: 1; }
 
 /* ── Histórico (linha do tempo) ──────────────────────────────────────────── */
 .cq-timeline { position: relative; padding: 6px 4px 4px 30px; }
 .cq-timeline::before {
   content: ""; position: absolute; left: 11px; top: 8px; bottom: 8px; width: 2px; border-radius: 2px;
-  background: linear-gradient(180deg, var(--cq-accent), #7c3aed 60%, var(--cq-ok));
+  background: linear-gradient(180deg, #e8c464, var(--cq-accent) 60%, var(--cq-accent-line));
 }
 .cq-evento { position: relative; margin-bottom: 12px; }
 .cq-evento-ponto {
