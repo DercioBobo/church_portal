@@ -134,7 +134,9 @@ function createSacramentosApp() {
       <div class="ps-card-head">
         <h2>Não receberam</h2>
         <span class="ps-count">{{ pendentes.length }}</span>
-        <p class="ps-muted">Marcados “Não vai receber” numa Preparação e que ainda não têm o sacramento.</p>
+        <button class="ps-btn ps-btn-add" @click="adicionar">＋ Adicionar</button>
+        <p class="ps-muted">Marcados “Não vai receber” numa Preparação e que ainda não têm o sacramento.
+          Falta alguém (ex.: foi apagado da preparação)? Use “＋ Adicionar”.</p>
       </div>
       <div v-if="!pendentes.length" class="ps-vazio">Ninguém pendente{{ busca || motivo ? ' com este filtro' : '' }}. 🙏</div>
       <table v-else class="ps-table">
@@ -154,8 +156,10 @@ function createSacramentosApp() {
               <div v-if="r.detalhe" class="ps-detalhe">{{ r.detalhe }}</div>
             </td>
             <td data-l="Preparação">
-              <a :href="'/app/preparacao-do-sacramento/' + encodeURIComponent(r.preparacao)">{{ r.preparacao }}</a>
+              <a v-if="r.preparacao" :href="'/app/preparacao-do-sacramento/' + encodeURIComponent(r.preparacao)">{{ r.preparacao }}</a>
+              <span v-else class="ps-muted">—</span>
               <div class="ps-muted ps-small">{{ dia(r.data) }}</div>
+              <a v-if="r.manual" class="ps-chip" :href="'/app/sacramento-nao-recebido/' + encodeURIComponent(r.registo)" title="Acrescentado à mão">acrescentado</a>
             </td>
             <td data-l="Agora">
               <span class="ps-estado" :class="estadoCls(r.status)">{{ r.status }}</span>
@@ -398,6 +402,35 @@ function createSacramentosApp() {
         d.show();
       }
 
+      function adicionar() {
+        const s = sac.value;
+        const d = new frappe.ui.Dialog({
+          title: __('Acrescentar a “Não receberam” — {0}', [s.rotulo]),
+          fields: [
+            { fieldname: 'catecumeno', fieldtype: 'Link', options: 'Catecumeno', label: __('Catecúmeno'), reqd: 1 },
+            { fieldname: 'preparacao', fieldtype: 'Link', options: 'Preparacao do Sacramento', label: __('Preparação onde devia ter recebido'),
+              get_query: () => ({ filters: { sacramento: s.sacramento, docstatus: ['<', 2] } }),
+              description: __('Opcional. Define o ano; vazio = ano actual.') },
+            { fieldname: 'motivo', fieldtype: 'Select', label: __('Motivo'), options: [''].concat(dados.value.motivos || []).join('\n') },
+            { fieldname: 'nota', fieldtype: 'Small Text', label: __('Nota (opcional)') },
+          ],
+          primary_action_label: __('Acrescentar'),
+          primary_action(v) {
+            d.hide();
+            frappe.call({
+              method: API + 'adicionar',
+              args: { catecumeno: v.catecumeno, sacramento: s.sacramento, preparacao: v.preparacao || null,
+                      motivo: v.motivo || null, nota: v.nota || null },
+              callback: () => {
+                frappe.show_alert({ message: __('{0} está em “Não receberam”.', [v.catecumeno]), indicator: 'green' });
+                carregar();
+              },
+            });
+          },
+        });
+        d.show();
+      }
+
       function reabrir(r) {
         frappe.confirm(__('Reabrir {0}? O registo da decisão é apagado e a pessoa volta ao acompanhamento.', [r.catecumeno]), () => {
           frappe.call({ method: API + 'reabrir', args: { nome: r.name }, callback: carregar });
@@ -415,7 +448,7 @@ function createSacramentosApp() {
       return {
         dados, loading, activo, busca, motivo, verResolvidos, fSac, fAno, fDecisao, seleccionados, carregar, mudar,
         sac, pendentes, fora, semMotivo, motivos, todosArquivados, arqSacramentos, arqAnos, arquivadosVisiveis,
-        alternar, todos, marcarTodos, arquivarSel, arquivar, reabrir, segundaOportunidade,
+        alternar, todos, marcarTodos, arquivarSel, arquivar, reabrir, segundaOportunidade, adicionar,
         total, dia, tel, cls, estadoCls,
       };
     },

@@ -99,6 +99,32 @@ function getCatValue(cat: CatecumenoCompleto, fieldname: string): unknown {
   return (cat as unknown as Record<string, unknown>)[fieldname];
 }
 
+// ── Condições dos campos (depends_on / mandatory_depends_on / read_only_depends_on) ──
+// Mesmo formato do Frappe: "eval:doc.pre_avaliacao=='Permanece'" ou só o nome de um campo
+// (verdadeiro quando tem valor). Vêm do DocType, definidas pela coordenação.
+function avaliarCondicao(expr: string | undefined, doc: Record<string, unknown>, seVazia: boolean): boolean {
+  const e = (expr || '').trim();
+  if (!e) return seVazia;
+  try {
+    if (e.startsWith('eval:')) {
+      // eslint-disable-next-line no-new-func
+      return Boolean(new Function('doc', `return (${e.slice(5)});`)(doc));
+    }
+    const v = doc[e];
+    return v !== null && v !== undefined && v !== '' && v !== 0 && v !== '0';
+  } catch {
+    return seVazia;
+  }
+}
+
+// Nomes do portal que no DocType são outros (presenças/faltas)
+const ALIAS_DOCTYPE: Record<string, string> = { total_faltas: 'nr_de_faltas' };
+
+function valorVazio(field: FieldConfigItem, v: unknown): boolean {
+  if (field.fieldtype === 'Check') return false;
+  return v === null || v === undefined || String(v).trim() === '';
+}
+
 // ── Column width mapping ──────────────────────────────────────────────────────
 
 const COL_WIDTHS: Record<string, string> = {
@@ -557,6 +583,19 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
     [fieldConfig],
   );
 
+  // "doc" para as condições: valores gravados + os que estão a ser editados (como no formulário do Frappe)
+  const docAtual = useMemo(() => {
+    const d: Record<string, unknown> = { ...(cat as unknown as Record<string, unknown> || {}), ...form };
+    Object.entries(ALIAS_DOCTYPE).forEach(([alias, real]) => {
+      if (alias in d && !(real in d)) d[real] = d[alias];
+    });
+    return d;
+  }, [cat, form]);
+  const visivel     = (f: FieldConfigItem) => avaliarCondicao(f.depends_on, docAtual, true);
+  const obrigatorio = (f: FieldConfigItem) => Boolean(f.reqd) || avaliarCondicao(f.mandatory_depends_on, docAtual, false);
+  const soLeitura   = (f: FieldConfigItem) => avaliarCondicao(f.read_only_depends_on, docAtual, false);
+  const podeEditar  = (f: FieldConfigItem) => f.editable && f.source !== 'turma' && !soLeitura(f);
+
   // Resolve value for any field, regardless of source
   function resolveValue(field: FieldConfigItem): unknown {
     if (field.source === 'turma' && turma) {
@@ -593,6 +632,13 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
 
   async function handleSave() {
     if (!cat) return;
+    const emFalta = fieldConfig
+      .filter(f => f.show_in_panel && podeEditar(f) && visivel(f) && obrigatorio(f) && valorVazio(f, form[f.fieldname]))
+      .map(f => f.label);
+    if (emFalta.length) {
+      setError(`Preencha: ${emFalta.join(', ')}`);
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -783,6 +829,8 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
 
               {sections.map(section => {
                 const IconComponent = section.icon ? SECTION_ICONS[section.icon] : null;
+                const camposVisiveis = section.fields.filter(visivel);
+                if (!camposVisiveis.length) return null;
                 return (
                 <div key={section.key} id={`panel-section-${section.key}`}>
                   <div className="flex items-center gap-1.5 mb-3">
@@ -794,15 +842,16 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    {section.fields.map(field => (
+                    {camposVisiveis.map(field => (
                       <div
                         key={field.fieldname}
                         className={field.col_span === '1' ? 'col-span-1' : 'col-span-2'}
                       >
                         <label className="block text-xs font-medium text-slate-500 mb-1">
                           {field.label}
+                          {podeEditar(field) && obrigatorio(field) && <span className="text-rose-500 ml-0.5">*</span>}
                         </label>
-                        {field.editable && field.source !== 'turma' ? (
+                        {podeEditar(field) ? (
                           <FieldInput
                             field={field}
                             value={form[field.fieldname] ?? ''}

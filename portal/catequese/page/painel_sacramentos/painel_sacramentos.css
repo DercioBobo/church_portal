@@ -200,3 +200,4 @@
 .ps-table tr.agendado td { opacity: .7; }
 .ps-table tr.agendado td:first-child { box-shadow: inset 3px 0 0 #22c55e; }
 a.ps-chip { text-decoration: none !important; margin-left: 4px; }
+.ps-btn-add { margin-left: auto; height: 28px; font-size: 0.78rem; }

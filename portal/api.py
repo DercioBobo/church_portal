@@ -573,12 +573,39 @@ def _assert_catequista():
     return cat
 
 
+# Campos do portal com outro nome no DocType (presenças/faltas têm nomes estáveis no portal)
+_ALIAS_PORTAL = {"total_faltas": "nr_de_faltas"}
+_DOCTYPE_DA_ORIGEM = {"catecumeno": "Catecumeno", "turma_catecumenos": "Turma Catecumenos", "turma": "Turma"}
+
+
+def _com_condicoes(campos):
+    """Junta a cada campo as condições definidas no DocType, para o portal as aplicar como o Frappe:
+    depends_on (mostrar quando), mandatory_depends_on / reqd (obrigatório), read_only_depends_on.
+    Mudar estas condições no DocType muda o portal sem tocar no código."""
+    metas = {}
+    out = []
+    for c in campos:
+        c = dict(c)
+        dt = _DOCTYPE_DA_ORIGEM.get(c.get("source"))
+        if dt:
+            meta = metas.setdefault(dt, frappe.get_meta(dt))
+            df = meta.get_field(_ALIAS_PORTAL.get(c["fieldname"], c["fieldname"]))
+            if df:
+                c["depends_on"] = df.depends_on or ""
+                c["mandatory_depends_on"] = df.mandatory_depends_on or ""
+                c["read_only_depends_on"] = df.read_only_depends_on or ""
+                c["reqd"] = bool(df.reqd)
+                c["description"] = df.description or ""
+        out.append(c)
+    return out
+
+
 @frappe.whitelist()
 def get_catecumeno_field_config():
     """Returns field config and section config for the catequista portal."""
     _assert_catequista()
     return {
-        "fields":   _load_field_config(),
+        "fields":   _com_condicoes(_load_field_config()),
         "sections": _load_section_config(),
     }
 
@@ -989,7 +1016,8 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
 
         # Direct TC fields
         for field in editable_tc_direct:
-            if field not in submitted or submitted[field] in (None, ""):
+            # vazio limpa o campo (ex.: apagar o motivo); só se ignora o que não foi enviado
+            if field not in submitted:
                 continue
             fobj = next((f for f in tc_meta_obj.fields if f.fieldname == field), None)
             row_updates[field] = _converter(fobj, submitted[field])
@@ -1004,6 +1032,10 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
         gravar_no_catecumeno(catecumeno_nome, cat_updates)
         _registar_alteracao_catequista(catecumeno_nome, cat_name, antes, cat_updates)
 
+    # O motivo de permanência só faz sentido com "Permanece"
+    if "pre_avaliacao" in row_updates and row_updates["pre_avaliacao"] != "Permanece":
+        row_updates["motivo_permanencia"] = None
+
     if "renovacao" in row_updates:
         from portal.catequese.renovacao import preencher
 
@@ -1017,7 +1049,7 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
             }))
 
     if row_updates:
-        frappe.db.set_value("Turma Catecumenos", row_name, row_updates, update_modified=False)
+        frappe.db.set_value("Turma Catecumenos", row_name, row_updates)  # modified/modified_by = quem mexeu (rasto)
         frappe.db.set_value("Turma", turma_name, "modified", frappe.utils.now(), update_modified=False)
 
     return {"success": True}

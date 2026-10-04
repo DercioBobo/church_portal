@@ -28,6 +28,7 @@
   "observacoes",
   "column_break_bqao",
   "pre_avaliacao",
+  "motivo_permanencia",
   "nr_de_faltas",
   "renovacao",
   "valor_renovacao",
@@ -619,6 +620,13 @@
    "unique": 0
   },
   {
+   "depends_on": "eval:doc.pre_avaliacao=='Permanece'",
+   "description": "Porque fica na mesma fase (opcional).",
+   "fieldname": "motivo_permanencia",
+   "fieldtype": "Small Text",
+   "label": "Motivo de permanência"
+  },
+  {
    "allow_bulk_edit": 0,
    "allow_in_quick_entry": 0,
    "allow_on_submit": 0,
@@ -869,7 +877,7 @@
  "links": [],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-04 15:05:42.000000",
+ "modified": "2026-10-04 15:31:18.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Turma Catecumenos",

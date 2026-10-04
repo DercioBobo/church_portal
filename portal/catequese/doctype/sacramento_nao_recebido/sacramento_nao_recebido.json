@@ -64,12 +64,14 @@
    "options": "\nComportamento\nFaltas\nDocumentos\nDesistiu\nRepete a fase\nOutro\nNão listado na preparação"
   },
   {
+   "default": "Em acompanhamento",
+   "description": "Em acompanhamento: aparece em \"Não receberam\" na página Sacramentos. As outras arquivam.",
    "fieldname": "decisao",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Decisão",
-   "options": "Sem 2ª oportunidade\nInactivo / desistiu\nRepete com o grupo do próximo ano\nOutro",
+   "options": "Em acompanhamento\nSem 2ª oportunidade\nInactivo / desistiu\nRepete com o grupo do próximo ano\nOutro",
    "reqd": 1
   },
   {
@@ -90,7 +92,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-04 15:18:14.000000",
+ "modified": "2026-10-04 15:25:07.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Sacramento Nao Recebido",

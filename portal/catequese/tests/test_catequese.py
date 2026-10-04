@@ -576,6 +576,31 @@ class TestSegundaOportunidade(BaseCatequese):
         self.assertRaises(frappe.ValidationError, segunda_oportunidade, [fora.name], "Eucaristia", preparacao=rasc.name)
 
 
+class TestAcrescentarNaoRecebeu(BaseCatequese):
+    def test_acrescentar_arquivar_e_ja_tem(self):
+        from portal.catequese.page.painel_sacramentos.painel_sacramentos import adicionar, arquivar, get_dados
+
+        c = catecumeno("_Teste Acrescentado")
+        nome = adicionar(c.name, "Crisma", motivo="Faltas", nota="Apagado da lista por engano")
+
+        def crisma():
+            return next(x for x in get_dados()["sacramentos"] if x["sacramento"] == "Crisma")
+
+        linha = next(r for r in crisma()["pendentes"] if r.catecumeno == c.name)
+        self.assertEqual((linha.motivo, linha.manual, linha.registo), ("Faltas", 1, nome))
+
+        # arquivar usa o mesmo registo (mantém o motivo) e sai de "Não receberam"
+        arquivar([c.name], "Crisma", "Sem 2ª oportunidade")
+        self.assertEqual(frappe.db.count("Sacramento Nao Recebido", {"catecumeno": c.name, "sacramento": "Crisma"}), 1)
+        self.assertEqual(frappe.db.get_value("Sacramento Nao Recebido", nome, ["decisao", "motivo"]),
+                         ("Sem 2ª oportunidade", "Faltas"))
+        self.assertNotIn(c.name, {r.catecumeno for r in crisma()["pendentes"]})
+
+        # quem já tem o sacramento não pode ser acrescentado
+        outro = catecumeno("_Teste Acrescentado Ja Tem", crisma=1)
+        self.assertRaises(frappe.ValidationError, adicionar, outro.name, "Crisma")
+
+
 class TestSubmeterPreparacao(BaseCatequese):
     """Correcções na submissão (Baptismo/Eucaristia/Crisma) e no link dos encarregados."""
     _ano = 2400
@@ -1046,6 +1071,50 @@ class TestRenovacao(BaseCatequese):
         self.assertEqual((receita.fonte, receita.ano_lectivo, receita.turma), ("Renovação", "2601", t.name))
         self.assertEqual(linha()["por_entregar"], 0)
         self.assertRaises(frappe.ValidationError, registar_entrega, t.name)
+
+
+class TestRenovacaoSemValor(BaseCatequese):
+    def test_completar_renovacoes_antigas(self):
+        from portal.catequese.page.renovacoes.renovacoes import completar, get_dados
+
+        c = catecumeno("_Teste Renov Antiga")
+        t = turma(FASE_A, [c], ano_nome=ano("2602"))
+        linha = frappe.db.get_value("Turma Catecumenos", {"parent": t.name, "catecumeno": c.name}, "name")
+        # como o portal antigo: só "Sim", sem valor nem data
+        frappe.db.set_value("Turma Catecumenos", linha, {"renovacao": "Sim", "modified": "2602-01-15 10:00:00"},
+                            update_modified=False)
+
+        r = next(x for x in get_dados("2602")["renovados"] if x.linha == linha)
+        self.assertTrue(r.sem_valor)
+        self.assertEqual(str(r.alterado_em)[:10], "2602-01-15")
+
+        completar([linha], valor=350)
+        v = frappe.db.get_value("Turma Catecumenos", linha, ["valor_renovacao", "data_renovacao"])
+        self.assertEqual((v[0], str(v[1])), (350, "2602-01-15"))   # data = última alteração
+
+
+class TestMotivoPermanencia(BaseCatequese):
+    def test_condicoes_vao_para_o_portal(self):
+        from portal.api import _com_condicoes
+
+        c = _com_condicoes([{"fieldname": "motivo_permanencia", "source": "turma_catecumenos"},
+                            {"fieldname": "total_faltas", "source": "turma_catecumenos"}])
+        self.assertEqual(c[0]["depends_on"], "eval:doc.pre_avaliacao=='Permanece'")
+        self.assertIn("reqd", c[1])   # alias total_faltas → nr_de_faltas encontrado no DocType
+
+    def test_motivo_so_com_permanece(self):
+        c = catecumeno("_Teste Motivo Permanencia")
+        t = turma(FASE_A, [c])
+        t.reload()
+        t.lista_catecumenos[0].pre_avaliacao = "Permanece"
+        t.lista_catecumenos[0].motivo_permanencia = "Muitas faltas no 2º trimestre"
+        t.save()
+        self.assertEqual(frappe.db.get_value("Turma Catecumenos", t.lista_catecumenos[0].name, "motivo_permanencia"),
+                         "Muitas faltas no 2º trimestre")
+        t.reload()
+        t.lista_catecumenos[0].pre_avaliacao = "Transita"
+        t.save()
+        self.assertIsNone(frappe.db.get_value("Turma Catecumenos", t.lista_catecumenos[0].name, "motivo_permanencia"))
 
 
 class TestDefinicoesEAno(BaseCatequese):

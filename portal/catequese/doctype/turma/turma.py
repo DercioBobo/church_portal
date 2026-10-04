@@ -13,6 +13,8 @@ class Turma(Document):
         for linha in self.get("lista_catecumenos"):
             if renov_antes.get(linha.catecumeno) != (linha.renovacao or ""):
                 renovacao.preencher(linha)
+            if linha.pre_avaliacao != "Permanece":
+                linha.motivo_permanencia = None
         # Linhas novas juntam-se aos dados do catecúmeno; as alteradas seguem para ele no on_update
         sincronizacao.turma_validate(self)
 

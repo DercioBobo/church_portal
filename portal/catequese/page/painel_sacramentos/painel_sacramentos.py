@@ -22,6 +22,7 @@ from portal.catequese.utils import ano_actual
 
 NAO_RECEBE = "Não vai receber"
 REGISTO = "Sacramento Nao Recebido"
+ACOMPANHAMENTO = "Em acompanhamento"   # registo feito à mão: aparece em "Não receberam", não arquiva
 NAO_LISTADO = "Não listado na preparação"
 
 # (Sacramento, rótulo, campo no Catecúmeno, campo da data)
@@ -44,7 +45,7 @@ def get_dados():
 
     return {
         "ano": ano,
-        "decisoes": opcoes("decisao"),
+        "decisoes": [o for o in opcoes("decisao") if o != ACOMPANHAMENTO],
         "motivos": opcoes("motivo"),
         "sacramentos": [_sacramento(s, rotulo, campo, campo_data, fases, ordem, ano)
                         for s, rotulo, campo, campo_data in SACRAMENTOS],
@@ -63,6 +64,12 @@ def _sacramento(sac, rotulo, campo, campo_data, fases, ordem, ano):
 
     pendentes, resolvidos = _falharam(sac, campo, campo_data)
     pendentes = [r for r in pendentes if str(r.ano_lectivo) > ano_arquivo.get(r.catecumeno, "")]
+    # Acrescentados à mão (registo "Em acompanhamento")
+    ja = {r.catecumeno for r in pendentes} | {r.catecumeno for r in resolvidos}
+    for r in _em_acompanhamento(sac, campo, campo_data):
+        if r.catecumeno in ja:
+            continue
+        (resolvidos if r.recebeu else pendentes).append(r)
     preparacoes = _preparacoes(sac, ano)
 
     ja_listados = {r.catecumeno for r in pendentes}
@@ -169,9 +176,28 @@ def _arquivados(sac, campo):
                k.status, k.fase, k.turma, IFNULL(k.`{campo}`, 0) AS recebeu
         FROM `tab{REGISTO}` r
         LEFT JOIN `tabCatecumeno` k ON k.name = r.catecumeno
-        WHERE r.sacramento = %s
+        WHERE r.sacramento = %s AND r.decisao != %s
         ORDER BY r.ano_lectivo DESC, r.data_decisao DESC, r.catecumeno
-    """, sac, as_dict=True)
+    """, (sac, ACOMPANHAMENTO), as_dict=True)
+
+
+def _em_acompanhamento(sac, campo, campo_data):
+    """Registos "Em acompanhamento" (acrescentados à mão), no mesmo formato de "Não receberam"."""
+    linhas = frappe.db.sql(f"""
+        SELECT r.name AS registo, r.catecumeno, r.motivo, r.nota AS detalhe, r.preparacao, r.ano_lectivo,
+               COALESCE(p.data_do_sacramento, r.data_decisao) AS data, p.docstatus,
+               k.status, k.fase, k.turma, k.comunidade, k.encarregado, k.contacto,
+               IFNULL(k.`{campo}`, 0) AS recebeu, k.`{campo_data}` AS data_recebeu
+        FROM `tab{REGISTO}` r
+        JOIN `tabCatecumeno` k ON k.name = r.catecumeno
+        LEFT JOIN `tabPreparacao do Sacramento` p ON p.name = r.preparacao
+        WHERE r.sacramento = %s AND r.decisao = %s
+        ORDER BY r.data_decisao DESC
+    """, (sac, ACOMPANHAMENTO), as_dict=True)
+    for r in linhas:
+        r.vezes, r.manual = 1, 1
+        r.recebeu = cint(r.recebeu)
+    return linhas
 
 
 def _preparacoes(sac, ano):
@@ -210,11 +236,14 @@ def arquivar(catecumenos, sacramento, decisao, motivo=None, nota=None, preparaco
                                              {"parent": prep, "catecumeno": cat}, "motivo_nao_recebe")
         else:
             motivo_cat = motivo or (None if prep else NAO_LISTADO)
-        existente = frappe.db.get_value(REGISTO, {"catecumeno": cat, "sacramento": sacramento, "ano_lectivo": ano})
+        # quem foi acrescentado à mão ("Em acompanhamento") é arquivado no mesmo registo
+        existente = (frappe.db.get_value(REGISTO, {"catecumeno": cat, "sacramento": sacramento, "decisao": ACOMPANHAMENTO})
+                     or frappe.db.get_value(REGISTO, {"catecumeno": cat, "sacramento": sacramento, "ano_lectivo": ano}))
         doc = frappe.get_doc(REGISTO, existente) if existente else frappe.new_doc(REGISTO)
         doc.update({
-            "catecumeno": cat, "sacramento": sacramento, "ano_lectivo": ano, "preparacao": prep,
-            "motivo": motivo_cat, "decisao": decisao, "nota": nota, "data_decisao": today(),
+            "catecumeno": cat, "sacramento": sacramento, "decisao": decisao, "data_decisao": today(),
+            "ano_lectivo": doc.ano_lectivo or ano, "preparacao": doc.preparacao or prep,
+            "motivo": motivo_cat or doc.motivo, "nota": nota or doc.nota,
         })
         doc.save()
         feitos += 1
@@ -278,3 +307,27 @@ def segunda_oportunidade(catecumenos, sacramento, preparacao=None, ano=None, dat
         adicionados += 1
     doc.save()
     return {"preparacao": doc.name, "adicionados": adicionados, "repostos": repostos}
+
+
+# ── Acrescentar à mão ────────────────────────────────────────────────────────
+
+@frappe.whitelist()
+def adicionar(catecumeno, sacramento, motivo=None, nota=None, preparacao=None):
+    """Para quem não aparece nas listas (ex.: foi apagado da preparação): fica "Em acompanhamento"
+    em "Não receberam", e daí pode ter 2ª oportunidade ou ser arquivado."""
+    frappe.has_permission(REGISTO, "create", throw=True)
+    campo = next((c for s, _r, c, _d in SACRAMENTOS if s == sacramento), None)
+    if campo and cint(frappe.db.get_value("Catecumeno", catecumeno, campo)):
+        frappe.throw(_("{0} já tem o sacramento marcado ({1}). Se é um erro, desmarque-o no catecúmeno.").format(
+            catecumeno, sacramento))
+    if preparacao and frappe.db.get_value("Preparacao do Sacramento", preparacao, "sacramento") != sacramento:
+        frappe.throw(_("A preparação {0} não é de {1}.").format(preparacao, sacramento))
+    ano = (preparacao and frappe.db.get_value("Preparacao do Sacramento", preparacao, "ano_lectivo")) or ano_actual()
+    if frappe.db.exists(REGISTO, {"catecumeno": catecumeno, "sacramento": sacramento, "ano_lectivo": ano}):
+        frappe.throw(_("{0} já tem um registo de {1} em {2} (ver Arquivados).").format(catecumeno, sacramento, ano))
+    doc = frappe.get_doc({
+        "doctype": REGISTO, "catecumeno": catecumeno, "sacramento": sacramento, "ano_lectivo": ano,
+        "preparacao": preparacao, "motivo": motivo or (None if preparacao else NAO_LISTADO),
+        "decisao": ACOMPANHAMENTO, "nota": nota, "data_decisao": today(),
+    }).insert()
+    return doc.name

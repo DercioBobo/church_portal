@@ -64,6 +64,12 @@ export interface FieldConfigItem {
   panel_section: string;
   source: 'catecumeno' | 'turma_catecumenos' | 'turma';
   col_span: '1' | '2';
+  // Condições do DocType (como no Frappe): mostrar quando, obrigatório, só leitura
+  depends_on?: string;
+  mandatory_depends_on?: string;
+  read_only_depends_on?: string;
+  reqd?: boolean;
+  description?: string;
 }
 
 // ── Retiros ───────────────────────────────────────────────────────────────────
