@@ -542,9 +542,11 @@ class TestGerirPreparacao(BaseCatequese):
 
     def nova(self, linhas=()):
         TestGerirPreparacao._ano += 1
+        a = str(TestGerirPreparacao._ano)
         return frappe.get_doc({
-            "doctype": "Preparacao do Sacramento", "sacramento": self.SAC,
-            "ano_lectivo": ano(str(TestGerirPreparacao._ano)), "candidatos_sacramento_table": list(linhas),
+            "doctype": "Preparacao do Sacramento", "sacramento": self.SAC, "ano_lectivo": ano(a),
+            "data_do_sacramento": f"{a}-06-07",   # sem data a submissão é recusada
+            "candidatos_sacramento_table": list(linhas),
         }).insert()
 
     def test_listar_e_sincronizar(self):
