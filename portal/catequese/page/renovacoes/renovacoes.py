@@ -29,6 +29,7 @@ def get_dados(ano=None):
     linhas = frappe.db.sql("""
         SELECT tc.name AS linha, tc.parent AS turma, tc.catecumeno, tc.estado, tc.pre_avaliacao,
                tc.renovacao, tc.valor_renovacao, tc.data_renovacao,
+               tc.modified AS alterado_em, tc.modified_by AS alterado_por,
                c.status, c.encarregado, c.contacto
         FROM `tabTurma Catecumenos` tc
         JOIN `tabTurma` t ON t.name = tc.parent AND t.ano_lectivo = %s
@@ -64,6 +65,19 @@ def get_dados(ano=None):
             renovados.append(l)
         else:
             por_renovar.append(l)
+
+    # Renovações sem valor (de antes de haver valor): pista de quando/quem pela última alteração da linha
+    sem_valor = [l for l in renovados if l.renovacao == "Sim" and not flt(l.valor_renovacao)]
+    utilizadores = {l.alterado_por for l in sem_valor if l.alterado_por}
+    nomes = {}
+    if utilizadores:
+        nomes.update({u.user: u.name for u in frappe.get_all(
+            "Catequista", filters={"user": ["in", list(utilizadores)]}, fields=["name", "user"])})
+        for u in utilizadores - set(nomes):
+            nomes[u] = frappe.db.get_value("User", u, "full_name") or u
+    for l in sem_valor:
+        l.sem_valor = 1
+        l.alterado_por_nome = nomes.get(l.alterado_por, l.alterado_por)
 
     lista = []
     for t in por_turma.values():
@@ -114,3 +128,25 @@ def registar_entrega(turma, valor=None, data=None, notas=None):
         "notas": notas,
     }).insert()
     return {"receita": r.name, "valor": valor}
+
+
+@frappe.whitelist()
+def completar(linhas, valor=None, data=None, usar_data_alteracao=1):
+    """Completa renovações "Sim" sem valor/data (marcadas antes de haver valor).
+    Data: a indicada, ou a da última alteração da linha (pista de quando o catequista marcou)."""
+    frappe.has_permission("Turma", "write", throw=True)
+    linhas = frappe.parse_json(linhas) if isinstance(linhas, str) else (linhas or [])
+    valor = flt(valor) if valor not in (None, "") else valor_padrao()
+    feitas = 0
+    for nome in linhas:
+        l = frappe.db.get_value("Turma Catecumenos", nome, ["renovacao", "valor_renovacao", "data_renovacao", "modified"],
+                                as_dict=True)
+        if not l or l.renovacao != "Sim":
+            continue
+        dia = data or (str(l.modified)[:10] if frappe.utils.cint(usar_data_alteracao) else None) or today()
+        frappe.db.set_value("Turma Catecumenos", nome, {
+            "valor_renovacao": flt(l.valor_renovacao) or valor,
+            "data_renovacao": l.data_renovacao or dia,
+        }, update_modified=False)   # mantém a pista de quem/quando marcou
+        feitas += 1
+    return {"completadas": feitas}
