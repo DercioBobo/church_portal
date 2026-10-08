@@ -761,3 +761,135 @@ def reorder_actividades(ano_lectivo, ordered_names):
         frappe.db.set_value("Actividade do Plano", name, "idx", idx)
     frappe.db.commit()
     return {"success": True}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Subscrição de calendário (iCal) — Google Calendar, Outlook, Apple…
+# Cada coordenador tem um token secreto próprio. O URL do feed é público
+# (o Google acede sem sessão), por isso o token é a única protecção:
+# gerar um novo token invalida o link anterior.
+# ─────────────────────────────────────────────────────────────────────────────
+ICAL_TOKEN_KEY = "plano_anual_ical_token"
+ICAL_DIAS_PASSADOS = 365  # actividades já passadas que continuam no calendário
+
+
+def _ical_feed_url(token):
+    return frappe.utils.get_url(
+        "/api/method/portal.catequista.page.plano_anual.plano_anual.ical_feed?token=" + token
+    )
+
+
+@frappe.whitelist()
+def get_ical_feed_url(regenerar=0):
+    _assert_coordenador()
+    user = frappe.session.user
+    token = frappe.db.get_value("DefaultValue", {"parent": user, "defkey": ICAL_TOKEN_KEY}, "defvalue")
+    if not token or frappe.utils.cint(regenerar):
+        token = frappe.generate_hash(length=32)
+        frappe.defaults.set_user_default(ICAL_TOKEN_KEY, token, user)
+        frappe.db.commit()
+    return _ical_feed_url(token)
+
+
+def _ical_user_from_token(token):
+    if not token or len(token) < 20:
+        return None
+    user = frappe.db.get_value("DefaultValue", {"defkey": ICAL_TOKEN_KEY, "defvalue": token}, "parent")
+    if not user or not frappe.db.get_value("User", user, "enabled"):
+        return None
+    roles = frappe.get_roles(user)
+    if "System Manager" not in roles and "Coordenador Catequese" not in roles:
+        return None
+    return user
+
+
+def _ical_escape(s):
+    return (str(s).replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
+            .replace("\r\n", "\\n").replace("\n", "\\n"))
+
+
+def _ical_fold(line):
+    # RFC 5545: linhas com mais de 75 octetos são dobradas com CRLF + espaço
+    out, size = [], 0
+    for ch in line:
+        n = len(ch.encode("utf-8"))
+        if size + n > 74:
+            out.append("\r\n ")
+            size = 1
+        out.append(ch)
+        size += n
+    return "".join(out)
+
+
+def _ical_eventos():
+    """Actividades e retiros com data, não cancelados, do último ano em diante."""
+    desde = frappe.utils.add_days(frappe.utils.today(), -ICAL_DIAS_PASSADOS)
+    eventos = frappe.db.sql("""
+        SELECT CONCAT('plano-anual-', name) AS uid, actividade AS titulo, data, data_fim,
+               local, orador, tipologia, organizador, a_confirmar
+        FROM `tabActividade do Plano`
+        WHERE data IS NOT NULL AND IFNULL(estado, '') != 'Cancelada'
+          AND COALESCE(data_fim, data) >= %s
+    """, (desde,), as_dict=True)
+    eventos += frappe.db.sql("""
+        SELECT CONCAT('plano-retiro-', name) AS uid, titulo, data, NULL AS data_fim,
+               local, orador, 'Retiro' AS tipologia, NULL AS organizador, 0 AS a_confirmar
+        FROM `tabPlano de Retiro`
+        WHERE data IS NOT NULL AND IFNULL(estado, '') != 'Cancelado' AND data >= %s
+    """, (desde,), as_dict=True)
+    return eventos
+
+
+def _ical_build(eventos):
+    from datetime import datetime, timedelta, timezone
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    host = frappe.local.site
+    lines = [
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Portal Catequese//Plano Anual//PT",
+        "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Plano Anual da Catequese",
+        "REFRESH-INTERVAL;VALUE=DURATION:PT6H", "X-PUBLISHED-TTL:PT6H",
+    ]
+    for ev in eventos:
+        inicio = frappe.utils.getdate(ev.data)
+        fim = frappe.utils.getdate(ev.data_fim) if ev.data_fim else inicio
+        if fim < inicio:
+            fim = inicio
+        descricao = "\n".join(filter(None, [
+            ev.tipologia and f"Tipologia: {ev.tipologia}",
+            ev.orador and f"Orador: {ev.orador}",
+            ev.organizador and ev.organizador != "Paróquia" and f"Organizado por: {ev.organizador}",
+            ev.a_confirmar and "Data a confirmar",
+        ]))
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:{ev.uid}@{host}",
+            f"DTSTAMP:{stamp}",
+            f"DTSTART;VALUE=DATE:{inicio.strftime('%Y%m%d')}",
+            # Eventos de dia inteiro: a data de fim é exclusiva
+            f"DTEND;VALUE=DATE:{(fim + timedelta(days=1)).strftime('%Y%m%d')}",
+            f"SUMMARY:{_ical_escape(ev.titulo or 'Actividade')}",
+        ]
+        if descricao:
+            lines.append(f"DESCRIPTION:{_ical_escape(descricao)}")
+        if ev.local:
+            lines.append(f"LOCATION:{_ical_escape(ev.local)}")
+        if ev.a_confirmar:
+            lines.append("STATUS:TENTATIVE")
+        lines.append("END:VEVENT")
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(_ical_fold(l) for l in lines) + "\r\n"
+
+
+@frappe.whitelist(allow_guest=True)
+def ical_feed(token=None):
+    from werkzeug.wrappers import Response
+
+    if not _ical_user_from_token(token):
+        return Response("Not found", status=404, mimetype="text/plain")
+
+    resp = Response(_ical_build(_ical_eventos()).encode("utf-8"))
+    resp.headers["Content-Type"] = "text/calendar; charset=utf-8"
+    resp.headers["Content-Disposition"] = 'inline; filename="plano-anual.ics"'
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp

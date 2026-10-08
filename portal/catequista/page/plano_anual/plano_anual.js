@@ -98,6 +98,74 @@ function api(method, args) {
     });
   });
 }
+// ── Calendar export (.ics / Google Calendar) — activities are all-day events
+function _calYmd(d) { return d.replace(/-/g, ''); }
+function _calEndExclusive(act) {
+  // iCalendar/Google all-day events use an exclusive end date
+  const end = new Date((act.data_fim || act.data) + 'T00:00:00');
+  end.setDate(end.getDate() + 1);
+  return `${end.getFullYear()}${String(end.getMonth() + 1).padStart(2, '0')}${String(end.getDate()).padStart(2, '0')}`;
+}
+function _calDescription(act) {
+  return [
+    act.tipologia && `Tipologia: ${act.tipologia}`,
+    act.orador && `Orador: ${act.orador}`,
+    act.organizador && act.organizador !== 'Paróquia' && `Organizado por: ${act.organizador}`,
+    act.a_confirmar && 'Data a confirmar',
+  ].filter(Boolean).join('\n');
+}
+function googleCalendarUrl(act) {
+  const p = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: act.actividade || 'Actividade',
+    dates: `${_calYmd(act.data)}/${_calEndExclusive(act)}`,
+  });
+  const details = _calDescription(act);
+  if (details) p.set('details', details);
+  if (act.local) p.set('location', act.local);
+  return `https://calendar.google.com/calendar/render?${p}`;
+}
+function _icsEscape(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+function _icsFold(line) {
+  // RFC 5545: lines longer than 75 octets are folded with CRLF + space
+  const enc = new TextEncoder();
+  let out = '', bytes = 0;
+  for (const ch of line) {
+    const n = enc.encode(ch).length;
+    if (bytes + n > 74) { out += '\r\n '; bytes = 1; }
+    out += ch; bytes += n;
+  }
+  return out;
+}
+function buildIcs(acts, calName) {
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const host = window.location.hostname || 'portal';
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Portal Catequese//Plano Anual//PT',
+    'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', `X-WR-CALNAME:${_icsEscape(calName)}`,
+  ];
+  acts.forEach(act => {
+    lines.push(
+      'BEGIN:VEVENT',
+      // Stable UID so re-importing updates events instead of duplicating them
+      `UID:${act._is_retiro ? 'plano-retiro' : 'plano-anual'}-${act.name}@${host}`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${_calYmd(act.data)}`,
+      `DTEND;VALUE=DATE:${_calEndExclusive(act)}`,
+      `SUMMARY:${_icsEscape(act.actividade || 'Actividade')}`,
+    );
+    const details = _calDescription(act);
+    if (details) lines.push(`DESCRIPTION:${_icsEscape(details)}`);
+    if (act.local) lines.push(`LOCATION:${_icsEscape(act.local)}`);
+    if (act.a_confirmar) lines.push('STATUS:TENTATIVE');
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.map(_icsFold).join('\r\n') + '\r\n';
+}
+
 const EMPTY_FORM = () => ({
   name: null, actividade: '', tipologia: '', estado: 'Pendente',
   ano_lectivo: '', data: '', data_fim: '', orador: '', local: '', orcamento: '', notas_execucao: '',
@@ -255,6 +323,15 @@ function createPlanoAnualApp() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Exportar...
           <span v-if="hasFilters" class="pa-actions-badge">filtrado</span>
+        </button>
+        <button class="pa-actions-item" @click="exportIcs(); actionsOpen = false" title="Ficheiro .ics para importar no Google Calendar, Outlook, etc.">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Exportar para calendário (.ics)
+          <span v-if="hasFilters" class="pa-actions-badge">filtrado</span>
+        </button>
+        <button class="pa-actions-item" @click="openFeedModal(); actionsOpen = false" title="Link que mantém o Google Calendar sincronizado com o plano">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Subscrever calendário…
         </button>
         <button class="pa-actions-item" @click="openCopyYearModal(); actionsOpen = false">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -771,7 +848,49 @@ function createPlanoAnualApp() {
   </div>
 
   <!-- Overlay (shared between slide-over panel and modal) -->
-  <div class="pa-overlay" :class="{ open: panelOpen || copyModal.open }" @click="panelOpen ? closePanel() : closeCopyYearModal()"></div>
+  <div class="pa-overlay" :class="{ open: panelOpen || copyModal.open || feedModal.open }" @click="panelOpen ? closePanel() : feedModal.open ? closeFeedModal() : closeCopyYearModal()"></div>
+
+  <!-- ── Calendar subscription modal ─────────────────────────────────── -->
+  <div class="pa-modal" :class="{ open: feedModal.open }">
+    <div class="pa-modal-header">
+      <div class="pa-modal-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <h3>Subscrever Calendário</h3>
+      <button class="pa-panel-close" @click="closeFeedModal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="pa-modal-body">
+      <div v-if="feedModal.loading" class="pa-loading" style="min-height:90px"><div class="pa-spinner"></div> A preparar o link…</div>
+      <p v-else-if="feedModal.error" style="color:#dc2626;font-size:0.88rem;margin:0">{{ feedModal.error }}</p>
+      <template v-else>
+        <p class="pa-feed-intro">O Google Calendar passa a mostrar o plano anual (actividades e retiros) e vai actualizando sozinho quando o plano muda.</p>
+        <a class="pa-btn pa-btn-primary pa-feed-google" :href="googleSubscribeUrl" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar ao Google Calendar
+        </a>
+        <div class="pa-section-label" style="margin-top:16px">Ou copie o link (Outlook, Apple, Google → “A partir do URL”)</div>
+        <div class="pa-feed-url-row">
+          <input class="pa-feed-url" :value="feedModal.url" readonly @focus="$event.target.select()">
+          <button class="pa-btn pa-btn-secondary pa-btn-sm" @click="copyFeedUrl">{{ feedModal.copied ? 'Copiado ✓' : 'Copiar' }}</button>
+        </div>
+        <ul class="pa-copy-rules" style="margin-top:14px">
+          <li>O Google actualiza calendários subscritos de <strong>algumas em algumas horas</strong> (pode demorar até um dia)</li>
+          <li>Inclui o último ano e tudo o que está planeado; as canceladas <strong>não aparecem</strong></li>
+          <li>Este link é <strong>pessoal</strong>: quem o tiver vê o plano sem iniciar sessão</li>
+        </ul>
+        <div style="margin-top:14px;text-align:center">
+          <button v-if="!feedModal.confirmRegen" class="pa-btn pa-btn-ghost pa-btn-sm" @click="feedModal.confirmRegen = true">Gerar novo link…</button>
+          <div v-else class="pa-copy-warning-box" style="margin:0;align-items:center">
+            <span style="flex:1">O link antigo deixa de funcionar e calendários que o usem deixam de actualizar.</span>
+            <button class="pa-btn pa-btn-danger-solid pa-btn-sm" @click="regenerateFeedUrl">Gerar</button>
+            <button class="pa-btn pa-btn-secondary pa-btn-sm" @click="feedModal.confirmRegen = false">Cancelar</button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
 
   <!-- ── Copy Year Modal ─────────────────────────────────────────────── -->
   <div class="pa-modal" :class="{ open: copyModal.open }">
@@ -1031,6 +1150,10 @@ function createPlanoAnualApp() {
             <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             {{ duplicating ? 'A duplicar…' : 'Duplicar actividade' }}
           </button>
+          <a v-if="form.data" class="pa-btn pa-btn-ghost pa-btn-dupe" :href="googleCalendarUrl(form)" target="_blank" rel="noopener" title="Abre o Google Calendar com o evento preenchido">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/></svg>
+            Adicionar ao Google Calendar
+          </a>
         </div>
 
         <div class="pa-section-divider"></div>
@@ -1526,7 +1649,7 @@ function createPlanoAnualApp() {
         const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
 
         // N → new activity
-        if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey && !panelOpen.value && !copyModal.open && !isTyping) {
+        if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey && !panelOpen.value && !copyModal.open && !feedModal.open && !isTyping) {
           e.preventDefault();
           openNewActivity(null);
           return;
@@ -1535,6 +1658,7 @@ function createPlanoAnualApp() {
         if (e.key === 'Escape') {
           if (panelOpen.value)   { closePanel();              return; }
           if (copyModal.open)    { closeCopyYearModal();      return; }
+          if (feedModal.open)    { closeFeedModal();          return; }
           if (actionsOpen.value) { actionsOpen.value = false; return; }
           if (tipDdOpen.value)   { tipDdOpen.value   = false; return; }
         }
@@ -1947,6 +2071,47 @@ function createPlanoAnualApp() {
         }
       }
 
+      // ── Calendar subscription (iCal feed) ─────────────────────────────────
+      const feedModal = reactive({
+        open: false, loading: false, url: '', error: '', copied: false, confirmRegen: false,
+      });
+      const googleSubscribeUrl = computed(() =>
+        'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(feedModal.url.replace(/^https?:/, 'webcal:'))
+      );
+
+      async function loadFeedUrl(regenerar) {
+        feedModal.loading = true;
+        feedModal.error   = '';
+        feedModal.copied  = false;
+        feedModal.confirmRegen = false;
+        try {
+          feedModal.url = await api('get_ical_feed_url', { regenerar: regenerar ? 1 : 0 });
+        } catch (e) {
+          feedModal.error = 'Não foi possível obter o link do calendário.';
+        } finally {
+          feedModal.loading = false;
+        }
+      }
+      function openFeedModal() {
+        if (panelOpen.value) closePanel();
+        feedModal.open = true;
+        loadFeedUrl(false);
+      }
+      function closeFeedModal() { feedModal.open = false; }
+      async function regenerateFeedUrl() {
+        await loadFeedUrl(true);
+        if (!feedModal.error) toast('Novo link gerado — o anterior deixou de funcionar', 'success');
+      }
+      async function copyFeedUrl() {
+        try {
+          await navigator.clipboard.writeText(feedModal.url);
+        } catch (e) {
+          frappe.utils.copy_to_clipboard(feedModal.url);
+        }
+        feedModal.copied = true;
+        setTimeout(() => { feedModal.copied = false; }, 2000);
+      }
+
       // ── Copy from previous year ───────────────────────────────────────────
       const copyModal = reactive({
         open:    false,
@@ -2257,6 +2422,21 @@ function createPlanoAnualApp() {
 
       const exporting = ref(false);
 
+      function exportIcs() {
+        const acts = filteredActividades.value.filter(a => a.data && a.estado !== 'Cancelada');
+        if (!acts.length) { toast('Não há actividades com data para exportar', 'error'); return; }
+        const blob = new Blob([buildIcs(acts, `Plano Anual ${selectedAno.value}`)], { type: 'text/calendar;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `plano-anual-${(selectedAno.value || '').replace(/[^\w-]+/g, '-')}.ics`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast(`${acts.length} actividade${acts.length !== 1 ? 's' : ''} exportada${acts.length !== 1 ? 's' : ''}`, 'success');
+      }
+
       async function exportExcel() {
         if (exporting.value) return;
         exporting.value = true;
@@ -2369,7 +2549,7 @@ function createPlanoAnualApp() {
         cycleStatus, flashingRow, removeTipFilter,
         onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, justMovedCard,
         clearSearch,
-        printView, exporting, exportExcel,
+        printView, exporting, exportExcel, exportIcs, googleCalendarUrl,
         showExportPanel, exportFields, printDate, paExportTotal, EXPORT_FIELD_LABELS_PA,
         printOrientation, letterHeads, selectedLetterHead, selectedLetterHeadObj,
         cardStyle, tipologiaChipStyle, tipologiaColor, calActStyle,
@@ -2383,6 +2563,8 @@ function createPlanoAnualApp() {
         quickAdd, quickAddSaving, openQuickAdd, cancelQuickAdd, saveQuickAdd,
         // Copy year modal
         copyModal, openCopyYearModal, closeCopyYearModal, confirmCopyYear,
+        // Calendar subscription
+        feedModal, googleSubscribeUrl, openFeedModal, closeFeedModal, regenerateFeedUrl, copyFeedUrl,
         // Multi-select / bulk
         selected, selectionCount, hasSelection, isAllSelected, isSomeSelected,
         allMonthsForYear, bulkEstadoTarget, bulkMoveTarget, bulkDelConfirm, bulkActWorking,
