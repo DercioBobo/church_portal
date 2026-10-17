@@ -108,10 +108,13 @@ function createSacramentosApp() {
         <span v-if="sac.fases.length" class="ps-muted ps-small">Fase do sacramento: {{ sac.fases.join(', ') }}</span>
       </div>
       <div class="ps-prep-grid">
-        <!-- rascunho: abre a lista de candidatos aqui; submetida: abre o formulário -->
-        <a v-for="p in sac.cartoes" :key="p.name" class="ps-prep" :class="{ rasc: !p.docstatus, aberta: p.name === abertaNome }"
-           :href="(p.docstatus ? '/app/preparacao-do-sacramento/' : '/app/gerir-preparacao/') + encodeURIComponent(p.name)"
-           @click="!p.docstatus && ($event.preventDefault(), abertaNome = abertaNome === p.name ? '' : p.name)">
+        <!-- rascunho: abre a lista de candidatos aqui (não é link: o router do Frappe apanha
+             qualquer clique em <a href="/app/...">); submetida: abre o Gerir Preparação -->
+        <component :is="p.docstatus ? 'a' : 'div'" v-for="p in sac.cartoes" :key="p.name" class="ps-prep"
+           :class="{ rasc: !p.docstatus, aberta: p.name === abertaNome }"
+           :href="p.docstatus ? '/app/gerir-preparacao/' + encodeURIComponent(p.name) : null"
+           :role="p.docstatus ? null : 'button'"
+           @click="!p.docstatus && (abertaNome = abertaNome === p.name ? '' : p.name)">
           <div class="ps-prep-l1">
             <b>{{ p.name }}</b>
             <span class="ps-chip" :class="p.docstatus ? 'feito' : 'rasc'">{{ p.docstatus ? 'Submetida' : 'Rascunho' }}</span>
@@ -126,7 +129,7 @@ function createSacramentosApp() {
             <span v-if="p.nao" class="ps-chip erro">{{ p.nao }} não</span>
             <span v-if="!p.docstatus" class="ps-prep-ver">{{ p.name === abertaNome ? 'fechar ▲' : 'ver ▼' }}</span>
           </div>
-        </a>
+        </component>
         <span v-if="!sac.cartoes.length" class="ps-muted">Nenhuma preparação de {{ dados.ano }}.</span>
       </div>
 
