@@ -1216,6 +1216,13 @@ class TestMotivoPermanencia(BaseCatequese):
         self.assertEqual(c[0]["depends_on"], "eval:doc.pre_avaliacao=='Permanece'")
         self.assertIn("reqd", c[1])   # alias total_faltas → nr_de_faltas encontrado no DocType
 
+    def test_origem_errada_e_corrigida(self):
+        from portal.api import _origem_real
+
+        # acrescentado à mão nas definições com a origem por defeito
+        self.assertEqual(_origem_real("motivo_permanencia", "catecumeno"), "turma_catecumenos")
+        self.assertEqual(_origem_real("motivo_permanencia", "turma_catecumenos"), "turma_catecumenos")
+
     def test_motivo_so_com_permanece(self):
         c = catecumeno("_Teste Motivo Permanencia")
         t = turma(FASE_A, [c])
@@ -1229,6 +1236,24 @@ class TestMotivoPermanencia(BaseCatequese):
         t.lista_catecumenos[0].pre_avaliacao = "Transita"
         t.save()
         self.assertIsNone(frappe.db.get_value("Turma Catecumenos", t.lista_catecumenos[0].name, "motivo_permanencia"))
+
+    def test_motivo_desistencia_so_com_desistente(self):
+        c = catecumeno("_Teste Motivo Desistencia")
+        t = turma(FASE_A, [c])
+        t.reload()
+        linha = t.lista_catecumenos[0]
+        linha.pre_avaliacao = "Desistente"
+        linha.motivo_desistencia = "Mudou de paróquia"
+        linha.motivo_permanencia = "não devia ficar"
+        t.save()
+        motivos = frappe.db.get_value("Turma Catecumenos", linha.name,
+                                      ["motivo_desistencia", "motivo_permanencia"], as_dict=True)
+        self.assertEqual(motivos.motivo_desistencia, "Mudou de paróquia")
+        self.assertIsNone(motivos.motivo_permanencia)
+        t.reload()
+        t.lista_catecumenos[0].pre_avaliacao = "Permanece"
+        t.save()
+        self.assertIsNone(frappe.db.get_value("Turma Catecumenos", linha.name, "motivo_desistencia"))
 
 
 class TestDefinicoesEAno(BaseCatequese):

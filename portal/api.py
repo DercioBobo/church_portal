@@ -520,6 +520,20 @@ def _load_section_config():
     return result
 
 
+def _origem_real(fieldname, source):
+    """Corrige a origem quando o campo não existe no DocType escolhido nas definições
+    (ex.: motivo_permanencia acrescentado à mão com a origem por defeito "catecumeno").
+    Com a origem errada o campo não era lido nem gravado e perdia as condições (depends_on)."""
+    dt = _DOCTYPE_DA_ORIGEM.get(source)
+    campo = _ALIAS_PORTAL.get(fieldname, fieldname)
+    if not dt or fieldname == "name" or frappe.get_meta(dt).has_field(campo):
+        return source
+    for outra in ("turma_catecumenos", "catecumeno", "turma"):
+        if outra != source and frappe.get_meta(_DOCTYPE_DA_ORIGEM[outra]).has_field(campo):
+            return outra
+    return source
+
+
 def _load_field_config():
     """Load field config from Settings doc, falling back to defaults.
     Result is cached for the lifetime of the request via frappe.local."""
@@ -542,7 +556,7 @@ def _load_field_config():
                     "editable": bool(row.editable),
                     "column_width": row.column_width or "sm",
                     "panel_section": row.panel_section or "",
-                    "source": row.source or "catecumeno",
+                    "source": _origem_real(row.fieldname, row.source or "catecumeno"),
                     "col_span": row.col_span or "2",
                 }
                 for row in doc.field_config
@@ -1032,9 +1046,12 @@ def atualizar_catecumeno(catecumeno_nome, row_name=None):
         gravar_no_catecumeno(catecumeno_nome, cat_updates)
         _registar_alteracao_catequista(catecumeno_nome, cat_name, antes, cat_updates)
 
-    # O motivo de permanência só faz sentido com "Permanece"
-    if "pre_avaliacao" in row_updates and row_updates["pre_avaliacao"] != "Permanece":
-        row_updates["motivo_permanencia"] = None
+    # Cada motivo só faz sentido com a sua pré-avaliação (Permanece / Desistente)
+    if "pre_avaliacao" in row_updates:
+        from portal.catequese.utils import limpar_motivos
+
+        motivos = limpar_motivos({"pre_avaliacao": row_updates["pre_avaliacao"]})
+        row_updates.update({k: v for k, v in motivos.items() if k != "pre_avaliacao"})
 
     if "renovacao" in row_updates:
         from portal.catequese.renovacao import preencher

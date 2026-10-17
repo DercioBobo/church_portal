@@ -2,6 +2,7 @@ import frappe
 from frappe.model.document import Document
 
 from portal.catequese import renovacao, sincronizacao
+from portal.catequese.utils import limpar_motivos
 
 
 class Turma(Document):
@@ -13,8 +14,7 @@ class Turma(Document):
         for linha in self.get("lista_catecumenos"):
             if renov_antes.get(linha.catecumeno) != (linha.renovacao or ""):
                 renovacao.preencher(linha)
-            if linha.pre_avaliacao != "Permanece":
-                linha.motivo_permanencia = None
+            limpar_motivos(linha)
         # Linhas novas juntam-se aos dados do catecúmeno; as alteradas seguem para ele no on_update
         sincronizacao.turma_validate(self)
 

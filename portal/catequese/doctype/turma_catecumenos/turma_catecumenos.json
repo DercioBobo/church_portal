@@ -29,6 +29,7 @@
   "column_break_bqao",
   "pre_avaliacao",
   "motivo_permanencia",
+  "motivo_desistencia",
   "nr_de_faltas",
   "renovacao",
   "valor_renovacao",
@@ -628,6 +629,13 @@
    "label": "Motivo de permanência"
   },
   {
+   "depends_on": "eval:doc.pre_avaliacao=='Desistente'",
+   "description": "Porque deixou a catequese (opcional).",
+   "fieldname": "motivo_desistencia",
+   "fieldtype": "Small Text",
+   "label": "Motivo de desistência"
+  },
+  {
    "allow_bulk_edit": 0,
    "allow_in_quick_entry": 0,
    "allow_on_submit": 0,
@@ -885,7 +893,7 @@
  "links": [],
  "make_attachments_public": 0,
  "max_attachments": 0,
- "modified": "2026-10-04 15:52:55.000000",
+ "modified": "2026-10-17 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Catequese",
  "name": "Turma Catecumenos",

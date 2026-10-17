@@ -534,10 +534,15 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
     const liveAge = calcAge(cat.data_de_nascimento, cat.idade);
     if (liveAge !== null) initial['idade'] = liveAge;
     setForm(initial);
+  }, [cat, fieldConfig]);
+
+  // Reset transient UI state only when a different catecumeno is shown — re-seeding the
+  // form with the saved data (same catecumeno) must not wipe the "Guardado!" feedback.
+  useEffect(() => {
     setSaved(false);
     setConfirmClose(false);
     setError('');
-  }, [cat, fieldConfig]);
+  }, [cat?.name]);
 
   // Detect unsaved changes by comparing form values against the current cat snapshot
   const isDirty = useMemo(() => {
@@ -663,7 +668,7 @@ function SidePanel({ open, cat, turma, fieldConfig, sectionConfig, allCatecumeno
 
       onSaved(updated); // updates table data; panel stays open
       setSaved(true);
-      setTimeout(() => setSaved(false), 1800);
+      setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       setError(String((e as Error).message || e));
     } finally {
@@ -1582,8 +1587,12 @@ export default function DashboardPage() {
   const [retiros, setRetiros] = useState<RetiroProximo[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState('');
-  const [panel, setPanel] = useState<{ cat: CatecumenoCompleto; turma: TurmaComCatecumenos; turmaIdx: number; catIndex: number } | null>(null);
+  // Only a pointer — the catecumeno itself is always read from `turmas`, so reopening
+  // the panel (or navigating prev/next) shows what was just saved, never a stale snapshot.
+  const [panel, setPanel] = useState<{ turmaIdx: number; catName: string } | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [toast, setToast] = useState('');
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closePanelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [birthdayPanelOpen, setBirthdayPanelOpen] = useState(false);
   const [avisos, setAvisos] = useState<AvisoAtivo[]>([]);
@@ -1620,8 +1629,9 @@ export default function DashboardPage() {
   }, [auth]);
 
   const openPanel = useCallback((cat: CatecumenoCompleto, turma: TurmaComCatecumenos, turmaIdx: number) => {
-    const catIndex = turma.catecumenos.findIndex(c => c.name === cat.name);
-    setPanel({ cat, turma, turmaIdx, catIndex: catIndex >= 0 ? catIndex : 0 });
+    // Cancel a pending clear from a just-closed panel, or it would blank this one
+    if (closePanelTimer.current) clearTimeout(closePanelTimer.current);
+    setPanel({ turmaIdx, catName: cat.name });
     setPanelOpen(true);
   }, []);
 
@@ -1636,19 +1646,28 @@ export default function DashboardPage() {
     if (closePanelTimer.current) clearTimeout(closePanelTimer.current);
   }, []);
 
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  }, []);
+
+  const panelTurma = panel ? turmas[panel.turmaIdx] ?? null : null;
+  const panelCatIndex = panelTurma ? panelTurma.catecumenos.findIndex(c => c.name === panel!.catName) : -1;
+  const panelCat = panelTurma && panelCatIndex >= 0 ? panelTurma.catecumenos[panelCatIndex] : null;
+
   const handleSaved = useCallback((updated: CatecumenoCompleto) => {
-    if (!panel) return;
-    const { turmaIdx } = panel;
-    setTurmas(prev => prev.map((t, i) => {
-      if (i !== turmaIdx) return t;
-      return {
-        ...t,
-        catecumenos: t.catecumenos.map(c => c.name === updated.name ? updated : c),
-      };
-    }));
-    // Refresh the panel's cat data but keep the panel open for verification
-    setPanel(p => p ? { ...p, cat: updated } : null);
-  }, [panel]);
+    // Optimistic update — the panel and table read from `turmas`, so both reflect it at once
+    setTurmas(prev => prev.map(t => ({
+      ...t,
+      catecumenos: t.catecumenos.map(c => c.name === updated.name ? updated : c),
+    })));
+
+    setToast('Alterações guardadas');
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 2500);
+
+    // Then resync with the server (it may normalise values or sync shared fields)
+    api.getMinhaTurma().then(setTurmas).catch(() => { /* keep optimistic data */ });
+  }, []);
 
   const retry = useCallback(() => {
     setDataLoading(true);
@@ -1760,16 +1779,28 @@ export default function DashboardPage() {
       {/* Side panel */}
       <SidePanel
         open={panelOpen}
-        cat={panel?.cat ?? null}
-        turma={panel?.turma ?? null}
+        cat={panelCat}
+        turma={panelTurma}
         fieldConfig={fieldConfig}
         sectionConfig={sectionConfig}
-        allCatecumenos={panel?.turma.catecumenos ?? []}
-        catIndex={panel?.catIndex ?? 0}
-        onNavigate={(cat, idx) => setPanel(p => p ? { ...p, cat, catIndex: idx } : null)}
+        allCatecumenos={panelTurma?.catecumenos ?? []}
+        catIndex={Math.max(panelCatIndex, 0)}
+        onNavigate={cat => setPanel(p => p ? { ...p, catName: cat.name } : null)}
         onClose={closePanel}
         onSaved={handleSaved}
       />
+
+      {/* Save confirmation — above the side panel (z-[70]) and the mobile tab bar */}
+      <div
+        role="status"
+        aria-live="polite"
+        className={`fixed left-1/2 -translate-x-1/2 top-4 z-[80] flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold shadow-lg transition-all duration-300 ${
+          toast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+        }`}
+      >
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        {toast || 'Alterações guardadas'}
+      </div>
 
       <footer className="border-t border-cream-200 mt-16 py-8 text-center">
         <p className="text-xs text-slate-400">

@@ -27,6 +27,22 @@ PADROES = {
 }
 
 
+# Motivo que acompanha cada pré-avaliação (linha do catecúmeno na turma)
+MOTIVO_DA_AVALIACAO = {"Permanece": "motivo_permanencia", "Desistente": "motivo_desistencia"}
+
+
+def limpar_motivos(linha):
+    """Limpa os motivos que não correspondem à pré-avaliação actual. `linha` é um Document ou um dict."""
+    actual = MOTIVO_DA_AVALIACAO.get(linha.get("pre_avaliacao") or "")
+    for campo in MOTIVO_DA_AVALIACAO.values():
+        if campo != actual:
+            if isinstance(linha, dict):
+                linha[campo] = None
+            else:
+                linha.set(campo, None)
+    return linha
+
+
 # Campos numéricos em que 0 significa "não preenchido" (o Frappe grava Int vazio como 0)
 ZERO_E_VAZIO = {"tamanho_minimo", "tamanho_ideal", "tamanho_maximo", "link_validade_dias"}
 
