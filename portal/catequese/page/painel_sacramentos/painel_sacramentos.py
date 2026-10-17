@@ -87,7 +87,11 @@ def _sacramento(sac, rotulo, campo, campo_data, fases, ordem, ano):
     """, (sac, NAO_RECEBE)))
     for r in pendentes + fora + sem_motivo:
         r.agendado = agendados.get(r.catecumeno)
-    _juntar_catequistas(pendentes + fora + sem_motivo + resolvidos)
+    cartoes = _preparacoes(sac, ano, com_rascunhos=True)
+    candidatos = _candidatos_rascunho([p.name for p in cartoes if not p.docstatus])
+    for p in cartoes:
+        p.candidatos = candidatos.get(p.name, []) if not p.docstatus else None
+    _juntar_catequistas(pendentes + fora + sem_motivo + resolvidos + [c for l in candidatos.values() for c in l])
 
     return {
         "sacramento": sac,
@@ -99,6 +103,7 @@ def _sacramento(sac, rotulo, campo, campo_data, fases, ordem, ano):
         "resolvidos": resolvidos,
         "arquivados": arquivados,
         "preparacoes": preparacoes,
+        "cartoes": cartoes,
         # preparações em rascunho (qualquer ano) onde se pode juntar quem tem 2ª oportunidade
         "rascunhos": frappe.get_all("Preparacao do Sacramento",
                                     filters={"sacramento": sac, "docstatus": 0,
@@ -118,6 +123,27 @@ def _juntar_catequistas(linhas):
     for r in linhas:
         t = cats.get(r.get("turma"))
         r.catequista = " / ".join(filter(None, (t.catequista, t.catequista_adj))) if t else None
+
+
+def _candidatos_rascunho(preparacoes):
+    """Candidatos das preparações em rascunho (lista compacta no cartão), por preparação."""
+    if not preparacoes:
+        return {}
+    linhas = frappe.db.sql("""
+        SELECT c.parent AS preparacao, c.catecumeno, c.situacao, c.ficha, c.documentos_padrinhos,
+               k.turma, k.status,
+               COALESCE(NULLIF(k.encarregado, ''), c.encarregado) AS encarregado,
+               COALESCE(NULLIF(k.contacto, ''), c.contacto_encarregado) AS contacto
+        FROM `tabCandidatos ao Sacramento Table` c
+        LEFT JOIN `tabCatecumeno` k ON k.name = c.catecumeno
+        WHERE c.parenttype = 'Preparacao do Sacramento' AND c.parent IN %s
+        ORDER BY c.parent, IFNULL(c.situacao, '') = %s, c.catecumeno
+    """, (tuple(preparacoes), NAO_RECEBE), as_dict=True)
+    por_prep = {}
+    for r in linhas:
+        r.nao = r.situacao == NAO_RECEBE
+        por_prep.setdefault(r.preparacao, []).append(r)
+    return por_prep
 
 
 def _falharam(sac, campo, campo_data):
@@ -214,15 +240,18 @@ def _em_acompanhamento(sac, campo, campo_data):
     return linhas
 
 
-def _preparacoes(sac, ano):
-    return frappe.db.sql("""
-        SELECT p.name, p.data_do_sacramento AS data, p.docstatus, p.tipo,
+def _preparacoes(sac, ano, com_rascunhos=False):
+    """Preparações do ano; com `com_rascunhos`, também as em rascunho de outros anos
+    (ex.: a 2ª oportunidade marcada para o ano seguinte)."""
+    rascunhos = "OR p.docstatus = 0" if com_rascunhos else ""
+    return frappe.db.sql(f"""
+        SELECT p.name, p.data_do_sacramento AS data, p.docstatus, p.tipo, p.ano_lectivo,
                COALESCE(SUM(c.name IS NOT NULL AND IFNULL(c.situacao, '') != %(nao)s), 0) AS vao,
                COALESCE(SUM(c.situacao = %(nao)s), 0) AS nao
         FROM `tabPreparacao do Sacramento` p
         LEFT JOIN `tabCandidatos ao Sacramento Table` c
           ON c.parent = p.name AND c.parenttype = 'Preparacao do Sacramento'
-        WHERE p.sacramento = %(sac)s AND p.ano_lectivo = %(ano)s AND p.docstatus < 2
+        WHERE p.sacramento = %(sac)s AND (p.ano_lectivo = %(ano)s {rascunhos}) AND p.docstatus < 2
           AND IFNULL(p.tipo, '') != 'Extraordinário'
         GROUP BY p.name
         ORDER BY p.data_do_sacramento
