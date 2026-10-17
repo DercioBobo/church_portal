@@ -133,7 +133,7 @@ function createSacramentosApp() {
     <section class="ps-card">
       <div class="ps-card-head">
         <h2>Não receberam</h2>
-        <span class="ps-count">{{ pendentes.length }}</span>
+        <span class="ps-count" :class="{ ok: !pendentes.length }">{{ pendentes.length }}</span>
         <button class="ps-btn ps-btn-add" @click="adicionar">＋ Adicionar</button>
         <p class="ps-muted">Marcados “Não vai receber” numa Preparação e que ainda não têm o sacramento.
           Falta alguém (ex.: foi apagado da preparação)? Use “＋ Adicionar”.</p>
@@ -142,34 +142,55 @@ function createSacramentosApp() {
       <table v-else class="ps-table">
         <thead><tr>
           <th class="ps-c-sel"><input type="checkbox" :checked="todos(pendentes)" @change="marcarTodos(pendentes, $event.target.checked)"></th>
-          <th>Catecúmeno</th><th>Motivo</th><th>Preparação</th><th>Agora</th><th>Encarregado</th><th></th></tr></thead>
+          <th>Catecúmeno</th><th>Motivo</th><th>Não recebeu em</th><th>Turma · Catequista</th><th>Encarregado</th><th></th></tr></thead>
         <tbody>
-          <tr v-for="r in pendentes" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno), agendado: r.agendado }">
+          <tr v-for="r in pendentes" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno) }">
             <td class="ps-c-sel"><input type="checkbox" :checked="seleccionados.has(r.catecumeno)" @change="alternar(r)"></td>
             <td data-l="Catecúmeno">
               <a class="ps-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a>
               <span v-if="r.vezes > 1" class="ps-chip erro" :title="'Falhou ' + r.vezes + ' vezes'">{{ r.vezes }}×</span>
-              <a v-if="r.agendado" class="ps-chip ok" :href="'/app/gerir-preparacao/' + encodeURIComponent(r.agendado)" title="Já está nesta preparação para receber">✓ {{ r.agendado }}</a>
+              <div><span class="ps-estado" :class="estadoCls(r.status)">{{ r.status }}</span></div>
             </td>
             <td data-l="Motivo">
               <span class="ps-motivo" :class="cls(r.motivo)">{{ r.motivo || 'Sem motivo' }}</span>
               <div v-if="r.detalhe" class="ps-detalhe">{{ r.detalhe }}</div>
             </td>
-            <td data-l="Preparação">
+            <td data-l="Não recebeu em" class="ps-nowrap">
               <a v-if="r.preparacao" :href="'/app/preparacao-do-sacramento/' + encodeURIComponent(r.preparacao)">{{ r.preparacao }}</a>
               <span v-else class="ps-muted">—</span>
-              <div class="ps-muted ps-small">{{ dia(r.data) }}</div>
-              <a v-if="r.manual" class="ps-chip" :href="'/app/sacramento-nao-recebido/' + encodeURIComponent(r.registo)" title="Acrescentado à mão">acrescentado</a>
+              <div class="ps-muted ps-small">{{ dia(r.data) }}
+                <a v-if="r.manual" class="ps-chip" :href="'/app/sacramento-nao-recebido/' + encodeURIComponent(r.registo)" title="Acrescentado à mão">acrescentado</a>
+              </div>
             </td>
-            <td data-l="Agora">
-              <span class="ps-estado" :class="estadoCls(r.status)">{{ r.status }}</span>
-              <div class="ps-small">{{ [r.fase, r.turma].filter(Boolean).join(' · ') || 'Sem turma' }}</div>
-            </td>
-            <td data-l="Encarregado">
-              <div class="ps-small">{{ r.encarregado || '—' }}</div>
-              <span v-if="r.contacto" v-html="tel(r.contacto)"></span>
-            </td>
+            <td data-l="Turma"><div class="ps-small">{{ r.turma || 'Sem turma' }}</div><div v-if="r.catequista" class="ps-small ps-muted">{{ r.catequista }}</div></td>
+            <td data-l="Encarregado"><div v-if="r.encarregado" class="ps-small">{{ r.encarregado }}</div><span v-if="r.contacto" v-html="tel(r.contacto)"></span><span v-if="!r.encarregado && !r.contacto" class="ps-muted">—</span></td>
             <td class="ps-c-acc"><button class="ps-arquivar" title="Arquivar com decisão" @click="arquivar([r])">🗂</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Já com 2ª oportunidade marcada (numa preparação em rascunho para receber) -->
+    <section v-if="agendados.length" class="ps-card ps-card--leve">
+      <div class="ps-card-head">
+        <h2>Com 2ª oportunidade marcada</h2>
+        <span class="ps-count ok">{{ agendados.length }}</span>
+        <p class="ps-muted">Já estão numa preparação para receber. Saem daqui quando o sacramento for marcado no catecúmeno
+          (passam para “Já receberam depois”).</p>
+      </div>
+      <table class="ps-table">
+        <thead><tr><th>Catecúmeno</th><th>Vai receber em</th><th>Não recebeu em</th><th>Turma · Catequista</th><th>Encarregado</th></tr></thead>
+        <tbody>
+          <tr v-for="r in agendados" :key="r.catecumeno">
+            <td data-l="Catecúmeno"><a class="ps-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a></td>
+            <td data-l="Vai receber em" class="ps-nowrap"><a class="ps-chip ok" :href="'/app/gerir-preparacao/' + encodeURIComponent(r.agendado)">✓ {{ r.agendado }}</a></td>
+            <td data-l="Não recebeu em" class="ps-nowrap">
+              <template v-if="r.preparacao"><a :href="'/app/preparacao-do-sacramento/' + encodeURIComponent(r.preparacao)">{{ r.preparacao }}</a>
+                <span v-if="r.motivo" class="ps-motivo" :class="cls(r.motivo)">{{ r.motivo }}</span></template>
+              <span v-else class="ps-muted ps-small">fora da preparação</span>
+            </td>
+            <td data-l="Turma"><div class="ps-small">{{ r.turma || 'Sem turma' }}</div><div v-if="r.catequista" class="ps-small ps-muted">{{ r.catequista }}</div></td>
+            <td data-l="Encarregado"><div v-if="r.encarregado" class="ps-small">{{ r.encarregado }}</div><span v-if="r.contacto" v-html="tel(r.contacto)"></span><span v-if="!r.encarregado && !r.contacto" class="ps-muted">—</span></td>
           </tr>
         </tbody>
       </table>
@@ -179,7 +200,7 @@ function createSacramentosApp() {
     <section class="ps-card">
       <div class="ps-card-head">
         <h2>Na fase do sacramento, fora da preparação</h2>
-        <span class="ps-count aviso">{{ fora.length }}</span>
+        <span class="ps-count aviso" :class="{ ok: !fora.length }">{{ fora.length }}</span>
         <p class="ps-muted">Este ano na fase do sacramento, sem o sacramento, e em nenhuma Preparação de {{ dados.ano }}
           (inclui quem saiu durante o ano). Se vão receber, use “Listar candidatos” na Preparação; se não, arquive com a decisão.</p>
       </div>
@@ -188,15 +209,14 @@ function createSacramentosApp() {
       <table v-else class="ps-table">
         <thead><tr>
           <th class="ps-c-sel"><input type="checkbox" :checked="todos(fora)" @change="marcarTodos(fora, $event.target.checked)"></th>
-          <th>Catecúmeno</th><th>Fase · Turma</th><th>Estado</th><th>Encarregado</th><th></th></tr></thead>
+          <th>Catecúmeno</th><th>Turma · Catequista</th><th>Encarregado</th><th></th></tr></thead>
         <tbody>
-          <tr v-for="r in fora" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno), agendado: r.agendado }">
+          <tr v-for="r in fora" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno) }">
             <td class="ps-c-sel"><input type="checkbox" :checked="seleccionados.has(r.catecumeno)" @change="alternar(r)"></td>
             <td data-l="Catecúmeno"><a class="ps-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a>
-              <a v-if="r.agendado" class="ps-chip ok" :href="'/app/gerir-preparacao/' + encodeURIComponent(r.agendado)" title="Já está nesta preparação para receber">✓ {{ r.agendado }}</a></td>
-            <td data-l="Fase · Turma" class="ps-small">{{ [r.fase, r.turma].filter(Boolean).join(' · ') || '—' }}</td>
-            <td data-l="Estado"><span class="ps-estado" :class="estadoCls(r.status)">{{ r.status }}</span></td>
-            <td data-l="Encarregado"><div class="ps-small">{{ r.encarregado || '—' }}</div><span v-if="r.contacto" v-html="tel(r.contacto)"></span></td>
+              <div><span class="ps-estado" :class="estadoCls(r.status)">{{ r.status }}</span></div></td>
+            <td data-l="Turma"><div class="ps-small">{{ r.turma || 'Sem turma' }}</div><div v-if="r.catequista" class="ps-small ps-muted">{{ r.catequista }}</div></td>
+            <td data-l="Encarregado"><div v-if="r.encarregado" class="ps-small">{{ r.encarregado }}</div><span v-if="r.contacto" v-html="tel(r.contacto)"></span><span v-if="!r.encarregado && !r.contacto" class="ps-muted">—</span></td>
             <td class="ps-c-acc"><button class="ps-arquivar" title="Arquivar com decisão" @click="arquivar([r])">🗂</button></td>
           </tr>
         </tbody>
@@ -207,7 +227,7 @@ function createSacramentosApp() {
     <section class="ps-card">
       <div class="ps-card-head">
         <h2>Em fase posterior, sem o sacramento</h2>
-        <span class="ps-count aviso">{{ semMotivo.length }}</span>
+        <span class="ps-count aviso" :class="{ ok: !semMotivo.length }">{{ semMotivo.length }}</span>
         <p class="ps-muted">Activos numa fase depois da do sacramento, sem o visto e sem registo de “Não vai receber”.
           Se já recebeu, marque-o no catecúmeno; se não, arquive com a decisão.</p>
       </div>
@@ -215,15 +235,14 @@ function createSacramentosApp() {
       <table v-else class="ps-table">
         <thead><tr>
           <th class="ps-c-sel"><input type="checkbox" :checked="todos(semMotivo)" @change="marcarTodos(semMotivo, $event.target.checked)"></th>
-          <th>Catecúmeno</th><th>Fase · Turma</th><th>Estado</th><th>Encarregado</th><th></th></tr></thead>
+          <th>Catecúmeno</th><th>Turma · Catequista</th><th>Encarregado</th><th></th></tr></thead>
         <tbody>
-          <tr v-for="r in semMotivo" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno), agendado: r.agendado }">
+          <tr v-for="r in semMotivo" :key="r.catecumeno" :class="{ sel: seleccionados.has(r.catecumeno) }">
             <td class="ps-c-sel"><input type="checkbox" :checked="seleccionados.has(r.catecumeno)" @change="alternar(r)"></td>
             <td data-l="Catecúmeno"><a class="ps-nome" :href="'/app/catecumeno/' + encodeURIComponent(r.catecumeno)">{{ r.catecumeno }}</a>
-              <a v-if="r.agendado" class="ps-chip ok" :href="'/app/gerir-preparacao/' + encodeURIComponent(r.agendado)" title="Já está nesta preparação para receber">✓ {{ r.agendado }}</a></td>
-            <td data-l="Fase · Turma" class="ps-small">{{ [r.fase, r.turma].filter(Boolean).join(' · ') || '—' }}</td>
-            <td data-l="Estado"><span class="ps-estado" :class="estadoCls(r.status)">{{ r.status }}</span></td>
-            <td data-l="Encarregado"><div class="ps-small">{{ r.encarregado || '—' }}</div><span v-if="r.contacto" v-html="tel(r.contacto)"></span></td>
+              <div><span class="ps-estado" :class="estadoCls(r.status)">{{ r.status }}</span></div></td>
+            <td data-l="Turma"><div class="ps-small">{{ r.turma || 'Sem turma' }}</div><div v-if="r.catequista" class="ps-small ps-muted">{{ r.catequista }}</div></td>
+            <td data-l="Encarregado"><div v-if="r.encarregado" class="ps-small">{{ r.encarregado }}</div><span v-if="r.contacto" v-html="tel(r.contacto)"></span><span v-if="!r.encarregado && !r.contacto" class="ps-muted">—</span></td>
             <td class="ps-c-acc"><button class="ps-arquivar" title="Arquivar com decisão" @click="arquivar([r])">🗂</button></td>
           </tr>
         </tbody>
@@ -282,13 +301,18 @@ function createSacramentosApp() {
       const sac = computed(() => (activo.value !== 'arq' && (dados.value.sacramentos || [])[activo.value]) || VAZIO);
       const bate = (r) => {
         const q = busca.value.trim().toLowerCase();
-        return !q || [r.catecumeno, r.turma, r.fase, r.encarregado, r.preparacao, r.decisao, r.nota]
+        return !q || [r.catecumeno, r.turma, r.catequista, r.encarregado, r.preparacao, r.agendado, r.decisao, r.nota]
           .some((v) => (v || '').toLowerCase().includes(q));
       };
-      const pendentes = computed(() => sac.value.pendentes.filter(
-        (r) => bate(r) && (!motivo.value || (r.motivo || 'Sem motivo') === motivo.value)));
-      const fora = computed(() => (motivo.value ? [] : sac.value.fora.filter(bate)));
-      const semMotivo = computed(() => (motivo.value ? [] : sac.value.sem_motivo.filter(bate)));
+      const doMotivo = (r) => !motivo.value || (r.motivo || 'Sem motivo') === motivo.value;
+      // quem já está numa preparação para receber sai das listas e vai para "Com 2ª oportunidade marcada"
+      const pendentes = computed(() => sac.value.pendentes.filter((r) => !r.agendado && bate(r) && doMotivo(r)));
+      const fora = computed(() => (motivo.value ? [] : sac.value.fora.filter((r) => !r.agendado && bate(r))));
+      const semMotivo = computed(() => (motivo.value ? [] : sac.value.sem_motivo.filter((r) => !r.agendado && bate(r))));
+      const agendados = computed(() => [
+        ...sac.value.pendentes.filter(doMotivo),
+        ...(motivo.value ? [] : [...sac.value.fora, ...sac.value.sem_motivo]),
+      ].filter((r) => r.agendado && bate(r)));
       // Todos os arquivados (todos os sacramentos), para o separador próprio
       const todosArquivados = computed(() => (dados.value.sacramentos || []).flatMap(
         (x) => x.arquivados.map((r) => Object.assign({ sacramento: x.sacramento, rotulo: x.rotulo }, r))));
@@ -301,7 +325,7 @@ function createSacramentosApp() {
         && (!fDecisao.value || r.decisao === fDecisao.value)));
       const motivos = computed(() => {
         const n = {};
-        sac.value.pendentes.forEach((r) => { const m = r.motivo || 'Sem motivo'; n[m] = (n[m] || 0) + 1; });
+        sac.value.pendentes.filter((r) => !r.agendado).forEach((r) => { const m = r.motivo || 'Sem motivo'; n[m] = (n[m] || 0) + 1; });
         return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([nome, k]) => ({ nome, n: k }));
       });
 
@@ -447,7 +471,7 @@ function createSacramentosApp() {
 
       return {
         dados, loading, activo, busca, motivo, verResolvidos, fSac, fAno, fDecisao, seleccionados, carregar, mudar,
-        sac, pendentes, fora, semMotivo, motivos, todosArquivados, arqSacramentos, arqAnos, arquivadosVisiveis,
+        sac, pendentes, fora, semMotivo, agendados, motivos, todosArquivados, arqSacramentos, arqAnos, arquivadosVisiveis,
         alternar, todos, marcarTodos, arquivarSel, arquivar, reabrir, segundaOportunidade, adicionar,
         total, dia, tel, cls, estadoCls,
       };

@@ -197,7 +197,10 @@
   height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--ps-border);
   background: var(--ps-card); color: var(--ps-text); font-size: 0.8rem;
 }
-.ps-table tr.agendado td { opacity: .7; }
-.ps-table tr.agendado td:first-child { box-shadow: inset 3px 0 0 #22c55e; }
+.ps-nowrap { white-space: nowrap; }
+.ps-table th { white-space: nowrap; }
+.ps-table td .ps-estado { margin-top: 3px; }
+.ps-table td[data-l="Não recebeu em"] .ps-motivo { margin-left: 4px; }
+@media (max-width: 720px) { .ps-nowrap { white-space: normal; } }
 a.ps-chip { text-decoration: none !important; margin-left: 4px; }
 .ps-btn-add { margin-left: auto; height: 28px; font-size: 0.78rem; }

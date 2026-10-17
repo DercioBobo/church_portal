@@ -87,6 +87,7 @@ def _sacramento(sac, rotulo, campo, campo_data, fases, ordem, ano):
     """, (sac, NAO_RECEBE)))
     for r in pendentes + fora + sem_motivo:
         r.agendado = agendados.get(r.catecumeno)
+    _juntar_catequistas(pendentes + fora + sem_motivo + resolvidos)
 
     return {
         "sacramento": sac,
@@ -105,6 +106,18 @@ def _sacramento(sac, rotulo, campo, campo_data, fases, ordem, ano):
                                     fields=["name", "ano_lectivo", "data_do_sacramento", "tipo"],
                                     order_by="ano_lectivo desc, creation desc"),
     }
+
+
+def _juntar_catequistas(linhas):
+    """Acrescenta o catequista (e adjunto) da turma actual de cada catecúmeno."""
+    turmas = {r.turma for r in linhas if r.get("turma")}
+    if not turmas:
+        return
+    cats = {t.name: t for t in frappe.get_all("Turma", filters={"name": ["in", list(turmas)]},
+                                               fields=["name", "catequista", "catequista_adj"])}
+    for r in linhas:
+        t = cats.get(r.get("turma"))
+        r.catequista = " / ".join(filter(None, (t.catequista, t.catequista_adj))) if t else None
 
 
 def _falharam(sac, campo, campo_data):
