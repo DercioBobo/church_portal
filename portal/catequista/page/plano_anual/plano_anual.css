@@ -538,6 +538,21 @@
 .status-cancelada     { background:#fee2e2; color:#dc2626; border-color:#fecaca; }
 .status-adiada        { background:#fef3c7; color:#d97706; border-color:#fde68a; }
 
+/* Status picker menu */
+.pa-status-menu {
+  position:fixed; z-index:10000; width:150px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:10px;
+  box-shadow:0 10px 25px rgba(0,0,0,.12); padding:4px;
+}
+.pa-status-menu-item {
+  display:flex; align-items:center; justify-content:space-between; width:100%;
+  height:32px; padding:0 8px; border:none; background:none; border-radius:6px; cursor:pointer;
+}
+.pa-status-menu-item:hover, .pa-status-menu-item.active { background:#f3f4f6; }
+.pa-status-menu-item .pa-card-status { pointer-events:none; }
+.pa-status-menu-item .pa-card-status:hover { opacity:1; transform:none; }
+.pa-status-menu-check { color:#4f46e5; font-weight:700; font-size:0.8rem; }
+
 .pa-card-meta { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
 .pa-card-meta-item { display:inline-flex; align-items:center; gap:3px; font-size:0.71rem; color:#6b7280; }
 .pa-card-meta-item svg { width:10px; height:10px; flex-shrink:0; }
@@ -1254,7 +1269,26 @@ a.pa-btn-dupe, a.pa-btn-dupe:hover { text-decoration: none; }
   min-height: 100px;
   padding: 5px 6px;
   border-radius: 8px;
+  position: relative;
 }
+/* Monthly view: days with activities are still clickable (empty area / + button) */
+.pa-cal-cell-lg.pa-cal-has-acts { cursor: pointer; }
+.pa-cal-cell-lg.pa-cal-has-acts:hover { background: #faf9ff; }
+.pa-cal-add-btn {
+  position: absolute;
+  top: 5px; right: 6px;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid #c7d2fe; border-radius: 6px;
+  background: #eef2ff; color: #4f46e5;
+  font-size: 0.95rem; font-weight: 700; line-height: 1;
+  cursor: pointer;
+  opacity: 0; transition: opacity 0.12s;
+}
+.pa-cal-add-btn-shift { right: 26px; }
+.pa-cal-cell-lg:hover .pa-cal-add-btn { opacity: 1; }
+.pa-cal-add-btn:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+@media (hover: none) { .pa-cal-add-btn { opacity: 1; } }
 .pa-cal-day-num-lg {
   font-size: 0.82rem;
   width: 24px;

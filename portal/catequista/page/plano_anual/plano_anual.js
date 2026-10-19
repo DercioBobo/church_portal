@@ -55,13 +55,6 @@ const MESES_PT = [
 ];
 
 const ALL_ESTADOS = ['Pendente','Em Progresso','Realizada','Cancelada','Adiada'];
-const STATUS_NEXT = {
-  'Pendente':     'Em Progresso',
-  'Em Progresso': 'Realizada',
-  'Realizada':    'Cancelada',
-  'Cancelada':    'Adiada',
-  'Adiada':       'Pendente',
-};
 const PALETTE = [
   '#6366f1','#0ea5e9','#10b981','#f59e0b','#ef4444',
   '#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16',
@@ -78,7 +71,8 @@ function hexToRgba(hex, alpha = 0.13) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 function isOverdue(act) {
-  if (!act.data || act.estado === 'Realizada' || act.estado === 'Cancelada') return false;
+  // Only untouched activities are overdue; any explicit status (Em Progresso, Adiada, …) clears it
+  if (!act.data || (act.estado && act.estado !== 'Pendente')) return false;
   const endDate = act.data_fim || act.data;
   return endDate < frappe.datetime.get_today();
 }
@@ -522,8 +516,8 @@ function createPlanoAnualApp() {
               <span v-if="!act._is_retiro" class="pa-card-drag-handle" title="Arrastar" @click.stop>⠿</span>
               <span class="pa-card-title">{{ act.actividade }}<span v-if="act.organizador && act.organizador !== 'Paróquia'" class="pa-org-tag" :title="'Organizado por ' + act.organizador">{{ act.organizador }}</span><span v-if="act.a_confirmar" class="pa-conf-tag" title="Data a confirmar com o organizador">a confirmar</span><span v-if="act.so_este_ano" class="pa-extra-tag" title="Extraordinária: não se repete">só este ano</span></span>
               <span class="pa-card-status" :class="statusClass(act.estado)"
-                @click.stop="cycleStatus(act)"
-                :title="act._is_retiro ? act.estado : 'Clique para avançar estado'"
+                @click.stop="openStatusMenu(act, $event)"
+                :title="act._is_retiro ? act.estado : 'Alterar estado'"
                 :style="act._is_retiro ? 'cursor:default' : ''">{{ act.estado }}</span>
             </div>
             <div class="pa-card-meta">
@@ -682,7 +676,9 @@ function createPlanoAnualApp() {
                 <td class="pa-list-date">{{ act.orcamento ? formatCurrency(act.orcamento) : '—' }}</td>
                 <td>
                   <span class="pa-card-status" :class="statusClass(act.estado)"
-                    @click.stop="cycleStatus(act)" title="Avançar estado">{{ act.estado }}</span>
+                    @click.stop="openStatusMenu(act, $event)"
+                    :title="act._is_retiro ? act.estado : 'Alterar estado'"
+                    :style="act._is_retiro ? 'cursor:default' : ''">{{ act.estado }}</span>
                 </td>
               </tr>
             </template>
@@ -799,13 +795,17 @@ function createPlanoAnualApp() {
                 'pa-cal-conflict':  cell && cell.acts.length > 1,
                 'pa-cal-drop-over': cell && dragOverCell === cell.dateStr,
               }"
-              @click="cell && !cell.acts.length && openNewActivityOnDay(cell.dateStr)"
+              @click="cell && openNewActivityOnDay(cell.dateStr)"
               @dragover.prevent="cell && onCalCellDragOver(cell.dateStr)"
               @dragleave="cell && onCalCellDragLeave(cell.dateStr)"
               @drop.prevent="cell && onCalCellDrop(cell.dateStr)"
               :title="cell && !cell.acts.length ? 'Adicionar actividade em ' + formatDate(cell.dateStr) : ''"
             >
               <div v-if="cell" class="pa-cal-day-num pa-cal-day-num-lg">{{ cell.day }}</div>
+              <button v-if="cell && cell.acts.length" type="button" class="pa-cal-add-btn"
+                :class="{ 'pa-cal-add-btn-shift': cell.acts.length > 1 }"
+                @click.stop="openNewActivityOnDay(cell.dateStr)"
+                :title="'Adicionar actividade em ' + formatDate(cell.dateStr)">+</button>
               <div v-if="cell && cell.acts.length" class="pa-cal-acts">
                 <template v-for="act in cell.acts" :key="act.name + '-' + cell.dateStr">
                   <!-- Start-day chip -->
@@ -823,7 +823,6 @@ function createPlanoAnualApp() {
                     <span class="pa-cal-act-dot" :style="{ background: tipologiaColor(act) }"></span>
                     <span class="pa-cal-act-chip-body">
                       <span class="pa-cal-act-chip-name">{{ truncate(act.actividade, 32) }}</span>
-                      <span v-if="act.orador" class="pa-cal-act-chip-sub">{{ act.orador }}</span>
                     </span>
                     <span v-if="dayCount(act) > 1" class="pa-cal-chip-dur">+{{ dayCount(act) - 1 }}d</span>
                     <span v-else class="pa-card-status" :class="statusClass(act.estado)" style="flex-shrink:0;font-size:0.6rem;padding:1px 6px;margin-left:auto">{{ act.estado }}</span>
@@ -1343,6 +1342,18 @@ function createPlanoAnualApp() {
     </div>
   </teleport>
 
+  <!-- ── Status picker menu ─────────────────────────────────────────── -->
+  <teleport to="body">
+    <div v-if="statusMenu.open && statusMenu.act" ref="statusMenuEl" class="pa-status-menu"
+      :style="{ left: statusMenu.x + 'px', top: statusMenu.y + 'px' }" @click.stop>
+      <button v-for="s in ALL_ESTADOS" :key="s" type="button" class="pa-status-menu-item"
+        :class="{ active: s === statusMenu.act.estado }" @click="pickStatus(s)">
+        <span class="pa-card-status" :class="statusClass(s)">{{ s }}</span>
+        <span v-if="s === statusMenu.act.estado" class="pa-status-menu-check">✓</span>
+      </button>
+    </div>
+  </teleport>
+
 </div>`,
 
     setup() {
@@ -1607,7 +1618,7 @@ function createPlanoAnualApp() {
       });
 
       // Calendar sub-view: annual | monthly
-      const calViewMode   = ref('annual');
+      const calViewMode   = ref('monthly');
       const calMonthIndex = ref(0);
 
       const calCurrentMonthData = computed(() => calendarData.value[calMonthIndex.value] || null);
@@ -1627,12 +1638,13 @@ function createPlanoAnualApp() {
       function hideDotTooltip() { calTooltip.show = false; }
 
       // When switching to monthly view, jump to the current month (or first)
-      watch(() => calViewMode.value, (val) => {
-        if (val === 'monthly') {
-          const idx = calendarData.value.findIndex(m => m.key === TODAY_KEY);
-          calMonthIndex.value = idx >= 0 ? idx : 0;
-        }
-      });
+      function calJumpToToday() {
+        const idx = calendarData.value.findIndex(m => m.key === TODAY_KEY);
+        calMonthIndex.value = idx >= 0 ? idx : 0;
+      }
+      watch(() => calViewMode.value, (val) => { if (val === 'monthly') calJumpToToday(); });
+      // Monthly is the default, so also position on the current month once data (re)loads
+      watch(() => calendarData.value.length, () => { if (calViewMode.value === 'monthly') calJumpToToday(); });
 
       // ── Click-outside for tipologia dropdown ──────────────────────────────
       function _onDocClick(e) {
@@ -1643,7 +1655,12 @@ function createPlanoAnualApp() {
         if (actionsOpen.value && actionsEl.value && !actionsEl.value.contains(e.target)) {
           actionsOpen.value = false;
         }
+        if (statusMenu.open && statusMenuEl.value && !statusMenuEl.value.contains(e.target)
+            && !(e.target.closest && e.target.closest('.pa-card-status'))) {
+          closeStatusMenu();
+        }
       }
+      function _onScrollCloseMenu() { if (statusMenu.open) closeStatusMenu(); }
       function _onKeyDown(e) {
         const tag = (e.target.tagName || '').toLowerCase();
         const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
@@ -1656,6 +1673,7 @@ function createPlanoAnualApp() {
         }
         // Escape → close panel / modal / dropdowns
         if (e.key === 'Escape') {
+          if (statusMenu.open)   { closeStatusMenu();         return; }
           if (panelOpen.value)   { closePanel();              return; }
           if (copyModal.open)    { closeCopyYearModal();      return; }
           if (feedModal.open)    { closeFeedModal();          return; }
@@ -1671,10 +1689,14 @@ function createPlanoAnualApp() {
       onMounted(() => {
         document.addEventListener('mousedown', _onDocClick);
         document.addEventListener('keydown',   _onKeyDown);
+        window.addEventListener('scroll', _onScrollCloseMenu, true);
+        window.addEventListener('resize', _onScrollCloseMenu);
       });
       onUnmounted(() => {
         document.removeEventListener('mousedown', _onDocClick);
         document.removeEventListener('keydown',   _onKeyDown);
+        window.removeEventListener('scroll', _onScrollCloseMenu, true);
+        window.removeEventListener('resize', _onScrollCloseMenu);
       });
 
       // Auto-focus search when dropdown opens
@@ -2191,9 +2213,28 @@ function createPlanoAnualApp() {
 
       const flashingRow = ref(null);
 
-      async function cycleStatus(act) {
+      // ── Status picker menu ───────────────────────────────────────────────
+      const statusMenu = reactive({ open: false, act: null, x: 0, y: 0 });
+      const statusMenuEl = ref(null);
+      function openStatusMenu(act, event) {
         if (act._is_retiro) return;
-        const next = STATUS_NEXT[act.estado] || 'Pendente';
+        if (statusMenu.open && statusMenu.act === act) { closeStatusMenu(); return; }
+        const r = event.currentTarget.getBoundingClientRect();
+        const menuW = 150, menuH = ALL_ESTADOS.length * 32 + 8;
+        statusMenu.x = Math.max(8, Math.min(r.right - menuW, window.innerWidth - menuW - 8));
+        statusMenu.y = (r.bottom + 4 + menuH > window.innerHeight) ? r.top - 4 - menuH : r.bottom + 4;
+        statusMenu.act = act;
+        statusMenu.open = true;
+      }
+      function closeStatusMenu() { statusMenu.open = false; statusMenu.act = null; }
+      function pickStatus(estado) {
+        const act = statusMenu.act;
+        closeStatusMenu();
+        if (act && estado !== act.estado) setStatus(act, estado);
+      }
+
+      async function setStatus(act, next) {
+        if (act._is_retiro) return;
         const prev = act.estado;
         act.estado = next;
         flashingRow.value = act.name;
@@ -2546,7 +2587,7 @@ function createPlanoAnualApp() {
         onRowDragOver, onRowDragLeave, onRowDrop,
         loadActividades, openNewActivity, openEdit, closePanel,
         saveActivity, deleteActivity, duplicating, duplicateActivity,
-        cycleStatus, flashingRow, removeTipFilter,
+        statusMenu, statusMenuEl, openStatusMenu, pickStatus, ALL_ESTADOS, flashingRow, removeTipFilter,
         onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, justMovedCard,
         clearSearch,
         printView, exporting, exportExcel, exportIcs, googleCalendarUrl,
