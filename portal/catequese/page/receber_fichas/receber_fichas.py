@@ -22,6 +22,15 @@ def get_dados():
         fields=["name", "turma", "fase", "encarregado", "idade", "ficha_de_catecumeno as ficha"],
         order_by="name asc", limit_page_length=0,
     )
+    # Catequistas da turma (ajuda a confirmar que é a pessoa certa)
+    nomes_turmas = list({c.turma for c in catecumenos if c.turma})
+    turmas = {t.name: t for t in frappe.get_all(
+        "Turma", filters={"name": ["in", nomes_turmas or [""]]},
+        fields=["name", "catequista", "catequista_adj"], limit_page_length=0,
+    )}
+    for c in catecumenos:
+        t = turmas.get(c.turma)
+        c.catequistas = " / ".join(x for x in (t.catequista, t.catequista_adj) if x) if t else ""
     return {"catecumenos": catecumenos}
 
 

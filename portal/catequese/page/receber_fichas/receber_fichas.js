@@ -76,6 +76,7 @@ function createReceberFichasApp() {
       <div class="rf-info">
         <div class="rf-nome">{{ c.name }}</div>
         <div class="rf-muted rf-small">{{ c.turma || 'sem turma' }}<template v-if="c.idade"> · {{ c.idade }} anos</template><template v-if="c.encarregado"> · {{ c.encarregado }}</template></div>
+        <div v-if="c.catequistas" class="rf-muted rf-small">🙋 {{ c.catequistas }}</div>
       </div>
       <span v-if="c.ficha" class="rf-chip ok">✓ tem ficha</span>
       <button class="rf-btn" :class="c.ficha ? '' : 'rf-btn-ouro'" :disabled="aGravar === c.name">
@@ -89,7 +90,7 @@ function createReceberFichasApp() {
     <h3>Marcadas agora <span>{{ sessao.length }}</span></h3>
     <div v-for="s in sessao" :key="s" class="rf-linha-s">
       <a :href="'/app/catecumeno/' + encodeURIComponent(s)">{{ s }}</a>
-      <span class="rf-muted rf-small">{{ (porNome[s] || {}).turma }}</span>
+      <span class="rf-muted rf-small">{{ (porNome[s] || {}).turma }}<template v-if="(porNome[s] || {}).catequistas"> · {{ porNome[s].catequistas }}</template></span>
       <button class="rf-link" @click="marcar(s, 0)">desfazer</button>
     </div>
   </section>
