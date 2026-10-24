@@ -88,6 +88,7 @@
   display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; line-height: 20px;
   border: 1px solid var(--rf-border); color: var(--rf-muted); white-space: nowrap;
 }
+.rf-nasc { color: var(--rf-text); font-weight: 600; font-variant-numeric: tabular-nums; }
 .rf-chip.ok { background: #ecfdf3; color: #15803d; border-color: #bbf7d0; }
 button.rf-chip { cursor: pointer; font-family: inherit; }
 .rf-chip.aviso { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }

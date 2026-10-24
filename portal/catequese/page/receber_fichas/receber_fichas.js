@@ -80,7 +80,7 @@ function createReceberFichasApp() {
          @mouseenter="sel = i" @click="marcar(c.name, c.ficha ? 0 : 1)">
       <div class="rf-info">
         <div class="rf-nome">{{ c.name }}</div>
-        <div class="rf-muted rf-small">{{ c.turma || 'sem turma' }}<template v-if="c.idade"> · {{ c.idade }} anos</template><template v-if="c.encarregado"> · {{ c.encarregado }}</template></div>
+        <div class="rf-muted rf-small">{{ c.turma || 'sem turma' }}<template v-if="c.data_de_nascimento"> · nasc. <b class="rf-nasc">{{ dataUser(c.data_de_nascimento) }}</b></template><template v-if="c.encarregado"> · {{ c.encarregado }}</template></div>
         <div v-if="c.catequistas" class="rf-muted rf-small">🙋 {{ c.catequistas }}</div>
       </div>
       <button v-if="!c.data_de_nascimento" class="rf-chip aviso" title="Adicionar a data de nascimento da ficha" @click.stop="corrigir(c)">⚠ sem data de nascimento</button>
@@ -117,6 +117,7 @@ function createReceberFichasApp() {
       const caixa = ref(null);
       const LIMITE = 12;
 
+      const dataUser = (d) => (d ? frappe.datetime.str_to_user(d) : '');
       const foco = () => nextTick(() => caixa.value && caixa.value.focus());
       const porNome = computed(() => Object.fromEntries(lista.value.map((c) => [c.name, c])));
       const turmas = computed(() => [...new Set(lista.value.map((c) => c.turma).filter(Boolean))].sort());
@@ -219,7 +220,7 @@ function createReceberFichasApp() {
 
       onMounted(carregar);
       return { lista, loading, busca, turma, soSem, sel, aGravar, ultimo, sessao, caixa, porNome, turmas, comFicha,
-        resultados, mais, carregar, marcar, corrigir, tecla, foco };
+        resultados, mais, carregar, marcar, corrigir, tecla, foco, dataUser };
     },
   });
 }
