@@ -5,7 +5,7 @@ import {
   MapPin, Clock, Calendar, Users, Search, X,
   Save, BookOpen, Cake, AlertCircle, ChevronLeft, ChevronRight, FileDown,
   ArrowUp, ArrowDown, ArrowUpDown,
-  User, Heart, MessageSquare, Book, Star, Info, FileText, Pencil, Home, Shield, Phone,
+  User, Heart, MessageSquare, Book, Star, Info, FileText, Pencil, Home, Shield, Phone, Printer,
 } from 'lucide-react';
 import Nav from '@/components/Nav';
 import PhaseChip from '@/components/PhaseChip';
@@ -155,6 +155,34 @@ function ProgramaButton({ programa }: { programa: { titulo?: string | null; fich
   );
 }
 
+// Pauta da turma (nome, nº de faltas, resultado) em PDF — formato "Pauta Catequista" no Frappe.
+// Imprimir abre o PDF no browser; o ícone ao lado descarrega o ficheiro.
+function PautaButton({ turma }: { turma: string }) {
+  const url = `${FRAPPE_URL}/api/method/portal.api.imprimir_pauta?turma=${encodeURIComponent(turma)}`;
+  return (
+    <div className="inline-flex items-stretch text-xs font-semibold text-navy-700 bg-cream-100 border border-cream-300 rounded-full overflow-hidden shrink-0">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 hover:bg-cream-200 transition-colors"
+        title="Imprimir a pauta: nome, nº de faltas e resultado"
+      >
+        <Printer className="w-3.5 h-3.5 shrink-0" />
+        Imprimir pauta
+      </a>
+      <a
+        href={`${url}&download=1`}
+        className="inline-flex items-center px-2.5 border-l border-cream-300 hover:bg-cream-200 transition-colors"
+        title="Descarregar a pauta (PDF)"
+        aria-label="Descarregar a pauta (PDF)"
+      >
+        <FileDown className="w-3.5 h-3.5 shrink-0" />
+      </a>
+    </div>
+  );
+}
+
 const TURMA_FIELD_ICONS: Record<string, React.ReactNode> = {
   local: <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />,
   dia:   <Calendar className="w-3.5 h-3.5 shrink-0 text-slate-400" />,
@@ -197,14 +225,16 @@ function TurmaHeader({ turma, fieldConfig }: { turma: TurmaComCatecumenos; field
             {!!turma.programa && (
               <ProgramaButton programa={turma.programa as { titulo?: string | null; ficheiro: string }} />
             )}
+            <PautaButton turma={turma.name} />
           </div>
 
-          {/* Mobile: programa button only (count hidden) */}
-          {!!turma.programa && (
-            <div className="sm:hidden shrink-0">
+          {/* Mobile: programa + pauta buttons (count hidden) */}
+          <div className="sm:hidden shrink-0 flex flex-col items-end gap-2">
+            {!!turma.programa && (
               <ProgramaButton programa={turma.programa as { titulo?: string | null; ficheiro: string }} />
-            </div>
-          )}
+            )}
+            <PautaButton turma={turma.name} />
+          </div>
         </div>
 
         {/* Unified info bar — catecismo + local/dia/hora all inline */}

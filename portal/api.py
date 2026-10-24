@@ -1528,3 +1528,30 @@ def get_quotas_resumo(ano=""):
         "total_geral":       total_geral,
         "total_catequistas": len(catequistas),
     }
+
+
+# ── Pauta (impressão) ─────────────────────────────────────────────────────────
+
+PAUTA_PRINT_FORMAT = "Pauta Catequista"
+
+
+@frappe.whitelist(methods=["GET"])
+def imprimir_pauta(turma, download=0):
+    """PDF da pauta (nome, nº de faltas, resultado) de uma turma do catequista autenticado,
+    no formato de impressão "Pauta Catequista" com o cabeçalho (Letter Head) padrão.
+    download=1 descarrega o ficheiro; senão abre no browser para imprimir.
+    O catequista não precisa de permissão de impressão na Turma: só pode pedir as suas."""
+    cat_name = _assert_catequista()
+    t = frappe.db.get_value("Turma", turma, ["name", "catequista", "catequista_adj"], as_dict=True)
+    if not t or cat_name not in (t.catequista, t.catequista_adj):
+        frappe.throw(_("Esta turma não é sua."), frappe.PermissionError)
+
+    frappe.flags.ignore_print_permissions = True
+    try:
+        pdf = frappe.get_print("Turma", turma, PAUTA_PRINT_FORMAT, as_pdf=True)
+    finally:
+        frappe.flags.ignore_print_permissions = False
+
+    frappe.local.response.filename = f"Pauta - {turma}.pdf"
+    frappe.local.response.filecontent = pdf
+    frappe.local.response.type = "download" if cint(download) else "pdf"
