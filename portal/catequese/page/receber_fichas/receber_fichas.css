@@ -1,0 +1,115 @@
+/* ── Receber Fichas ── dourado claro (como as outras páginas da catequese), claro e escuro */
+#rf-app {
+  --rf-card: var(--card-bg, #fff);
+  --rf-text: var(--text-color, #1f2937);
+  --rf-muted: var(--text-muted, #6b7280);
+  --rf-border: var(--border-color, #e5e7eb);
+  --rf-gold: #b8882e;
+  --rf-gold-text: #8a6418;
+  --rf-gold-soft: #fef9ec;
+  --rf-gold-line: #f0dca0;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  color: var(--rf-text);
+  padding: 20px 24px 48px;
+}
+[data-theme="dark"] #rf-app {
+  --rf-gold-text: #e8c464;
+  --rf-gold-soft: rgba(212, 168, 67, 0.12);
+  --rf-gold-line: rgba(212, 168, 67, 0.3);
+}
+#rf-app, #rf-app * { box-sizing: border-box; }
+#rf-app > * { max-width: 820px; margin-left: auto; margin-right: auto; }
+#rf-app a { color: var(--rf-gold-text); text-decoration: none; }
+#rf-app a:hover { text-decoration: underline; }
+.rf-muted { color: var(--rf-muted); font-size: 0.82rem; margin: 0; }
+.rf-small { font-size: 0.78rem; }
+.rf-loading { display: flex; justify-content: center; padding: 80px; }
+.rf-spinner {
+  width: 22px; height: 22px; border: 2px solid var(--rf-border); border-top-color: var(--rf-gold);
+  border-radius: 50%; animation: rf-spin 0.8s linear infinite;
+}
+@keyframes rf-spin { to { transform: rotate(360deg); } }
+.rf-vazio { padding: 22px; text-align: center; color: var(--rf-muted); font-size: 0.86rem; }
+
+.rf-head {
+  position: relative; overflow: hidden;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 16px 20px 16px 24px; border-radius: 14px; margin-bottom: 14px; border: 1px solid var(--rf-gold-line);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(232, 196, 100, 0.22), transparent 45%),
+    linear-gradient(135deg, #fffdf6 0%, var(--rf-gold-soft) 55%, #fcf1d6 100%);
+}
+[data-theme="dark"] .rf-head { background: linear-gradient(135deg, rgba(212, 168, 67, 0.08), rgba(212, 168, 67, 0.16)); }
+.rf-head::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, #e8c464, #b8882e);
+}
+.rf-head h1 { margin: 0 0 2px; font-size: 1.35rem; font-weight: 800; color: var(--rf-text); }
+.rf-head .rf-muted { color: var(--rf-gold-text); }
+.rf-kpi { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
+.rf-kpi b { font-size: 1.4rem; font-weight: 800; line-height: 1.15; }
+.rf-kpi b small { font-size: 0.85rem; color: var(--rf-muted); font-weight: 600; }
+.rf-kpi span { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--rf-muted); }
+.rf-kpi i { display: block; height: 5px; border-radius: 3px; background: rgba(184, 136, 46, 0.15); overflow: hidden; margin-top: 4px; }
+.rf-kpi em { display: block; height: 100%; background: linear-gradient(90deg, #e8c464, #b8882e); }
+
+.rf-busca { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.rf-input {
+  flex: 1; min-width: 240px; height: 48px; padding: 0 16px; border-radius: 12px;
+  border: 2px solid var(--rf-gold-line); background: var(--rf-card); color: var(--rf-text); font-size: 1.05rem;
+}
+.rf-input:focus, .rf-select:focus { outline: none; border-color: var(--rf-gold); box-shadow: 0 0 0 3px var(--rf-gold-line); }
+.rf-select {
+  height: 36px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--rf-border);
+  background: var(--rf-card); color: var(--rf-text); font-size: 0.82rem;
+}
+.rf-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--rf-muted); margin: 0; }
+.rf-check input { accent-color: #b8882e; }
+
+.rf-feito {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 10px; border-radius: 12px;
+  background: #ecfdf3; border: 1px solid #bbf7d0; color: #15803d; font-size: 0.9rem;
+}
+.rf-feito > span { flex: 1; }
+.rf-feito.desfeito { background: var(--rf-gold-soft); border-color: var(--rf-gold-line); color: var(--rf-gold-text); }
+[data-theme="dark"] .rf-feito:not(.desfeito) { background: rgba(34, 197, 94, 0.12); color: #86efac; border-color: rgba(34, 197, 94, 0.3); }
+.rf-link { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: 0.82rem; }
+
+.rf-card { background: var(--rf-card); border: 1px solid var(--rf-border); border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
+.rf-linha {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--rf-border); cursor: pointer;
+}
+.rf-linha:first-child { border-top: 0; }
+.rf-linha.activa { background: var(--rf-gold-soft); box-shadow: inset 3px 0 0 var(--rf-gold); }
+.rf-info { flex: 1; min-width: 0; }
+.rf-nome { font-weight: 700; }
+.rf-linha.ok .rf-nome { color: var(--rf-muted); }
+.rf-chip {
+  display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; line-height: 20px;
+  border: 1px solid var(--rf-border); color: var(--rf-muted); white-space: nowrap;
+}
+.rf-chip.ok { background: #ecfdf3; color: #15803d; border-color: #bbf7d0; }
+.rf-btn {
+  height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--rf-gold-line);
+  background: var(--rf-card); color: var(--rf-gold-text); font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.rf-btn:hover { background: var(--rf-gold-soft); }
+.rf-btn:disabled { opacity: 0.6; cursor: default; }
+.rf-btn-ouro { background: linear-gradient(135deg, #c99a3a, #a8782a); border-color: #a8782a; color: #fff; }
+.rf-btn-ouro:hover { background: linear-gradient(135deg, #b8882e, #8a6418); color: #fff; }
+
+.rf-sessao h3 {
+  margin: 0; padding: 10px 14px; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--rf-muted); background: var(--rf-gold-soft);
+}
+.rf-sessao h3 span {
+  margin-left: 6px; padding: 0 7px; border-radius: 999px; background: #ecfdf3; color: #15803d; font-size: 0.72rem;
+}
+.rf-linha-s { display: flex; align-items: center; gap: 10px; padding: 7px 14px; border-top: 1px solid var(--rf-border); font-size: 0.85rem; }
+.rf-linha-s a { font-weight: 600; flex: 1; }
+
+@media (max-width: 720px) {
+  #rf-app { padding: 12px 12px 40px; }
+  .rf-input { min-width: 100%; }
+  .rf-linha { flex-wrap: wrap; }
+}

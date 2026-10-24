@@ -35,6 +35,10 @@ PAGINAS = {
         "icone": "📋", "grupo": "Sacramentos", "ordem": 2,
         "descricao": "Preparação do sacramento: fichas, pagamentos, dia e situação de cada candidato numa só tabela.",
     },
+    "receber-fichas": {
+        "icone": "🗂️", "grupo": "Ano lectivo", "ordem": 2,
+        "descricao": "O encarregado entrega a ficha: escreve-se o nome, Enter, fica marcada.",
+    },
     "abrir-encerrar-ano": {
         "icone": "📅", "grupo": "Ano lectivo", "ordem": 1,
         "descricao": "Lista de verificação para encerrar o ano e preparar o seguinte.",
