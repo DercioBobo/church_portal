@@ -244,6 +244,23 @@
 .gp-prep-card b { font-size: 1rem; }
 .gp-prep-card small { color: var(--gp-muted); }
 .gp-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.gp-chips:empty { display: none; }
+.gp-sec-lista {
+  display: flex; align-items: center; gap: 8px; margin: 14px 0 10px; font-size: 0.95rem; font-weight: 800; color: var(--gp-text);
+}
+.gp-sec-lista small { font-size: 0.78rem; font-weight: 400; color: var(--gp-muted); }
+.gp-ponto { width: 9px; height: 9px; border-radius: 50%; background: #94a3b8; flex-shrink: 0; }
+.gp-ponto.aberto { background: #e8a33d; box-shadow: 0 0 0 4px rgba(232, 163, 61, 0.2); }
+.gp-pc-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.gp-pc-n { display: flex; flex-direction: column; align-items: flex-end; font-size: 1.5rem; font-weight: 800; line-height: 1; color: var(--gp-gold-text); }
+.gp-pc-n small { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gp-muted); margin-top: 3px; }
+.gp-prep-card.aberta { border-left: 4px solid #e8a33d; }
+.gp-prep-card.feita { background: transparent; }
+.gp-prep-card.feita .gp-pc-n { color: var(--gp-muted); font-size: 1.25rem; }
+.gp-pc-prog { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 10px; margin-top: 6px; font-size: 0.76rem; color: var(--gp-muted); }
+.gp-pc-prog b { color: var(--gp-text); }
+.gp-pc-prog i { display: block; height: 5px; border-radius: 3px; background: rgba(184, 136, 46, 0.15); overflow: hidden; }
+.gp-pc-prog em { display: block; height: 100%; background: linear-gradient(90deg, #e8c464, #b8882e); }
 
 @media (max-width: 720px) {
   #gp-app { padding: 10px 10px 40px; }

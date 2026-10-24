@@ -58,18 +58,42 @@ function createGerirPreparacaoApp() {
       <div><h1>✝️ Gerir Preparação</h1><p class="gp-muted">Escolha a preparação do sacramento.</p></div>
     </div>
     <div v-if="carregandoLista" class="gp-loading"><div class="gp-spinner"></div></div>
-    <div v-for="g in listaPorAno" :key="g.ano" class="gp-ano">
+    <!-- Em preparação (rascunho): ainda se mexe — progresso de fichas, documentos e dia -->
+    <div v-if="emPreparacao.length" class="gp-ano">
+      <div class="gp-sec-lista"><span class="gp-ponto aberto"></span>Em preparação <small>ainda em curso — pode editar</small></div>
+      <div class="gp-grid">
+        <a v-for="p in emPreparacao" :key="p.name" class="gp-prep-card aberta" :href="'/app/gerir-preparacao/' + encodeURIComponent(p.name)">
+          <div class="gp-pc-topo">
+            <b>{{ p.sacramento }} <span v-if="p.tipo === '2ª oportunidade'" class="gp-chip ouro">2ª oportunidade</span>
+              <span v-if="p.tipo === 'Extraordinário'" class="gp-chip ouro">{{ p.tipo_extraordinario || 'Extraordinário' }}</span></b>
+            <span class="gp-pc-n" :title="p.nao ? p.nao + ' não vão receber' : ''">{{ p.vao }}<small>candidatos</small></span>
+          </div>
+          <small>{{ p.ano_lectivo }} · {{ p.data ? dia(p.data) : 'Sem data' }}<template v-if="p.nao"> · {{ p.nao }} não vão</template></small>
+          <div v-if="p.vao" class="gp-pc-prog">
+            <span>Fichas <b>{{ p.fichas }}/{{ p.vao }}</b></span><i><em :style="{ width: pctDe(p.fichas, p.vao) + '%' }"></em></i>
+            <span>Docs. <b>{{ p.docs }}/{{ p.vao }}</b></span><i><em :style="{ width: pctDe(p.docs, p.vao) + '%' }"></em></i>
+          </div>
+          <span class="gp-chips">
+            <span v-if="!p.vao" class="gp-chip">Sem candidatos ainda</span>
+            <span v-if="p.vao && p.sem_dia" class="gp-chip">{{ p.sem_dia }} sem dia</span>
+            <span v-if="passou(p)" class="gp-chip erro">Data passou — falta submeter</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Realizadas (submetidas): histórico, por ano -->
+    <div v-if="realizadasPorAno.length" class="gp-sec-lista"><span class="gp-ponto"></span>Realizadas <small>submetidas — os sacramentos já foram registados</small></div>
+    <div v-for="g in realizadasPorAno" :key="g.ano" class="gp-ano">
       <div class="gp-ano-titulo">{{ g.ano }}</div>
       <div class="gp-grid">
-        <a v-for="p in g.itens" :key="p.name" class="gp-prep-card" :href="'/app/gerir-preparacao/' + encodeURIComponent(p.name)">
-          <b>{{ p.sacramento }} <span v-if="p.tipo === '2ª oportunidade'" class="gp-chip ouro">2ª oportunidade</span>
-            <span v-if="p.tipo === 'Extraordinário'" class="gp-chip ouro">{{ p.tipo_extraordinario || 'Extraordinário' }}</span></b>
-          <small>{{ p.name }} · {{ p.data ? dia(p.data) : 'Sem data' }}</small>
-          <span class="gp-chips">
-            <span class="gp-chip ok">{{ p.vao }} vão</span>
-            <span v-if="p.nao" class="gp-chip erro">{{ p.nao }} não</span>
-            <span class="gp-chip" :class="p.docstatus ? 'ouro' : ''">{{ p.docstatus ? 'Submetida' : 'Rascunho' }}</span>
-          </span>
+        <a v-for="p in g.itens" :key="p.name" class="gp-prep-card feita" :href="'/app/gerir-preparacao/' + encodeURIComponent(p.name)">
+          <div class="gp-pc-topo">
+            <b>{{ p.sacramento }} <span v-if="p.tipo === '2ª oportunidade'" class="gp-chip ouro">2ª oportunidade</span>
+              <span v-if="p.tipo === 'Extraordinário'" class="gp-chip ouro">{{ p.tipo_extraordinario || 'Extraordinário' }}</span></b>
+            <span class="gp-pc-n">{{ p.vao }}<small>receberam</small></span>
+          </div>
+          <small>✓ {{ p.data ? dia(p.data) : 'Sem data' }}<template v-if="p.nao"> · {{ p.nao }} não receberam</template></small>
         </a>
       </div>
     </div>
@@ -344,11 +368,15 @@ function createGerirPreparacaoApp() {
         p.value = await gpApi('get_preparacao', { nome: nome.value });
         frappe.utils.set_title && frappe.utils.set_title(`${p.value.sacramento} ${p.value.ano_lectivo}`);
       }
-      const listaPorAno = computed(() => {
+      const emPreparacao = computed(() => lista.value.filter((x) => !x.docstatus));
+      const realizadasPorAno = computed(() => {
         const g = {};
-        lista.value.forEach((x) => { (g[x.ano_lectivo] = g[x.ano_lectivo] || []).push(x); });
+        lista.value.filter((x) => x.docstatus).forEach((x) => { (g[x.ano_lectivo] = g[x.ano_lectivo] || []).push(x); });
         return Object.keys(g).sort().reverse().map((ano) => ({ ano, itens: g[ano] }));
       });
+      // Rascunho com a data do sacramento já passada: provavelmente esqueceram-se de submeter
+      const pctDe = (n, total) => (total ? Math.round((n / total) * 100) : 0);
+      const passou = (x) => !x.docstatus && x.data && x.data < frappe.datetime.get_today();
 
       // ── Guardar ───────────────────────────────────────────────────────────
       function aplicar(res) {
@@ -642,7 +670,7 @@ function createGerirPreparacaoApp() {
       document.addEventListener('click', (e) => { if (!e.target.closest('.gp-menu')) menu.value = ''; });
 
       return {
-        nome, p, extra, lista, carregandoLista, listaPorAno, busca, filtro, turma, ordem, painel, menu, seleccionados,
+        nome, p, extra, lista, carregandoLista, emPreparacao, realizadasPorAno, passou, pctDe, busca, filtro, turma, ordem, painel, menu, seleccionados,
         abrirRota, carregar, guardar, emMassa, massaTexto, massaData, pagoCompleto, situacaoUma, dialogoSituacao, removerSel,
         accao, urlImprimir, urlPdf, linkActivo, copiarLink, gerarLink, revogarLink, submeter,
         NAO, vao, naoN, pagCols, progresso, esperadoTotal, recebidoTotal, FILTROS, contar, turmas, visiveis, linhaPainel,

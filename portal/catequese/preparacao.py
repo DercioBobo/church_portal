@@ -74,7 +74,10 @@ def listar_preparacoes():
     return frappe.db.sql(f"""
         SELECT p.name, p.sacramento, p.ano_lectivo, p.data_do_sacramento AS data, p.docstatus, p.tipo,
                p.tipo_extraordinario, COALESCE(SUM(c.name IS NOT NULL AND IFNULL(c.situacao, '') != %(nao)s), 0) AS vao,
-               COALESCE(SUM(c.situacao = %(nao)s), 0) AS nao
+               COALESCE(SUM(c.situacao = %(nao)s), 0) AS nao,
+               COALESCE(SUM(IFNULL(c.situacao, '') != %(nao)s AND c.ficha = 1), 0) AS fichas,
+               COALESCE(SUM(IFNULL(c.situacao, '') != %(nao)s AND c.documentos_padrinhos = 1), 0) AS docs,
+               COALESCE(SUM(c.name IS NOT NULL AND IFNULL(c.situacao, '') != %(nao)s AND IFNULL(c.dia, '') = ''), 0) AS sem_dia
         FROM `tab{DOCTYPE}` p
         LEFT JOIN `tabCandidatos ao Sacramento Table` c ON c.parent = p.name AND c.parenttype = %(dt)s
         WHERE p.docstatus < 2

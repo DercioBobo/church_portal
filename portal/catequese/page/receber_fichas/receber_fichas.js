@@ -42,7 +42,8 @@ function createReceberFichasApp() {
   <div class="rf-head">
     <div>
       <h1>📋 Receber Fichas</h1>
-      <p class="rf-muted">Escreva o nome, <b>Enter</b> marca a ficha e a caixa limpa para o próximo. ↑ ↓ para escolher.</p>
+      <p class="rf-muted">Escreva o nome, <b>Enter</b> marca a ficha e a caixa limpa para o próximo. ↑ ↓ para escolher.
+        Nome ou data diferentes na ficha? <b>✎ Corrigir</b>.</p>
     </div>
     <div class="rf-kpi"><b>{{ comFicha }}<small>/{{ lista.length }}</small></b><span>com ficha</span>
       <i><em :style="{ width: (lista.length ? Math.round(comFicha * 100 / lista.length) : 0) + '%' }"></em></i></div>
@@ -79,6 +80,7 @@ function createReceberFichasApp() {
         <div v-if="c.catequistas" class="rf-muted rf-small">🙋 {{ c.catequistas }}</div>
       </div>
       <span v-if="c.ficha" class="rf-chip ok">✓ tem ficha</span>
+      <button class="rf-btn" title="Corrigir nome ou data de nascimento" @click.stop="corrigir(c)">✎ Corrigir</button>
       <button class="rf-btn" :class="c.ficha ? '' : 'rf-btn-ouro'" :disabled="aGravar === c.name">
         {{ c.ficha ? 'Desmarcar' : '✓ Marcar ficha' }}
       </button>
@@ -149,6 +151,52 @@ function createReceberFichasApp() {
           .always(() => { aGravar.value = null; foco(); });
       }
 
+      // Nome / data de nascimento diferentes na ficha: corrige no Catecúmeno (e marca a ficha no mesmo passo)
+      function corrigir(c) {
+        const idadeDe = (d) => {
+          if (!d) return '';
+          const n = frappe.datetime.str_to_obj(d), h = new Date();
+          return h.getFullYear() - n.getFullYear() - ((h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) ? 1 : 0);
+        };
+        const dlg = new frappe.ui.Dialog({
+          title: __('Corrigir: {0}', [c.name]),
+          fields: [
+            { fieldname: 'novo_nome', fieldtype: 'Data', label: __('Nome completo (como na ficha)'), default: c.name, reqd: 1 },
+            { fieldname: 'data_de_nascimento', fieldtype: 'Date', label: __('Data de nascimento'), default: c.data_de_nascimento,
+              onchange() { const i = idadeDe(dlg.get_value('data_de_nascimento')); dlg.set_df_property('idade', 'options', `<p class="text-muted small">${i === '' ? '' : __('Idade: <b>{0} anos</b>', [i])}</p>`); } },
+            { fieldname: 'idade', fieldtype: 'HTML', options: c.data_de_nascimento ? `<p class="text-muted small">${__('Idade: <b>{0} anos</b>', [idadeDe(c.data_de_nascimento)])}</p>` : '' },
+            { fieldname: 'ficha', fieldtype: 'Check', label: __('Marcar também a ficha como entregue'), default: c.ficha ? 0 : 1, hidden: c.ficha ? 1 : 0 },
+            { fieldname: 'info', fieldtype: 'HTML', options: `<p class="text-muted small">${__('Mudar o nome actualiza a turma, as preparações e as ligações nos livros.')}</p>` },
+          ],
+          primary_action_label: __('Guardar'),
+          primary_action(v) {
+            const novo = (v.novo_nome || '').replace(/\s+/g, ' ').trim();
+            const args = { nome: c.name };
+            if (novo && novo !== c.name) args.novo_nome = novo;
+            if (v.data_de_nascimento && v.data_de_nascimento !== c.data_de_nascimento) args.data_de_nascimento = v.data_de_nascimento;
+            if (!c.ficha && v.ficha) args.ficha = 1;
+            if (Object.keys(args).length === 1) { dlg.hide(); return; }
+            dlg.disable_primary_action();
+            frappe.call({ method: API + 'corrigir', args, freeze: !!args.novo_nome, freeze_message: __('A mudar o nome…') })
+              .then((r) => {
+                const m = r.message, antigo = c.name;
+                Object.assign(c, { name: m.name, idade: m.idade, data_de_nascimento: m.data_de_nascimento, ficha: m.ficha, _busca: null });
+                sessao.value = sessao.value.map((s) => (s === antigo ? m.name : s));
+                if (args.ficha) {
+                  sessao.value = [m.name, ...sessao.value.filter((s) => s !== m.name)];
+                  ultimo.value = { nome: m.name, ficha: 1 };
+                  busca.value = ''; sel.value = 0;
+                }
+                frappe.show_alert({ message: __('Corrigido: {0}', [m.name]), indicator: 'green' });
+                dlg.hide();
+              })
+              .always(() => { dlg.enable_primary_action(); });
+          },
+        });
+        dlg.onhide = foco;
+        dlg.show();
+      }
+
       function tecla(e) {
         const n = resultados.value.length;
         if (e.key === 'ArrowDown') { e.preventDefault(); sel.value = n ? (sel.value + 1) % n : 0; }
@@ -165,7 +213,7 @@ function createReceberFichasApp() {
 
       onMounted(carregar);
       return { lista, loading, busca, turma, soSem, sel, aGravar, ultimo, sessao, caixa, porNome, turmas, comFicha,
-        resultados, mais, carregar, marcar, tecla, foco };
+        resultados, mais, carregar, marcar, corrigir, tecla, foco };
     },
   });
 }
