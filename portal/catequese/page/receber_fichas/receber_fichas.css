@@ -89,6 +89,16 @@
   border: 1px solid var(--rf-border); color: var(--rf-muted); white-space: nowrap;
 }
 .rf-chip.ok { background: #ecfdf3; color: #15803d; border-color: #bbf7d0; }
+button.rf-chip { cursor: pointer; font-family: inherit; }
+.rf-chip.aviso { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+.rf-chip.aviso:hover { background: #ffedd5; }
+[data-theme="dark"] .rf-chip.aviso { background: rgba(234, 88, 12, 0.14); color: #fdba74; border-color: rgba(234, 88, 12, 0.35); }
+.rf-falta-nasc {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 10px; border-radius: 12px;
+  background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-size: 0.88rem;
+}
+.rf-falta-nasc > span { flex: 1; min-width: 220px; }
+[data-theme="dark"] .rf-falta-nasc { background: rgba(234, 88, 12, 0.12); color: #fdba74; border-color: rgba(234, 88, 12, 0.3); }
 .rf-btn {
   height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--rf-gold-line);
   background: var(--rf-card); color: var(--rf-gold-text); font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap;

@@ -64,6 +64,10 @@ function createReceberFichasApp() {
     <span v-else>↩ <b>{{ ultimo.nome }}</b> — ficha desmarcada</span>
     <button class="rf-link" @click="marcar(ultimo.nome, ultimo.ficha ? 0 : 1)">{{ ultimo.ficha ? 'Desfazer' : 'Refazer' }}</button>
   </div>
+  <div v-if="ultimo && ultimo.ficha && porNome[ultimo.nome] && !porNome[ultimo.nome].data_de_nascimento" class="rf-falta-nasc">
+    <span>⚠ <b>{{ ultimo.nome }}</b> não tem data de nascimento registada. Está na ficha?</span>
+    <button class="rf-btn rf-btn-ouro" @click="corrigir(porNome[ultimo.nome])">Adicionar data</button>
+  </div>
 
   <div v-if="loading && !lista.length" class="rf-loading"><div class="rf-spinner"></div></div>
 
@@ -79,6 +83,7 @@ function createReceberFichasApp() {
         <div class="rf-muted rf-small">{{ c.turma || 'sem turma' }}<template v-if="c.idade"> · {{ c.idade }} anos</template><template v-if="c.encarregado"> · {{ c.encarregado }}</template></div>
         <div v-if="c.catequistas" class="rf-muted rf-small">🙋 {{ c.catequistas }}</div>
       </div>
+      <button v-if="!c.data_de_nascimento" class="rf-chip aviso" title="Adicionar a data de nascimento da ficha" @click.stop="corrigir(c)">⚠ sem data de nascimento</button>
       <span v-if="c.ficha" class="rf-chip ok">✓ tem ficha</span>
       <button class="rf-btn" title="Corrigir nome ou data de nascimento" @click.stop="corrigir(c)">✎ Corrigir</button>
       <button class="rf-btn" :class="c.ficha ? '' : 'rf-btn-ouro'" :disabled="aGravar === c.name">
@@ -93,6 +98,7 @@ function createReceberFichasApp() {
     <div v-for="s in sessao" :key="s" class="rf-linha-s">
       <a :href="'/app/catecumeno/' + encodeURIComponent(s)">{{ s }}</a>
       <span class="rf-muted rf-small">{{ (porNome[s] || {}).turma }}<template v-if="(porNome[s] || {}).catequistas"> · {{ porNome[s].catequistas }}</template></span>
+      <button v-if="porNome[s] && !porNome[s].data_de_nascimento" class="rf-chip aviso" @click="corrigir(porNome[s])">⚠ sem data de nascimento</button>
       <button class="rf-link" @click="marcar(s, 0)">desfazer</button>
     </div>
   </section>
