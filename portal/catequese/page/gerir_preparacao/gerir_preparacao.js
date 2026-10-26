@@ -126,6 +126,7 @@ function createGerirPreparacaoApp() {
               <button v-if="extra" @click="accao('pessoas')">Acrescentar pessoas<small>pelo nome, uma por linha (não são catecúmenos)</small></button>
               <template v-else>
                 <button @click="accao('listar')">Listar candidatos<small>acrescenta quem está nas fases do sacramento</small></button>
+                <button @click="accao('catecumenos')">Acrescentar catecúmeno<small>escolher um a um, mesmo de outra fase ou turma</small></button>
                 <button @click="accao('sincronizar')">Sincronizar lista<small>remove quem já não cumpre os critérios</small></button>
                 <button @click="accao('actualizar')">Actualizar catecúmenos<small>copia encarregados, padrinhos e contactos</small></button>
               </template>
@@ -327,6 +328,11 @@ function createGerirPreparacaoApp() {
             <div class="gp-sec-t">Observações</div>
             <textarea rows="3" :value="linhaPainel.obs || ''" :disabled="!p.pode_editar" @change="guardar(linhaPainel, 'obs', $event.target.value)"></textarea>
           </div>
+
+          <div v-if="p.pode_editar" class="gp-sec gp-sec-remover">
+            <button class="gp-btn gp-btn-perigo" @click="removerUma(linhaPainel)">🗑 Remover da lista</button>
+            <small class="gp-muted">Só se foi acrescentado por engano. Para quem desistiu, use “Não vai receber”.</small>
+          </div>
         </aside>
       </div>
     </template>
@@ -458,6 +464,16 @@ function createGerirPreparacaoApp() {
           frappe.show_alert({ message: __('{0} removido(s).', [n]), indicator: 'green' });
         });
       }
+      function removerUma(r) {
+        const quem = r.catecumeno || r.nome_completo || '';
+        frappe.confirm(__('Remover <b>{0}</b> da lista? Para quem não vai receber, use antes "Não vai receber".', [frappe.utils.escape_html(quem)]), async () => {
+          await gpApi('remover', { nome: nome.value, linhas: [r.name] });
+          painel.value = null;
+          seleccionados.delete(r.name);
+          await carregar();
+          frappe.show_alert({ message: __('{0} removido(a).', [quem]), indicator: 'green' });
+        });
+      }
 
       // ── Acções do cabeçalho ───────────────────────────────────────────────
       async function accao(qual) {
@@ -475,6 +491,24 @@ function createGerirPreparacaoApp() {
               const r = await gpApi('acrescentar_pessoas', { nome: nome.value, nomes: v.nomes, comunidade: v.comunidade || '' });
               await carregar();
               frappe.show_alert({ message: __('{0} pessoa(s) acrescentada(s).', [r.adicionados]), indicator: 'green' });
+            },
+          });
+          d.show();
+        } else if (qual === 'catecumenos') {
+          const d = new frappe.ui.Dialog({
+            title: __('Acrescentar catecúmeno'),
+            fields: [
+              { fieldname: 'catecumenos', fieldtype: 'MultiSelectList', label: __('Catecúmenos'), reqd: 1,
+                description: __('Escreva parte do nome. Pode escolher vários.'),
+                get_data: (txt) => gpApi('procurar_catecumenos', { nome: nome.value, txt: txt || '' }) },
+            ],
+            primary_action_label: __('Acrescentar'),
+            async primary_action(v) {
+              if (!v.catecumenos || !v.catecumenos.length) return;
+              d.hide();
+              const r = await gpApi('acrescentar_catecumenos', { nome: nome.value, catecumenos: v.catecumenos });
+              await carregar();
+              frappe.show_alert({ message: __('{0} catecúmeno(s) acrescentado(s).', [r.adicionados]), indicator: 'green' });
             },
           });
           d.show();
@@ -672,7 +706,7 @@ function createGerirPreparacaoApp() {
 
       return {
         nome, p, extra, lista, carregandoLista, emPreparacao, realizadasPorAno, passou, pctDe, busca, filtro, turma, ordem, painel, menu, seleccionados,
-        abrirRota, carregar, guardar, emMassa, massaTexto, massaData, pagoCompleto, situacaoUma, dialogoSituacao, removerSel,
+        abrirRota, carregar, guardar, emMassa, massaTexto, massaData, pagoCompleto, situacaoUma, dialogoSituacao, removerSel, removerUma,
         accao, urlImprimir, urlPdf, linkActivo, copiarLink, gerarLink, revogarLink, submeter,
         NAO, vao, naoN, pagCols, progresso, esperadoTotal, recebidoTotal, FILTROS, contar, turmas, visiveis, linhaPainel,
         todosSel, seleccionarTodos, alternarSel, estadoGuardar, textoGuardar, dia, moeda, pct, tel,

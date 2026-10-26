@@ -338,6 +338,51 @@ def acrescentar_pessoas(nome, nomes, comunidade=None):
     return {"adicionados": adicionados}
 
 
+@frappe.whitelist()
+def procurar_catecumenos(nome, txt=""):
+    """Catecúmenos activos que ainda não estão na lista (para acrescentar um a um)."""
+    doc = _doc(nome)
+    na_lista = [r.catecumeno for r in doc.get(TABELA) if r.catecumeno]
+    filtros = [["status", "=", "Activo"], ["name", "not in", na_lista or [""]]]
+    if txt:
+        filtros.append(["name", "like", f"%{txt}%"])
+    campo = CAMPO_SACRAMENTO.get(doc.sacramento)
+    cats = frappe.get_all("Catecumeno", filters=filtros, order_by="name asc", limit_page_length=20,
+                          fields=["name", "fase", "turma"] + ([campo] if campo else []))
+    return [{
+        "value": c.name,
+        "description": " · ".join(filter(None, [
+            c.fase, c.turma, _("já recebeu") if campo and cint(c.get(campo)) else None])),
+    } for c in cats]
+
+
+@frappe.whitelist()
+def acrescentar_catecumenos(nome, catecumenos):
+    """Acrescenta catecúmenos escolhidos à mão, mesmo de outras fases ou turmas
+    (ex.: alguém que entrou tarde ou vem de outra paróquia). Ignora quem já está na lista."""
+    doc = _doc(nome, "write")
+    _rascunho(doc)
+    _so_catecumenos(doc)
+    existentes = {r.catecumeno for r in doc.get(TABELA) if r.catecumeno}
+    adicionados = 0
+    for c in frappe.get_all("Catecumeno", filters={"name": ["in", _carregar(catecumenos) or [""]]},
+                            fields=["name", "fase", "turma", "sexo", "idade", "data_de_nascimento", "comunidade",
+                                    "encarregado", "contacto", "padrinhos", "contacto_padrinhos"]):
+        if c.name in existentes:
+            continue
+        doc.append(TABELA, {
+            "catecumeno": c.name, "turma": c.turma, "fase": c.fase, "sexo": c.sexo, "idade": c.idade,
+            "data_de_nascimento": c.data_de_nascimento, "comunidade": c.comunidade,
+            "encarregado": c.encarregado, "contacto_encarregado": c.contacto,
+            "padrinhos": c.padrinhos, "contacto_padrinhos": c.contacto_padrinhos,
+            "situacao": "Vai receber", "ficha": 0, "documentos_padrinhos": 0,
+        })
+        adicionados += 1
+    if adicionados:
+        doc.save()
+    return {"adicionados": adicionados}
+
+
 # ── Link e submissão ─────────────────────────────────────────────────────────
 
 @frappe.whitelist()

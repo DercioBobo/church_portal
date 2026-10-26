@@ -351,3 +351,6 @@
   margin-top: 6px; border-top: 1px solid var(--gp-border) !important; border-radius: 0 0 8px 8px;
   font-weight: 600; color: var(--gp-gold-text);
 }
+
+/* Remover a linha (fundo do painel) */
+.gp-sec-remover { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
