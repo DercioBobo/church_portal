@@ -125,15 +125,41 @@
 .rv-prog em { display: block; height: 100%; background: linear-gradient(90deg, #e8c464, #b8882e); }
 
 @media (max-width: 720px) {
-  #rv-app { padding: 12px 12px 40px; }
+  #rv-app { padding: 10px 10px 40px; }
+  .rv-head { padding: 12px 14px 12px 18px; }
+  .rv-head h1 { font-size: 1.15rem; }
+  .rv-head-accoes { width: 100%; }
+  .rv-head-accoes .rv-select { flex: 1; }
+  .rv-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rv-kpi { padding: 10px 12px; }
+  .rv-kpi b { font-size: 1.15rem; }
+  .rv-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -10px 10px; padding: 0 10px 2px; }
+  .rv-tabs::-webkit-scrollbar { display: none; }
+  .rv-tab { flex-shrink: 0; white-space: nowrap; }
+  .rv-filtros .rv-search { flex-basis: 100%; max-width: none; min-width: 0; height: 40px; font-size: 16px; }
+  .rv-filtros .rv-select { flex: 1; height: 36px; }
+  .rv-massa { flex-wrap: wrap; }
+  .rv-aviso-box .rv-btn { width: 100%; height: 36px; }
+
+  /* Linhas em cartões: o nome em cima sem rótulo; caixa de selecção no canto; botão em baixo */
   .rv-table thead { display: none; }
   .rv-table, .rv-table tbody, .rv-table tr, .rv-table td { display: block; width: 100%; }
-  .rv-table tr { border-top: 1px solid var(--rv-border); padding: 8px 14px; }
-  .rv-table td { border: 0; padding: 3px 0; text-align: left !important; }
+  .rv-table tr { position: relative; border-top: 1px solid var(--rv-border); padding: 10px 14px; }
+  .rv-table td { border: 0; padding: 2px 0; text-align: left !important; }
+  .rv-table td[data-l] { position: relative; padding-left: 104px; min-height: 22px; }
   .rv-table td[data-l]::before {
-    content: attr(data-l); display: inline-block; width: 100px; font-size: 0.68rem; font-weight: 700;
+    content: attr(data-l); position: absolute; left: 0; top: 3px; width: 96px; font-size: 0.68rem; font-weight: 700;
     text-transform: uppercase; color: var(--rv-muted);
   }
+  .rv-table td[data-l="Turma"]:first-child, .rv-table td[data-l="Catecúmeno"] { padding-left: 0; padding-bottom: 4px; padding-right: 34px; }
+  .rv-table td[data-l="Turma"]:first-child::before, .rv-table td[data-l="Catecúmeno"]::before { display: none; }
+  .rv-nome { font-size: 0.95rem; }
+  .rv-table td.rv-c-sel { position: absolute; top: 10px; right: 12px; width: auto; padding: 0; }
+  .rv-table td.rv-c-sel input { width: 20px; height: 20px; }
+  .rv-acc { width: 100%; text-align: left; padding-top: 6px !important; }
+  .rv-acc:empty { display: none; }
+  .rv-acc .rv-btn { width: 100%; height: 38px; }
+  .rv-prog i { flex: 1; }
 }
 
 /* Renovações sem valor (antigas) */

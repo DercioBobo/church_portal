@@ -95,8 +95,21 @@
   .pc-stats { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 640px) {
-  #pc-app { padding: 14px 16px 40px; }
-  .pc-hero { padding: 20px; }
-  .pc-hero h1 { font-size: 1.5rem; }
-  .pc-grid { grid-template-columns: 1fr; }
+  #pc-app { padding: 10px 12px 40px; }
+  .pc-hero { padding: 16px 18px; border-radius: 14px; flex-wrap: nowrap; align-items: flex-start; }
+  .pc-hero h1 { font-size: 1.35rem; }
+  .pc-sub { font-size: 0.8rem; }
+  #pc-app .pc-year { padding: 6px 12px; border-radius: 10px; flex-shrink: 0; }
+  .pc-year b { font-size: 1.15rem; }
+  .pc-stats { gap: 8px; margin-top: 12px; }
+  .pc-stat { padding: 10px 14px; border-radius: 12px; }
+  .pc-stat-n { font-size: 1.35rem; }
+  .pc-group { margin-top: 20px; }
+  .pc-grid { grid-template-columns: 1fr; gap: 8px; }
+  .pc-card { padding: 12px 14px; gap: 12px; border-radius: 12px; }
+  .pc-icon { width: 40px; height: 40px; font-size: 1.2rem; border-radius: 10px; }
+  .pc-card-body small { font-size: 0.76rem; }
+  .pc-card:hover { transform: none; }
+  .pc-pills { gap: 6px; }
+  .pc-pill { padding: 8px 12px; font-size: 0.82rem; }
 }

@@ -165,16 +165,17 @@
 .ps-estado.off { background: #f1f5f9; color: #475569; }
 .ps-estado.feito { background: var(--ps-gold-soft); color: var(--ps-gold-text); }
 
-/* Telemóvel: linhas viram cartões */
+/* Telemóvel: linhas viram cartões (regras completas no fim do ficheiro) */
 @media (max-width: 720px) {
-  #ps-app { padding: 12px 12px 40px; }
+  #ps-app { padding: 10px 10px 40px; }
   .ps-table thead { display: none; }
   .ps-table, .ps-table tbody, .ps-table tr, .ps-table td { display: block; width: 100%; }
-  .ps-table tr { border-top: 1px solid var(--ps-border); padding: 8px 14px; }
-  .ps-table td { border: 0; padding: 3px 0; display: flex; gap: 10px; }
-  .ps-table td::before {
-    content: attr(data-l); flex: 0 0 96px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
-    color: var(--ps-muted); padding-top: 2px;
+  .ps-table tr { position: relative; border-top: 1px solid var(--ps-border); padding: 10px 14px; }
+  .ps-table td { border: 0; padding: 2px 0; }
+  .ps-table td[data-l] { position: relative; padding-left: 104px; min-height: 22px; }
+  .ps-table td[data-l]::before {
+    content: attr(data-l); position: absolute; left: 0; top: 3px; width: 96px;
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: var(--ps-muted);
   }
 }
 
@@ -233,3 +234,38 @@ a.ps-chip { text-decoration: none !important; margin-left: 4px; }
 .ps-chk.on { background: #22c55e; border-color: #22c55e; }
 .ps-table tr.nao td { opacity: 0.55; }
 @media (max-width: 720px) { .ps-c-chk { width: 100%; text-align: left !important; } }
+
+/* ── Telemóvel ──────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .ps-head { padding: 12px 14px 12px 18px; }
+  .ps-head h1 { font-size: 1.15rem; }
+
+  /* Separadores: uma linha que desliza para o lado */
+  .ps-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-left: -10px; margin-right: -10px; padding: 0 10px 2px; }
+  .ps-tabs::-webkit-scrollbar { display: none; }
+  .ps-tab { flex-shrink: 0; white-space: nowrap; }
+  .ps-tab-arq { margin-left: 0; }
+  .ps-search { flex-basis: 100%; max-width: none; min-width: 0; height: 40px; font-size: 16px; }
+
+  .ps-prep-grid { grid-template-columns: 1fr 1fr; }
+  .ps-card-head { padding: 12px 14px 10px; }
+  .ps-btn-add { margin-left: 0; }
+
+  .ps-massa { flex-wrap: wrap; top: calc(var(--navbar-height, 48px) + 4px); }
+  .ps-massa > b { flex-basis: 100%; }
+  .ps-massa .ps-btn { height: 36px; }
+
+  /* Cartão: caixa de selecção e botões no canto; o nome sem rótulo */
+  .ps-table tr { padding-right: 84px; min-height: 52px; }
+  .ps-table td.ps-c-sel { position: absolute; top: 10px; right: 50px; width: auto; padding: 0; }
+  .ps-table td.ps-c-sel input { width: 20px; height: 20px; }
+  .ps-table td.ps-c-acc { position: absolute; top: 6px; right: 10px; width: auto; padding: 0; }
+  .ps-arquivar { width: 34px; height: 34px; }
+  .ps-table td[data-l="Catecúmeno"], .ps-table td[data-l="Candidato"] { padding-left: 0; padding-bottom: 4px; }
+  .ps-table td[data-l="Catecúmeno"]::before, .ps-table td[data-l="Candidato"]::before { display: none; }
+  .ps-nome { font-size: 0.95rem; }
+  .ps-detalhe { max-width: none; }
+  /* candidatos da preparação (sem caixa nem botões) */
+  .ps-prep-painel .ps-table tr { padding-right: 14px; }
+}
+@media (max-width: 420px) { .ps-prep-grid { grid-template-columns: 1fr; } }

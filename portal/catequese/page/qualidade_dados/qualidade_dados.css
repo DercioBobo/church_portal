@@ -101,8 +101,47 @@
 }
 .qd-mini:hover:not(:disabled) { background: var(--qd-accent); border-color: var(--qd-accent); color: #fff; }
 
+.qd-voltar { display: none; }
+/* Botões de correcção por linha: só a inicial no computador, o valor inteiro no telemóvel */
+.qd-mini-l { display: none; }
+@media (max-width: 720px) { .qd-mini-c { display: none; } .qd-mini-l { display: inline; } }
+
 @media (max-width: 900px) {
-  .qd-layout { grid-template-columns: 1fr; padding: 12px 16px; }
-  .qd-checks { position: static; }
-  .qd-toolbar { padding: 12px 16px; }
+  .qd-layout { grid-template-columns: 1fr; padding: 10px 12px; }
+  .qd-checks { position: static; max-height: none; overflow: visible; }
+  .qd-toolbar { padding: 10px 12px; position: static; }
+  .qd-check { min-height: 48px; }
+
+  /* Uma coisa de cada vez: a lista de verificações ou os registos */
+  .qd-layout.vista-lista .qd-panel { display: none; }
+  .qd-layout.vista-registos .qd-checks { display: none; }
+  .qd-voltar {
+    display: inline-flex; align-items: center; height: 34px; padding: 0 12px; margin-bottom: 10px;
+    border: 1px solid var(--qd-border); border-radius: 8px; background: var(--qd-card);
+    color: var(--qd-accent); font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  }
+}
+
+@media (max-width: 720px) {
+  .qd-panel-head { padding: 14px 14px 8px; }
+  .qd-actions { padding: 10px 14px; }
+  .qd-actions .qd-btn { height: 38px; }
+
+  /* Registos em cartões */
+  .qd-table-wrap { max-height: none; overflow: visible; }
+  .qd-table thead { display: none; }
+  .qd-table, .qd-table tbody, .qd-table tr, .qd-table td { display: block; width: 100%; }
+  .qd-table tr { position: relative; padding: 10px 14px; border-bottom: 1px solid var(--qd-border); }
+  .qd-table td { border: 0; padding: 2px 0; }
+  .qd-table tbody tr:hover td { background: none; }
+  .qd-table td.qd-td-nome { font-weight: 600; font-size: 0.92rem; padding: 0 36px 4px 0; }
+  .qd-table td.qd-td-sel { position: absolute; top: 8px; right: 10px; width: auto; padding: 0; }
+  .qd-table td.qd-td-sel input { width: 20px; height: 20px; }
+  .qd-table td[data-l] { position: relative; padding-left: 104px; min-height: 22px; }
+  .qd-table td[data-l]::before {
+    content: attr(data-l); position: absolute; left: 0; top: 4px; width: 96px;
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--qd-muted);
+  }
+  .qd-row-fix { white-space: normal; padding-top: 6px !important; }
+  .qd-mini { width: auto; min-width: 40px; height: 34px; padding: 0 10px; margin: 0 6px 4px 0; }
 }

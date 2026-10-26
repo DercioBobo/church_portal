@@ -71,7 +71,7 @@ function createQualidadeApp() {
 
   <div v-if="loading" class="qd-loading"><div class="qd-spinner"></div> A verificar…</div>
 
-  <div v-else class="qd-layout">
+  <div v-else class="qd-layout" :class="'vista-' + vista">
     <!-- Verificações -->
     <div class="qd-checks">
       <template v-for="a in areas" :key="a.nome">
@@ -96,6 +96,7 @@ function createQualidadeApp() {
       <div v-if="!actual" class="qd-empty">Escolha uma verificação à esquerda.</div>
       <template v-else>
         <div class="qd-panel-head">
+          <button class="qd-voltar" @click="vista = 'lista'">← Verificações</button>
           <div>
             <h2>{{ actual.titulo }}</h2>
             <p class="qd-muted">{{ actual.descricao }}</p>
@@ -132,12 +133,12 @@ function createQualidadeApp() {
             </thead>
             <tbody>
               <tr v-for="r in registos" :key="r.name">
-                <td v-if="actual.correccao"><input type="checkbox" :value="r.name" v-model="seleccionados"></td>
-                <td><a :href="link(r)" target="_blank">{{ nomeDe(r) }}</a></td>
-                <td v-for="c in actual.colunas" :key="c">{{ r[c] || '—' }}</td>
-                <td v-if="actual.correccao && actual.correccao.por_linha" class="qd-row-fix">
+                <td v-if="actual.correccao" class="qd-td-sel"><input type="checkbox" :value="r.name" v-model="seleccionados"></td>
+                <td class="qd-td-nome"><a :href="link(r)" target="_blank">{{ nomeDe(r) }}</a></td>
+                <td v-for="c in actual.colunas" :key="c" :data-l="rotulo(c)">{{ r[c] || '—' }}</td>
+                <td v-if="actual.correccao && actual.correccao.por_linha" class="qd-row-fix" data-l="Corrigir">
                   <button v-for="val in actual.correccao.valores" :key="val" class="qd-mini"
-                          :disabled="saving" @click="aplicarLinha(r, val)">{{ val[0] }}</button>
+                          :disabled="saving" @click="aplicarLinha(r, val)" :title="val"><span class="qd-mini-c">{{ val[0] }}</span><span class="qd-mini-l">{{ val }}</span></button>
                 </td>
               </tr>
             </tbody>
@@ -184,8 +185,13 @@ function createQualidadeApp() {
         }
       }
 
+      // Telemóvel: ou a lista de verificações, ou os registos de uma (com "← Verificações")
+      const vista = ref('lista');
+
       async function abrir(v) {
         actual.value = v;
+        vista.value = 'registos';
+        if (window.innerWidth <= 900) window.scrollTo({ top: 0 });
         seleccionados.value = [];
         loadingRegistos.value = true;
         try {
@@ -245,6 +251,7 @@ function createQualidadeApp() {
       return {
         verificacoes, loading, actual, registos, loadingRegistos, seleccionados, saving,
         totalProblemas, areas, nomeDe, todosSeleccionados, carregar, abrir, toggleTodos, aplicar, aplicarLinha, rotulo, link,
+        vista,
       };
     },
   });

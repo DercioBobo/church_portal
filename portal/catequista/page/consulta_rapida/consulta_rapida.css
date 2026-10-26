@@ -197,9 +197,54 @@
 .cr-sacr span.on { opacity: 1; background: rgba(22, 163, 74, 0.12); color: var(--cr-wa); }
 
 /* ── Mobile ──────────────────────────────────────────────────────────────── */
+.cr-nav-toggle { display: none; }
+
 @media (max-width: 900px) {
-  .cr-layout { grid-template-columns: 1fr; padding: 12px 16px; }
-  .cr-nav { position: static; max-height: 260px; }
-  .cr-toolbar { padding: 12px 16px; }
+  .cr-layout { grid-template-columns: 1fr; gap: 10px; padding: 10px 12px; }
+  .cr-toolbar { padding: 10px 12px; gap: 8px; position: static; }
+  .cr-toolbar h1 { flex: 1; }
   .cr-search { min-width: 100%; order: 3; }
+  .cr-search input { height: 40px; font-size: 16px; }   /* 16px: o iPhone não faz zoom ao escrever */
+
+  /* Menu de fases: fechado por defeito, abre com o botão */
+  .cr-nav-toggle {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 14px; border: 1px solid var(--cr-border); border-radius: 10px;
+    background: var(--cr-card); color: var(--cr-text); font-size: 0.88rem; text-align: left; cursor: pointer;
+  }
+  .cr-nav-toggle > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cr-layout:not(.nav-aberta) .cr-nav { display: none; }
+  .cr-nav { position: static; max-height: 60vh; }
+  .cr-nav-item, .cr-nav-row { min-height: 44px; }
+  .cr-sub-main { padding: 9px 8px 9px 2px; }
+}
+
+@media (max-width: 720px) {
+  .cr-head { padding: 14px 14px 0; }
+  .cr-group { padding: 0 14px 8px; }
+  .cr-actions { width: 100%; }
+  .cr-btn { height: 36px; flex: 1; }
+  .cr-tabs { margin: 12px -14px 0; padding: 0 6px; overflow-x: auto; scrollbar-width: none; }
+  .cr-tabs button { white-space: nowrap; padding: 10px; }
+  .cr-people { gap: 10px 20px; }
+
+  /* Tabelas viram cartões: o nome em cima, o resto com o rótulo à esquerda */
+  .cr-table-wrap { max-height: none; overflow: visible; }
+  .cr-table thead { display: none; }
+  .cr-table, .cr-table tbody, .cr-table tr, .cr-table td { display: block; width: 100%; }
+  .cr-table tr { padding: 10px 14px; border-bottom: 1px solid var(--cr-border); }
+  .cr-group .cr-table tr { padding: 10px 0; }
+  .cr-table tr:last-child { border-bottom: 0; }
+  .cr-table td { border: 0 !important; padding: 2px 0; text-align: left !important; }
+  .cr-table td.cr-td-nome { font-size: 0.95rem; font-weight: 600; padding-bottom: 4px; }
+  .cr-table td[data-l] { position: relative; padding-left: 104px; min-height: 22px; }
+  .cr-table td[data-l]::before {
+    content: attr(data-l); position: absolute; left: 0; top: 4px; width: 96px;
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--cr-muted);
+  }
+  .cr-table tbody tr:hover td { background: none; }
+  .cr-table tr.cr-grupo { padding: 0; }
+  .cr-table tr.cr-grupo td { padding: 8px 14px; }
+  .cr-phone { margin: 0 8px 2px 0; }
+  #cr-app .cr-wa { line-height: 20px; padding: 0 8px; }   /* maior para o dedo */
 }

@@ -204,6 +204,7 @@ function createGerirPreparacaoApp() {
       </div>
 
       <!-- Tabela -->
+      <p class="gp-dica-mobile">Toque no nome para ver e editar tudo (contactos, pagamentos, observações).</p>
       <div class="gp-tabela-wrap">
         <table class="gp-tabela">
           <thead>
@@ -222,7 +223,7 @@ function createGerirPreparacaoApp() {
                 <span v-if="r.situacao === NAO" class="gp-motivo">{{ r.motivo_nao_recebe || NAO }}</span>
                 <small>{{ r.turma || r.comunidade || '—' }}</small>
               </td>
-              <td v-for="c in colunasVisiveis" :key="c.id" :class="'gp-t-' + c.tipo">
+              <td v-for="c in colunasVisiveis" :key="c.id" :class="'gp-t-' + c.tipo" :data-l="c.rotulo">
                 <button v-if="c.tipo === 'chk'" class="gp-check" :class="{ on: r[c.campo] }" :disabled="!p.pode_editar"
                         @click="guardar(r, c.campo, r[c.campo] ? 0 : 1)">✓</button>
                 <select v-else-if="c.tipo === 'sel'" class="gp-cel" :value="r[c.campo] || ''" :disabled="!p.pode_editar" @change="guardar(r, c.campo, $event.target.value)">

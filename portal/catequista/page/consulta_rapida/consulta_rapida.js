@@ -110,7 +110,13 @@ function createConsultaApp() {
 
   <div v-if="loading" class="cr-loading"><div class="cr-spinner"></div> A carregar…</div>
 
-  <div v-else class="cr-layout">
+  <div v-else class="cr-layout" :class="{ 'nav-aberta': navAberta }">
+
+    <!-- Telemóvel: o menu de fases fica fechado; este botão abre-o -->
+    <button class="cr-nav-toggle" @click="navAberta = !navAberta">
+      <span>☰ <b>{{ q ? 'Pesquisa' : (turma ? turma.name : tituloSeleccao) }}</b></span>
+      <span class="cr-muted">{{ navAberta ? 'fechar ▲' : 'fases e turmas ▼' }}</span>
+    </button>
 
     <!-- ── Navegação ─────────────────────────────────────────────────── -->
     <nav class="cr-nav">
@@ -161,10 +167,10 @@ function createConsultaApp() {
           <table class="cr-table">
             <tbody>
               <tr v-for="c in resultados.catecumenos" :key="c.turma + c.catecumeno" :class="{ inativo: !isActivo(c) }">
-                <td><a :href="slug('catecumeno', c.catecumeno)">{{ c.nome }}</a></td>
-                <td><button class="cr-link" @click="abrirTurma(c.turma)">{{ c.turma }}</button></td>
-                <td>{{ c.encarregado || '—' }}</td>
-                <td><phone :n="c.contacto"></phone></td>
+                <td class="cr-td-nome"><a :href="slug('catecumeno', c.catecumeno)">{{ c.nome }}</a></td>
+                <td data-l="Turma"><button class="cr-link" @click="abrirTurma(c.turma)">{{ c.turma }}</button></td>
+                <td data-l="Encarregado">{{ c.encarregado || '—' }}</td>
+                <td data-l="Contacto"><phone :n="c.contacto"></phone></td>
               </tr>
             </tbody>
           </table>
@@ -175,9 +181,9 @@ function createConsultaApp() {
           <table class="cr-table">
             <tbody>
               <tr v-for="x in resultados.catequistas" :key="x.nome">
-                <td><a v-if="x.link" :href="x.link">{{ x.nome }}</a><span v-else>{{ x.nome }}</span></td>
-                <td><phone v-for="n in x.contactos" :key="n" :n="n"></phone></td>
-                <td class="cr-small">
+                <td class="cr-td-nome"><a v-if="x.link" :href="x.link">{{ x.nome }}</a><span v-else>{{ x.nome }}</span></td>
+                <td data-l="Contacto"><phone v-for="n in x.contactos" :key="n" :n="n"></phone></td>
+                <td data-l="Turmas" class="cr-small">
                   <button v-for="t in x.turmas" :key="t.name" class="cr-link cr-block" @click="abrirTurma(t.name)">{{ t.name }}</button>
                 </td>
               </tr>
@@ -190,9 +196,9 @@ function createConsultaApp() {
           <table class="cr-table">
             <tbody>
               <tr v-for="t in resultados.turmas" :key="t.name">
-                <td><button class="cr-link" @click="abrirTurma(t.name)">{{ t.name }}</button></td>
-                <td>{{ t.fase }}</td>
-                <td>{{ horario(t) }}</td>
+                <td class="cr-td-nome"><button class="cr-link" @click="abrirTurma(t.name)">{{ t.name }}</button></td>
+                <td data-l="Fase">{{ t.fase }}</td>
+                <td data-l="Horário">{{ horario(t) }}</td>
               </tr>
             </tbody>
           </table>
@@ -259,11 +265,11 @@ function createConsultaApp() {
             <thead><tr><th>Turma</th><th>Horário</th><th>Catequista</th><th>Contacto</th><th class="num">Catecúmenos</th></tr></thead>
             <tbody>
               <tr v-for="t in turmasDetalhe" :key="t.name" class="cr-click" @click="abrirTurma(t.name)">
-                <td><b>{{ t.name }}</b></td>
-                <td>{{ horario(t) || '—' }}</td>
-                <td>{{ t.pessoas.map(p => p.nome).join(', ') || '—' }}</td>
-                <td @click.stop><phone v-if="t.pessoas[0]" :n="t.pessoas[0].contacto"></phone></td>
-                <td class="num">{{ t.activos }}</td>
+                <td class="cr-td-nome"><b>{{ t.name }}</b></td>
+                <td data-l="Horário">{{ horario(t) || '—' }}</td>
+                <td data-l="Catequista">{{ t.pessoas.map(p => p.nome).join(', ') || '—' }}</td>
+                <td data-l="Contacto" @click.stop><phone v-if="t.pessoas[0]" :n="t.pessoas[0].contacto"></phone></td>
+                <td data-l="Catecúmenos" class="num">{{ t.activos }}</td>
               </tr>
             </tbody>
           </table>
@@ -274,17 +280,17 @@ function createConsultaApp() {
             <thead><tr><th>Catequista</th><th>Contacto</th><th>Turmas</th><th class="num">Catecúmenos</th></tr></thead>
             <tbody>
               <tr v-for="x in catequistasSel" :key="x.nome" :class="{ inativo: x.status === 'Inactivo' }">
-                <td>
+                <td class="cr-td-nome">
                   <a v-if="x.link" :href="x.link">{{ x.nome }}</a><span v-else>{{ x.nome }}</span>
                   <span v-if="x.status === 'Inactivo'" class="cr-badge grey">Inactivo</span>
                 </td>
-                <td><phone v-for="n in x.contactos" :key="n" :n="n"></phone><span v-if="!x.contactos.length" class="cr-muted">—</span></td>
-                <td class="cr-small">
+                <td data-l="Contacto"><phone v-for="n in x.contactos" :key="n" :n="n"></phone><span v-if="!x.contactos.length" class="cr-muted">—</span></td>
+                <td data-l="Turmas" class="cr-small">
                   <button v-for="t in x.turmas" :key="t.name" class="cr-link cr-block" @click="abrirTurma(t.name)">
                     {{ t.name }} <span class="cr-muted">({{ t.papel }})</span>
                   </button>
                 </td>
-                <td class="num">{{ x.catecumenos }}</td>
+                <td data-l="Catecúmenos" class="num">{{ x.catecumenos }}</td>
               </tr>
             </tbody>
           </table>
@@ -299,6 +305,7 @@ function createConsultaApp() {
 `,
 
     setup() {
+      const navAberta = ref(false);   // telemóvel: menu de fases aberto
       const anos = ref([]);
       const ano = ref('');
       const loading = ref(true);
@@ -385,6 +392,7 @@ function createConsultaApp() {
       }
       // Clique no nome: só esta fase (mantém o separador actual; não abre as turmas no menu)
       function abrirFase(nome) {
+        navAberta.value = false;
         search.value = '';
         selFases.value = [nome];
         selTurmas.value = [];
@@ -394,6 +402,7 @@ function createConsultaApp() {
       // Clique no nome da turma: só esta turma
       function abrirTurma(nome) {
         if (!turmaPorNome.value[nome]) return;
+        navAberta.value = false;
         search.value = '';
         selFases.value = [];
         selTurmas.value = [nome];
@@ -419,6 +428,7 @@ function createConsultaApp() {
         sortKey.value = 'turma';
       }
       function limparSeleccao() {
+        navAberta.value = false;
         search.value = '';
         selFases.value = [];
         selTurmas.value = [];
@@ -613,7 +623,7 @@ function createConsultaApp() {
         fasesNav, totalActivos, abrirFase, abrirTurma, curto, turma, pessoas, horario,
         turmasDetalhe, catecumenosSel, catequistasSel, statsLinha, resultados,
         catecumenosOrdenados, ordenar, seta, sortKey, copiarCatequistas, copiarEncarregados, exportar, exportarCatecumenos,
-        slug, isActivo,
+        slug, isActivo, navAberta,
       };
     },
   })
@@ -665,18 +675,18 @@ function createConsultaApp() {
         </td>
       </tr>
       <tr :class="{ inativo: l.c.estado === 'Inativo' }">
-        <td>
+        <td class="cr-td-nome">
           <a :href="'/app/catecumeno/' + encodeURIComponent(l.c.catecumeno)">{{ l.c.nome }}</a>
           <span v-if="l.c.estado === 'Inativo'" class="cr-badge grey">Inativo</span>
           <span v-if="l.c.comunidade === 'Santa Ana'" class="cr-badge">Santa Ana</span>
         </td>
-        <td v-if="mostraTurma" class="cr-small"><button class="cr-link" @click="$emit('turma', l.c.turma)">{{ l.c.turma }}</button></td>
-        <td class="num">{{ l.c.idade || '—' }}</td>
-        <td>{{ l.c.encarregado || '—' }}</td>
-        <td><phone :n="l.c.contacto"></phone><span v-if="!l.c.contacto" class="cr-muted">—</span></td>
-        <td class="num">{{ l.c.nr_de_faltas || 0 }}</td>
-        <td>{{ l.c.ficha_de_catecumeno ? '✔' : '—' }}</td>
-        <td class="cr-sacr"><span :class="{ on: l.c.baptismo }">B</span><span :class="{ on: l.c.eucaristia }">E</span><span :class="{ on: l.c.crisma }">C</span></td>
+        <td v-if="mostraTurma" data-l="Turma" class="cr-small"><button class="cr-link" @click="$emit('turma', l.c.turma)">{{ l.c.turma }}</button></td>
+        <td data-l="Idade" class="num">{{ l.c.idade || '—' }}</td>
+        <td data-l="Encarregado">{{ l.c.encarregado || '—' }}</td>
+        <td data-l="Contacto"><phone :n="l.c.contacto"></phone><span v-if="!l.c.contacto" class="cr-muted">—</span></td>
+        <td data-l="Faltas" class="num">{{ l.c.nr_de_faltas || 0 }}</td>
+        <td data-l="Ficha">{{ l.c.ficha_de_catecumeno ? '✔' : '—' }}</td>
+        <td data-l="Sacramentos" class="cr-sacr"><span :class="{ on: l.c.baptismo }">B</span><span :class="{ on: l.c.eucaristia }">E</span><span :class="{ on: l.c.crisma }">C</span></td>
       </tr>
       </template>
     </tbody>

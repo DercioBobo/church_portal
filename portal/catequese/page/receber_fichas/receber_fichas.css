@@ -120,7 +120,21 @@ button.rf-chip { cursor: pointer; font-family: inherit; }
 .rf-linha-s a { font-weight: 600; flex: 1; }
 
 @media (max-width: 720px) {
-  #rf-app { padding: 12px 12px 40px; }
-  .rf-input { min-width: 100%; }
-  .rf-linha { flex-wrap: wrap; }
+  #rf-app { padding: 10px 10px 40px; }
+  .rf-head { padding: 12px 14px 12px 18px; }
+  .rf-head h1 { font-size: 1.15rem; }
+  .rf-kpi { flex-direction: row; align-items: baseline; gap: 8px; width: 100%; flex-wrap: wrap; }
+  .rf-kpi i { flex-basis: 100%; }
+  .rf-input { min-width: 100%; font-size: 16px; }   /* 16px: o iPhone não faz zoom ao escrever */
+  .rf-select { flex: 1; height: 38px; }
+
+  /* Cartão: nome e dados em cima; chips e botões numa linha por baixo */
+  .rf-linha { flex-wrap: wrap; gap: 8px; padding: 12px; }
+  .rf-info { flex-basis: 100%; }
+  .rf-btn { height: 38px; flex: 1; }
+  .rf-chip { line-height: 26px; padding: 0 10px; }
+  .rf-chip.aviso { flex-basis: 100%; text-align: center; }
+  .rf-falta-nasc .rf-btn { flex-basis: 100%; }
+  .rf-linha-s { flex-wrap: wrap; padding: 10px 14px; }
+  .rf-linha-s a { flex-basis: 100%; }
 }

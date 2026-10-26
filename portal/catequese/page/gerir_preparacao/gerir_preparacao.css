@@ -262,10 +262,66 @@
 .gp-pc-prog i { display: block; height: 5px; border-radius: 3px; background: rgba(184, 136, 46, 0.15); overflow: hidden; }
 .gp-pc-prog em { display: block; height: 100%; background: linear-gradient(90deg, #e8c464, #b8882e); }
 
+.gp-dica-mobile { display: none; }
+
 @media (max-width: 720px) {
   #gp-app { padding: 10px 10px 40px; }
   .gp-campos { grid-template-columns: 1fr; }
+  .gp-head { padding: 12px 14px 12px 18px; }
+  .gp-head h1 { font-size: 1.1rem; }
   .gp-head-accoes { width: 100%; }
+  .gp-head-accoes .gp-btn { height: 36px; }
+  .gp-guardar { display: block; margin: 2px 0 0; }
+  .gp-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .gp-kpi b { font-size: 1.15rem; }
+
+  .gp-search { flex-basis: 100%; max-width: none; min-width: 0; height: 40px; font-size: 16px; }
+  .gp-filtros .gp-select { flex: 1; height: 36px; }
+  .gp-massa { top: calc(var(--navbar-height, 48px) + 4px); }
+  .gp-massa > b { flex-basis: 100%; }
+  .gp-massa .gp-btn, .gp-massa .gp-select { height: 36px; }
+
+  /* Menus (Lista, Imprimir, Link, Colunas): folha em baixo, não saem do ecrã */
+  .gp-menu-itens, .gp-menu-longo, .gp-colunas {
+    position: fixed; left: 8px; right: 8px; top: auto; bottom: 8px; z-index: 1040;
+    min-width: 0; max-height: 70vh; overflow-y: auto; border-radius: 14px; padding: 8px;
+    box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.3);
+  }
+  .gp-menu-itens button { padding: 11px 12px; }
+  .gp-menu-linha { padding: 10px 12px; }
+  .gp-menu-linha a { padding: 4px 8px; }
+
+  /* Candidatos em cartões: [☐] nome [›] em cima; os vistos rápidos (e selecções) em baixo */
+  .gp-dica-mobile { display: block; margin: 0 2px 6px; font-size: 0.75rem; color: var(--gp-muted); }
+  .gp-tabela-wrap { overflow: visible; }
+  .gp-tabela thead { display: none; }
+  .gp-tabela, .gp-tabela tbody { display: block; width: 100%; }
+  .gp-tabela tr { position: relative; display: flex; flex-wrap: wrap; align-items: center; padding: 10px 10px 10px 42px; border-top: 1px solid var(--gp-border); }
+  .gp-tabela tbody tr:first-child { border-top: 0; }
+  .gp-tabela td { display: block; border: 0; padding: 0; background: none !important; }
+  .gp-tabela tr.fora { box-shadow: inset 3px 0 0 #dc2626; }
+  .gp-tabela tr.fora td:first-child { box-shadow: none; }
+  .gp-tabela tr.sel, .gp-tabela tr.activa { background: rgba(232, 196, 100, 0.14); }
+  .gp-tabela td.gp-c-sel { position: absolute; left: 12px; top: 12px; width: auto; }
+  .gp-c-sel input { width: 20px; height: 20px; }
+  .gp-c-nome { flex: 1 1 calc(100% - 40px); min-width: 0; }
+  .gp-c-nome b { font-size: 0.92rem; }
+  .gp-c-obs { flex: 0 0 40px; width: 40px; font-size: 1.2rem; }
+  .gp-tabela td[data-l] {
+    display: inline-flex; align-items: center; gap: 6px; width: auto; margin: 8px 14px 0 0;
+    text-align: left !important; font-size: 0.78rem;
+  }
+  .gp-tabela td[data-l]::before { content: attr(data-l); font-size: 0.72rem; font-weight: 700; color: var(--gp-muted); }
+  .gp-check { width: 34px; height: 34px; }
+  .gp-tabela .gp-t-sel .gp-cel { min-width: 96px; height: 34px; border-color: var(--gp-border); background: var(--gp-card); }
+  /* texto, valores, datas e telefones: editam-se no painel */
+  .gp-tabela .gp-t-num, .gp-tabela .gp-t-data, .gp-tabela .gp-t-tel, .gp-tabela .gp-t-txt { display: none !important; }
+
+  /* Painel do candidato: ecrã inteiro; 16px nos campos para o iPhone não fazer zoom */
+  .gp-painel { width: 100vw; }
+  .gp-painel input, .gp-painel select, .gp-painel textarea { font-size: 16px; }
+  .gp-painel input, .gp-painel select { height: 40px; }
+  .gp-fechar { width: 40px; height: 40px; font-size: 1.3rem; }
 }
 
 /* Colunas escolhidas pelo utilizador */
