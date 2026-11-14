@@ -244,6 +244,28 @@ def get_historico_catecumeno(catecumeno):
             })
     except Exception as e:
         frappe.log_error(f"Erro ao buscar transferências: {str(e)}", "Histórico Catecúmeno")
+
+    # === 4b. READMISSÕES / REACTIVAÇÕES / TRANSFERÊNCIAS ANULADAS (comentários "Info") ===
+    try:
+        from portal.catequese.catecumeno_reactivar import PREFIXOS_HISTORICO
+        regressos = frappe.get_all(
+            "Comment",
+            filters={"reference_doctype": "Catecumeno", "reference_name": catecumeno, "comment_type": "Info"},
+            or_filters=[["content", "like", f"{p}%"] for p in PREFIXOS_HISTORICO],
+            fields=["creation", "content"], order_by="creation asc", limit_page_length=0,
+        )
+        for r in regressos:
+            anulada = r.content.startswith("Transferência anulada")
+            eventos.append({
+                "data": str(r.creation),
+                "tipo": "regresso",
+                "icone": "↩️" if anulada else "🔄",
+                "titulo": "Transferência anulada" if anulada else r.content.split(" ", 1)[0],
+                "descricao": frappe.utils.escape_html(r.content),
+                "cor": "#28a745",
+            })
+    except Exception as e:
+        frappe.log_error(f"Erro ao buscar readmissões: {str(e)}", "Histórico Catecúmeno")
     
     # === 5. PREPARAÇÕES DE SACRAMENTO ===
     try:

@@ -79,8 +79,8 @@ function createRenovacoesApp() {
     </div>
 
     <div class="rv-tabs">
-      <button class="rv-tab" :class="{ active: vista === 'turmas' }" @click="vista = 'turmas'">Por turma <span>{{ d.turmas.length }}</span></button>
       <button class="rv-tab" :class="{ active: vista === 'por' }" @click="vista = 'por'">Ainda não renovaram <span class="aviso">{{ d.por_renovar.length }}</span></button>
+      <button class="rv-tab" :class="{ active: vista === 'turmas' }" @click="vista = 'turmas'">Por turma <span>{{ d.turmas.length }}</span></button>
       <button class="rv-tab" :class="{ active: vista === 'ren' }" @click="vista = 'ren'">Renovados <span class="ok">{{ d.renovados.length }}</span></button>
     </div>
 
@@ -173,7 +173,7 @@ function createRenovacoesApp() {
       const d = ref({});
       const ano = ref(null);
       const loading = ref(false);
-      const vista = ref('turmas');
+      const vista = ref('por');
       const busca = ref('');
       const turma = ref('');
       const soSemValor = ref(false);

@@ -90,9 +90,11 @@ frappe.ui.form.on('Catecumeno', {
         if (!frm.doc.turma && ['Pendente', 'Activo'].includes(frm.doc.status)) {
             frm.add_custom_button(__('Alocar Turma'), () => alocar_turma(frm), __('Acções'));
         }
-        // Reactivar: catecúmeno inactivo
+        // Reactivar (inactivo) / Readmitir (transferido que voltou à paróquia)
         if (['Inactivo', 'Inativo'].includes(frm.doc.status)) {
             frm.add_custom_button(__('Reactivar Catecúmeno'), () => reactivar_catecumeno(frm), __('Acções'));
+        } else if (frm.doc.status === 'Transferido') {
+            frm.add_custom_button(__('Readmitir Catecúmeno'), () => reactivar_catecumeno(frm), __('Acções'));
         }
     }
 });
@@ -279,8 +281,10 @@ function executar_alocacao(frm, turma, dialog) {
 // ============ FUNÇÕES DO REACTIVAR (do script anterior) ============
 
 function reactivar_catecumeno(frm) {
+    const readmitir = frm.doc.status === 'Transferido';
+    const accao = readmitir ? 'Readmitir' : 'Reactivar';
     let d = new frappe.ui.Dialog({
-        title: '🔄 Reactivar Catecúmeno',
+        title: `🔄 ${accao} Catecúmeno`,
         size: 'small',
         fields: [
             {
@@ -288,7 +292,7 @@ function reactivar_catecumeno(frm) {
                 fieldname: 'info_html',
                 options: `
                     <div style="padding: 10px; background: #fff3cd; border-radius: 8px; margin-bottom: 15px;">
-                        <strong>⚠️ Reactivação de Catecúmeno</strong><br>
+                        <strong>⚠️ ${readmitir ? 'Readmissão (regresso à paróquia)' : 'Reactivação de Catecúmeno'}</strong><br>
                         <span style="font-size: 13px;">
                             Catecúmeno: <strong>${frm.doc.name}</strong><br>
                             Status actual: <strong style="color: #dc3545;">${frappe.utils.escape_html(frm.doc.status || '')}</strong><br>
@@ -345,7 +349,7 @@ function reactivar_catecumeno(frm) {
                 label: 'Observações (opcional)'
             }
         ],
-        primary_action_label: __('Reactivar'),
+        primary_action_label: __(accao),
         primary_action: function(values) {
             if (!values.fase || !values.turma) {
                 frappe.msgprint(__('Seleccione a Fase e a Turma.'));
@@ -361,11 +365,11 @@ function reactivar_catecumeno(frm) {
                     observacoes: values.observacoes || ''
                 },
                 freeze: true,
-                freeze_message: __('A reactivar...'),
+                freeze_message: readmitir ? __('A readmitir...') : __('A reactivar...'),
                 callback: function(r) {
                     if (r.message && r.message.success) {
                         d.hide();
-                        frappe.show_alert({message: __('Reactivado com sucesso!'), indicator: 'green'});
+                        frappe.show_alert({message: readmitir ? __('Readmitido com sucesso!') : __('Reactivado com sucesso!'), indicator: 'green'});
                         frm.reload_doc();
                     } else {
                         frappe.msgprint({title: __('Erro'), indicator: 'red', message: r.message?.error || 'Erro'});

@@ -173,6 +173,77 @@ class TestMovimentos(BaseCatequese):
         self.assertNotIn(c.name, nomes_na_turma(t.name))
         self.assertEqual(frappe.db.get_value("Catecumeno", c.name, "status"), "Transferido")
 
+    def transferir(self, c, t):
+        return frappe.get_doc({
+            "doctype": "Transferencia de Catecumeno", "catecumeno": c.name, "turma": t.name,
+            "nova_paroquia": "Paróquia X",
+        }).insert().submit()
+
+    def test_cancelar_transferencia_devolve_a_turma(self):
+        c = catecumeno("_Teste Transf Engano")
+        t = turma(FASE_A, [c])
+        tr = self.transferir(c, t)
+
+        tr.cancel()
+
+        self.assertIn(c.name, nomes_na_turma(t.name))
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["status", "turma"]), ("Activo", t.name))
+        from portal.catequese.catecumeno_historico_api import get_historico_catecumeno
+        tipos = {e["tipo"] for e in get_historico_catecumeno(c.name)["eventos"]}
+        self.assertIn("regresso", tipos)
+        self.assertNotIn("transferencia", tipos)
+
+    def test_cancelar_transferencia_com_turma_encerrada_fica_pendente(self):
+        c = catecumeno("_Teste Transf Turma Fechada")
+        t = turma(FASE_A, [c])
+        tr = self.transferir(c, t)
+        frappe.db.set_value("Turma", t.name, "status", "Inactivo")
+
+        tr.cancel()
+
+        status, turma_actual = frappe.db.get_value("Catecumeno", c.name, ["status", "turma"])
+        self.assertEqual(status, "Pendente")
+        self.assertFalse(turma_actual)
+
+    def test_cancelar_transferencia_depois_de_readmitido_nao_mexe(self):
+        from portal.catequese.catecumeno_reactivar import reactivar_catecumeno
+
+        c = catecumeno("_Teste Transf Ja Readmitido")
+        t = turma(FASE_A, [c])
+        tr = self.transferir(c, t)
+        nova = turma(FASE_B)
+        self.assertTrue(reactivar_catecumeno(c.name, FASE_B, nova.name)["success"])
+
+        tr.cancel()
+
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, "turma"), nova.name)
+        self.assertNotIn(c.name, nomes_na_turma(t.name))
+
+    def test_readmitir_transferido(self):
+        from portal.catequese.catecumeno_reactivar import reactivar_catecumeno
+
+        c = catecumeno("_Teste Readmitido")
+        t = turma(FASE_A, [c])
+        self.transferir(c, t)
+        nova = turma(FASE_B)
+
+        r = reactivar_catecumeno(c.name, FASE_B, nova.name, "Voltou de Paróquia X")
+
+        self.assertTrue(r["success"], r)
+        self.assertIn(c.name, nomes_na_turma(nova.name))
+        self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["status", "turma", "fase"]),
+                         ("Activo", nova.name, FASE_B))
+        from portal.catequese.catecumeno_historico_api import get_historico_catecumeno
+        titulos = [e["titulo"] for e in get_historico_catecumeno(c.name)["eventos"]]
+        self.assertIn("Readmitido", titulos)
+
+    def test_readmitir_activo_e_recusado(self):
+        from portal.catequese.catecumeno_reactivar import reactivar_catecumeno
+
+        c = catecumeno("_Teste Readmitir Activo")
+        t = turma(FASE_A)
+        self.assertFalse(reactivar_catecumeno(c.name, FASE_A, t.name)["success"])
+
 
 # ── Catecúmeno: sincronização com a turma ─────────────────────────────────────
 
