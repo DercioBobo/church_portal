@@ -42,11 +42,13 @@ def get_dados(ano=None):
         WHERE tc.parenttype = 'Turma' AND tc.parentfield = 'lista_catecumenos' AND tc.catecumeno IS NOT NULL
         ORDER BY tc.catecumeno
     """, ano, as_dict=True)
-    entregue = {r.turma: flt(r.total) for r in frappe.db.sql("""
-        SELECT turma, SUM(valor) AS total FROM `tabReceita Catequese`
-        WHERE fonte = 'Renovação' AND ano_lectivo = %s AND IFNULL(turma, '') != ''
-        GROUP BY turma
-    """, ano, as_dict=True)}
+    # Cada entrega do catequista é uma Receita (fonte Renovação) com turma; podem ser várias por turma.
+    entregas = {}
+    for r in frappe.get_all("Receita Catequese",
+                            filters={"fonte": "Renovação", "ano_lectivo": ano, "turma": ["is", "set"]},
+                            fields=["name", "turma", "data", "valor", "notas"],
+                            order_by="data asc, creation asc", limit_page_length=0):
+        entregas.setdefault(r.turma, []).append(r)
 
     por_turma = {t.name: dict(t, esperados=0, renovados=0, isentos=0, valor=0.0, valor_coord=0.0, sem_valor=0)
                  for t in turmas}
@@ -92,7 +94,8 @@ def get_dados(ano=None):
     for t in por_turma.values():
         if not t["esperados"]:
             continue
-        t["entregue"] = entregue.get(t["name"], 0.0)
+        t["entregas"] = entregas.get(t["name"], [])
+        t["entregue"] = sum(flt(e.valor) for e in t["entregas"])
         t["por_entregar"] = max(0.0, t["valor"] - t["entregue"])
         lista.append(t)
 

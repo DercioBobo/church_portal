@@ -977,6 +977,100 @@ class TestApuramento(BaseCatequese):
             doc.submit()
         self.assertIn("_Teste Apur Fase 4", str(ctx.exception))
 
+    def test_linhas_novas_ficam_activas(self):
+        # antes gravava "status" (campo que não existe na linha) e o estado ficava vazio
+        cs = [catecumeno(f"_Teste Apur Estado {i}") for i in range(2)]
+        origem = turma(fase("_Teste Apur Fase Estado", fase_seguinte_transita=FASE_B), cs)
+        self.apuramento(origem, {cs[0].name: "Transita", cs[1].name: "Permanece"}).submit()
+        for c in cs:
+            nova = frappe.db.get_value("Catecumeno", c.name, "turma")
+            self.assertEqual(
+                frappe.db.get_value("Turma Catecumenos", {"parent": nova, "catecumeno": c.name}, "estado"), "Activo")
+
+    def test_manter_estrutura(self):
+        a = [catecumeno(f"_Teste Apur ME A{i}") for i in range(2)]
+        b = [catecumeno(f"_Teste Apur ME B{i}") for i in range(2)]
+        f = fase("_Teste Apur Fase ME", fase_seguinte_transita=FASE_B)
+        ta, tb = turma(f, a), turma(f, b)
+        doc = self.apuramento(ta, {c.name: "Transita" for c in a + b}, tipo_distribuicao="Manter Estrutura",
+                              apuramento_turmas=[{"turma": ta.name, "incluir": 1}, {"turma": tb.name, "incluir": 1}])
+        for i in doc.apuramento_item:
+            i.turma_nome = ta.name if i.catecumeno in {c.name for c in a} else tb.name
+        doc.save()
+        doc.submit()
+        # uma turma nova por turma de origem, com os mesmos catecúmenos (sem misturar)
+        self.assertEqual(len(doc.apuramento_novas_turmas), 2)
+        self.assertEqual(frappe.db.get_value("Catecumeno", a[0].name, "turma"),
+                         frappe.db.get_value("Catecumeno", a[1].name, "turma"))
+        self.assertNotEqual(frappe.db.get_value("Catecumeno", a[0].name, "turma"),
+                            frappe.db.get_value("Catecumeno", b[0].name, "turma"))
+
+    def test_repetentes_juntam_se_as_turmas_existentes(self):
+        f = fase("_Teste Apur Fase Rep", fase_seguinte_transita=FASE_B)
+        existente = turma(f, [catecumeno("_Teste Apur Rep Ja La")], ano_nome=ANO_SEGUINTE)
+        rep = catecumeno("_Teste Apur Repetente")
+        origem = turma(f, [rep])
+        doc = self.apuramento(origem, {rep.name: "Permanece"}, destino_repetentes="Adicionar às Turmas Existentes")
+        doc.submit()
+        self.assertEqual(frappe.db.get_value("Catecumeno", rep.name, "turma"), existente.name)
+        self.assertEqual(nomes_na_turma(existente.name), {"_Teste Apur Rep Ja La", rep.name})
+        self.assertEqual(doc.apuramento_novas_turmas[0].incluir, 0)   # não foi criada pelo apuramento
+
+    def test_botao_criar_turmas_submete(self):
+        from portal.catequese.apuramento_turmas import criar_novas_turmas
+
+        c = catecumeno("_Teste Apur Botao")
+        origem = turma(fase("_Teste Apur Fase Botao", fase_seguinte_transita=FASE_B), [c])
+        doc = self.apuramento(origem, {c.name: "Transita"})
+        r = criar_novas_turmas(doc.name)
+        self.assertTrue(r["success"])
+        self.assertEqual(frappe.db.get_value("Apuramento de Turmas", doc.name, "docstatus"), 1)
+        self.assertFalse(criar_novas_turmas(doc.name)["success"])
+
+    def test_cancelar_desfaz_tudo(self):
+        f = fase("_Teste Apur Fase Cancel", fase_seguinte_transita=FASE_B)
+        existente = turma(f, [catecumeno("_Teste Apur Cancel Ja La")], ano_nome=ANO_SEGUINTE)
+        vai, fica, sai = (catecumeno(f"_Teste Apur Cancel {n}") for n in ("Transita", "Permanece", "Desiste"))
+        origem = turma(f, [vai, fica, sai])
+        doc = self.apuramento(origem, {vai.name: "Transita", fica.name: "Permanece", sai.name: "Desistente"},
+                              destino_repetentes="Adicionar às Turmas Existentes")
+        doc.submit()
+        criada = frappe.db.get_value("Catecumeno", vai.name, "turma")
+
+        doc.cancel()
+
+        self.assertEqual(frappe.db.get_value("Turma", origem.name, "status"), "Activo")
+        self.assertFalse(frappe.db.exists("Turma", criada))                      # turma criada foi apagada
+        self.assertEqual(nomes_na_turma(existente.name), {"_Teste Apur Cancel Ja La"})  # repetente retirado
+        for c in (vai, fica, sai):
+            self.assertEqual(frappe.db.get_value("Catecumeno", c.name, ["status", "turma", "fase"]),
+                             ("Activo", origem.name, f))
+        self.assertEqual(
+            frappe.db.get_value("Turma Catecumenos", {"parent": origem.name, "catecumeno": sai.name}, "estado"), "Activo")
+        # e pode ser feito de novo (emenda)
+        novo = frappe.copy_doc(doc)
+        novo.amended_from = doc.name
+        novo.apuramento_novas_turmas = []
+        novo.insert().submit()
+        self.assertEqual(frappe.db.get_value("Turma", origem.name, "status"), "Inactivo")
+
+    def test_transferido_depois_de_carregado_e_recusado(self):
+        c = catecumeno("_Teste Apur Transf Depois")
+        origem = turma(fase("_Teste Apur Fase TrDep", fase_seguinte_transita=FASE_B), [c])
+        doc = self.apuramento(origem, {c.name: "Transita"})
+        frappe.db.set_value("Catecumeno", c.name, "status", "Transferido")
+        self.assertRaises(frappe.ValidationError, doc.submit)
+
+    def test_carregar_ignora_quem_ja_saiu(self):
+        from portal.catequese.apuramento_turmas import carregar_catecumenos_das_turmas
+
+        fica, saiu, inactivo = (catecumeno(f"_Teste Apur Carregar {n}") for n in ("Fica", "Saiu", "Inactivo"))
+        origem = turma(fase("_Teste Apur Fase Carregar", fase_seguinte_transita=FASE_B), [fica, saiu, inactivo])
+        frappe.db.set_value("Catecumeno", saiu.name, "status", "Transferido")
+        frappe.db.set_value("Turma Catecumenos", {"parent": origem.name, "catecumeno": inactivo.name}, "estado", "Inativo")
+        nomes = {c["catecumeno"] for c in carregar_catecumenos_das_turmas(json.dumps([{"turma": origem.name, "incluir": 1}]))}
+        self.assertEqual(nomes, {fica.name})
+
     def test_distribuicao_equilibrada(self):
         from portal.catequese.doctype.apuramento_de_turmas.apuramento_de_turmas import _distribuir_em_turmas
 
@@ -1231,6 +1325,14 @@ class TestRenovacao(BaseCatequese):
         self.assertEqual((receita.fonte, receita.ano_lectivo, receita.turma), ("Renovação", "2601", t.name))
         self.assertEqual(linha()["por_entregar"], 0)
         self.assertRaises(frappe.ValidationError, registar_entrega, t.name)
+
+        # mais tarde o catequista recebe outra renovação: nova entrega, a primeira fica
+        self.marcar(t, cs[2].name, "Sim")
+        self.assertEqual(linha()["por_entregar"], 500)
+        r2 = registar_entrega(t.name)
+        x = linha()
+        self.assertEqual((x["entregue"], x["por_entregar"]), (1000, 0))
+        self.assertEqual([e.name for e in x["entregas"]], [r["receita"], r2["receita"]])
 
 
 class TestRenovacaoSemValor(BaseCatequese):

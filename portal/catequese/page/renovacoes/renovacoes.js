@@ -106,7 +106,13 @@ function createRenovacoesApp() {
               <div class="rv-small rv-muted"><template v-if="x.isentos">{{ x.isentos }} isento(s) </template><template v-if="x.sem_valor">· <a href="#" @click.prevent="vista = 'ren'; turma = x.name; soSemValor = true">{{ x.sem_valor }} sem valor registado</a></template></div>
             </td>
             <td data-l="Recebido" class="num">{{ moeda(x.valor) }}<div v-if="x.valor_coord" class="rv-small rv-muted">+ {{ moeda(x.valor_coord) }} coord.</div></td>
-            <td data-l="Entregue" class="num">{{ moeda(x.entregue) }}</td>
+            <td data-l="Entregue" class="num">{{ moeda(x.entregue) }}
+              <ul v-if="x.entregas && x.entregas.length" class="rv-entregas">
+                <li v-for="e in x.entregas" :key="e.name" :title="e.notas || ''">
+                  <a :href="'/app/receita-catequese/' + encodeURIComponent(e.name)">{{ dia(e.data) }} · {{ moeda(e.valor) }}</a>
+                </li>
+              </ul>
+            </td>
             <td data-l="Por entregar" class="num"><b :class="{ 'rv-falta': x.por_entregar > 0 }">{{ moeda(x.por_entregar) }}</b></td>
             <td class="rv-acc">
               <button v-if="x.por_entregar > 0" class="rv-btn rv-btn-ouro" @click="entregar(x)">✓ Recebido</button>

@@ -90,21 +90,16 @@ frappe.ui.form.on('Apuramento de Turmas', {
             return;
         }
 
-        // Verificar se documento foi guardado
-        if (frm.is_new()) {
-            frappe.msgprint(__('Guarde o documento primeiro antes de criar as turmas.'));
-            return;
-        }
-
-        // Confirmar
+        // Confirmar. Criar as turmas = SUBMETER o apuramento (um só caminho; cancelar desfaz).
         frappe.confirm(
-            __('Tem certeza que deseja criar as novas turmas? Esta acção irá:<br><br>' +
-                '• Criar novas turmas para os catecúmenos<br>' +
+            __('Tem certeza que deseja criar as novas turmas? O apuramento vai ser submetido e irá:<br><br>' +
+                '• Criar as turmas de {0} (ou juntar os repetentes às existentes, se escolhido)<br>' +
                 '• Actualizar a turma e fase de cada catecúmeno<br>' +
-                '• Inactivar as turmas de origem'),
+                '• Marcar os desistentes como Inactivos<br>' +
+                '• Inactivar as turmas de origem<br><br>' +
+                'Se houver um engano, cancele o apuramento: tudo volta ao que era.', [frm.doc.ano_lectivo_seguinte]),
             function () {
-                // Chamar API directamente sem save
-                executar_criar_turmas(frm);
+                frm.save('Submit');
             }
         );
     },
@@ -611,32 +606,6 @@ function gerar_html_preview(turmas_transitam, turmas_permanecem, fase_seguinte, 
     `;
 
     return html;
-}
-
-// Função para executar a criação de turmas
-function executar_criar_turmas(frm) {
-    frappe.call({
-        method: 'portal.catequese.apuramento_turmas.criar_novas_turmas',
-        args: {
-            apuramento_name: frm.doc.name
-        },
-        freeze: true,
-        freeze_message: __('A criar novas turmas...'),
-        callback: function (r) {
-            if (r.message && r.message.success) {
-                frappe.show_alert({
-                    message: __('Criadas {0} turma(s) com sucesso!', [r.message.total_turmas]),
-                    indicator: 'green'
-                });
-                frm.reload_doc();
-            } else {
-                frappe.msgprint(__('Erro: ') + (r.message ? r.message.error : 'Erro desconhecido'));
-            }
-        },
-        error: function (err) {
-            frappe.msgprint(__('Erro: ') + (err.message || err));
-        }
-    });
 }
 
 function gerar_turma_card(turma, ano_seguinte, fase, tipo, prefixo) {
